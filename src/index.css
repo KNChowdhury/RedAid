@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .editorial-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+  }
+  
+  .blood-gradient {
+    background: linear-gradient(135deg, #E11D48 0%, #9F1239 100%);
+  }
+
+  .blood-gradient-hover {
+    background: linear-gradient(135deg, #F43F5E 0%, #BE123C 100%);
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-dark {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .custom-scroll {
+    scrollbar-width: none;
+  }
+  .custom-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+

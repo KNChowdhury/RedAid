@@ -1,0 +1,6 @@
+{
+  "name": "LifelineBD",
+  "description": "Modern, premium blood donation platform. Every drop saves a life.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

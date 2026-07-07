@@ -27,17 +27,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems = [
+  const baseNavItems = [
     { id: 'network', label: 'Network' },
     { id: 'requests', label: 'Requests' },
     { id: 'map', label: 'Live Map' },
     { id: 'rewards', label: 'Rewards' },
     { id: 'ai-advisor', label: 'AI Health Hub' },
-    { id: 'hospital', label: 'Hospital Portal' },
-    { id: 'admin', label: 'Admin' }
+    { id: 'hospital', label: 'Hospital Portal' }
   ];
 
-  const visibleNavItems = navItems.filter(item => item.id !== 'admin' || currentUser?.role === 'admin');
+  const navItems = currentUser?.role === 'admin'
+    ? [...baseNavItems, { id: 'admin', label: 'Admin' }]
+    : baseNavItems;
+
+  const visibleNavItems = navItems;
 
   return (
     <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">

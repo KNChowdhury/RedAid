@@ -228,8 +228,12 @@ function mapDbDonorToProfile(row: any): DonorProfile {
       bloodPressure: row.blood_pressure || '',
       hemoglobin: row.hemoglobin || 0,
       hasChronicDisease: row.has_chronic_disease,
-      recentMedication: row.recent_medication || ''
-      ,
+      recentMedication: row.recent_medication || '',
+      hbsagStatus: row.hbsag_status || 'Not Tested',
+      hcvStatus: row.hcv_status || 'Not Tested',
+      hivStatus: row.hiv_status || 'Not Tested',
+      syphilisStatus: row.syphilis_status || 'Not Tested',
+      malariaStatus: row.malaria_status || 'Not Tested',
       healthMetrics: {
         hbsag: row.hbsag_status || 'Not Tested',
         anti_hcv: row.anti_hcv_status || 'Not Tested',
@@ -248,6 +252,53 @@ function mapDbDonorToProfile(row: any): DonorProfile {
 function getDicebearAvatarUrl(seed?: string) {
   const s = encodeURIComponent(seed || 'user');
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${s}`;
+}
+
+export async function updateDonorProfile(
+  donorId: string,
+  updates: Partial<{
+    name: string;
+    phone: string;
+    whatsapp: string;
+    district: string;
+    area: string;
+    hbsagStatus: string;
+    hcvStatus: string;
+    hivStatus: string;
+    syphilisStatus: string;
+    malariaStatus: string;
+  }>
+): Promise<DonorProfile | null> {
+  const { lat, lng } = updates.district && updates.area
+    ? lookupCoordinates(updates.district, updates.area)
+    : { lat: undefined, lng: undefined };
+
+  const dbUpdates: any = {};
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+  if (updates.whatsapp !== undefined) dbUpdates.whatsapp = updates.whatsapp;
+  if (updates.district !== undefined) dbUpdates.district = updates.district;
+  if (updates.area !== undefined) dbUpdates.area = updates.area;
+  if (lat !== undefined) dbUpdates.lat = lat;
+  if (lng !== undefined) dbUpdates.lng = lng;
+  if (updates.hbsagStatus !== undefined) dbUpdates.hbsag_status = updates.hbsagStatus;
+  if (updates.hcvStatus !== undefined) dbUpdates.hcv_status = updates.hcvStatus;
+  if (updates.hivStatus !== undefined) dbUpdates.hiv_status = updates.hivStatus;
+  if (updates.syphilisStatus !== undefined) dbUpdates.syphilis_status = updates.syphilisStatus;
+  if (updates.malariaStatus !== undefined) dbUpdates.malaria_status = updates.malariaStatus;
+
+  const { data, error } = await supabase
+    .from('donors')
+    .update(dbUpdates)
+    .eq('id', donorId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('Update donor error:', error);
+    return null;
+  }
+  return mapDbDonorToProfile(data);
 }
 
 function mapDbRequestToRequest(row: any): EmergencyRequest {

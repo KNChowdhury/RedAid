@@ -8,6 +8,11 @@ export interface HealthInfo {
   hemoglobin: number; // g/dL
   hasChronicDisease: boolean;
   recentMedication: string;
+  hbsagStatus?: 'Not Tested' | 'Negative' | 'Positive';
+  hcvStatus?: 'Not Tested' | 'Negative' | 'Positive';
+  hivStatus?: 'Not Tested' | 'Negative' | 'Positive';
+  syphilisStatus?: 'Not Tested' | 'Negative' | 'Positive';
+  malariaStatus?: 'Not Tested' | 'Negative' | 'Positive';
   healthMetrics?: {
     hbsag?: string; // Hepatitis B surface antigen
     anti_hcv?: string; // Hepatitis C

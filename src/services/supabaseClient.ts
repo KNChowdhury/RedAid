@@ -9,7 +9,7 @@ export const supabase = hasSupabaseConfig
   ? createClient(supabaseUrl!, supabaseAnonKey!, {
       auth: {
         persistSession: true,
-        detectSessionInUrl: false
+        detectSessionInUrl: true
       }
     })
   : null;

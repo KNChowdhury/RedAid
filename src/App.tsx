@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AiHealthAdvisor } from './components/AiHealthAdvisor';
 import { DonorsNetwork } from './components/DonorsNetwork';
@@ -8,7 +8,7 @@ import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestB
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
 import { SidebarStats } from './components/SidebarStats';
-import { filterDonors, getAppState, saveAppState, getCurrentDonorFromSession, signOutDonor, updateDonorProfile } from './services/lifelineService';
+import { createRequestInDb, deleteRequestFromDb, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, signOutDonor, toggleDonorVerification, updateDonorProfile } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
@@ -43,15 +43,76 @@ export function App() {
   useEffect(() => {
     async function restoreSession() {
       const donor = await getCurrentDonorFromSession();
-      if (donor) {
-        setState(prev => ({
-          ...prev,
-          currentUser: donor,
-          donors: prev.donors.some(d => d.id === donor.id) ? prev.donors : [donor, ...prev.donors]
-        }));
-      }
+      setState(prev => ({
+        ...prev,
+        currentUser: donor,
+        donors: donor ? (prev.donors.some(d => d.id === donor.id) ? prev.donors : [donor, ...prev.donors]) : prev.donors
+      }));
     }
     restoreSession();
+  }, []);
+
+  const requestsPollRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    async function loadSharedData() {
+      try {
+        const shared = await fetchSharedData();
+        setState(prev => ({
+          ...prev,
+          donors: shared.donors.length ? shared.donors : prev.donors,
+          requests: shared.requests.length ? shared.requests : prev.requests,
+          badges: shared.badges.length ? shared.badges : prev.badges
+        }));
+        requestsPollRef.current = shared.requests.map(r => r.id);
+      } catch (error) {
+        console.error('Failed to fetch shared Supabase data:', error);
+      }
+    }
+    loadSharedData();
+  }, []);
+
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const shared = await fetchSharedData();
+        setState(prev => {
+          const existingIds = new Set(prev.requests.map(r => r.id));
+          const newRequests = shared.requests.filter(r => !existingIds.has(r.id));
+          const newNotifications = newRequests.map(newReq => ({
+            id: `notif-${Date.now()}-${newReq.id}`,
+            title: `New request: ${newReq.bloodGroup}`,
+            message: `${newReq.patientName} needs ${newReq.requiredBags} bags at ${newReq.hospitalName}.`,
+            type: 'emergency' as const,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            read: false,
+            relatedBloodGroup: newReq.bloodGroup,
+            relatedRequestId: newReq.id
+          }));
+
+          if (newNotifications.length > 0) {
+            return {
+              ...prev,
+              donors: shared.donors.length ? shared.donors : prev.donors,
+              requests: shared.requests,
+              badges: shared.badges.length ? shared.badges : prev.badges,
+              notifications: [...newNotifications, ...prev.notifications]
+            };
+          }
+
+          return {
+            ...prev,
+            donors: shared.donors.length ? shared.donors : prev.donors,
+            requests: shared.requests.length ? shared.requests : prev.requests,
+            badges: shared.badges.length ? shared.badges : prev.badges
+          };
+        });
+      } catch (error) {
+        console.error('Failed to auto-refresh Supabase data:', error);
+      }
+    }, 30000);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   // Current User coordinates
@@ -62,15 +123,17 @@ export function App() {
   const unreadNotifsCount = state.notifications.filter(n => !n.read).length;
 
   /* Handlers */
-  const handleAddNewRequest = (reqData: Partial<EmergencyRequest>) => {
-    const newReq = reqData as EmergencyRequest;
+  const handleAddNewRequest = async (reqData: Partial<EmergencyRequest>) => {
+    const savedReq = await createRequestInDb(reqData);
+    const newReq = savedReq || (reqData as EmergencyRequest);
+
     setState(prev => ({
       ...prev,
       requests: [newReq, ...prev.requests],
       notifications: [
         {
           id: `notif-${Date.now()}`,
-          title: `≡ƒÜ¿ Emergency: ${newReq.requiredBags} Bags ${newReq.bloodGroup} Needed`,
+          title: `🚨 Emergency: ${newReq.requiredBags} Bags ${newReq.bloodGroup} Needed`,
           message: `${newReq.patientName} at ${newReq.hospitalName}, ${newReq.area}.`,
           type: 'emergency',
           time: 'Just now',
@@ -138,7 +201,9 @@ export function App() {
     }));
   };
 
-  const handleDeleteRequest = (reqId: string) => {
+  const handleDeleteRequest = async (reqId: string) => {
+    const deleted = await deleteRequestFromDb(reqId);
+    if (!deleted) return;
     setState(prev => ({
       ...prev,
       requests: prev.requests.filter(r => r.id !== reqId)
@@ -150,12 +215,12 @@ export function App() {
       const donor = state.donors.find(d => d.id === userId);
       if (!donor) return;
       const newVerified = !donor.isVerified;
-      const updated = await updateDonorProfile(donor.id, { is_verified: newVerified });
-      if (updated) {
+      const toggled = await toggleDonorVerification(donor.id, newVerified);
+      if (toggled) {
         setState(prev => ({
           ...prev,
-          donors: prev.donors.map(d => d.id === userId ? updated : d),
-          currentUser: prev.currentUser?.id === userId ? updated : prev.currentUser
+          donors: prev.donors.map(d => d.id === userId ? { ...d, isVerified: newVerified } : d),
+          currentUser: prev.currentUser?.id === userId ? { ...prev.currentUser, isVerified: newVerified } : prev.currentUser
         }));
       } else {
         // fallback to optimistic local toggle
@@ -188,6 +253,50 @@ export function App() {
         onOpenRequestModal={() => setIsRequestModalOpen(true)}
         onLogout={handleLogout}
       />
+
+      <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-10 py-4">
+        {state.currentUser ? (
+          <div className="rounded-[2rem] border border-rose-200/80 bg-rose-50/90 p-6 shadow-lg shadow-rose-200/40 animate-in slide-in-from-top duration-300">
+            <p className="text-sm uppercase font-bold tracking-[0.35em] text-rose-600">Welcome back</p>
+            <h1 className="mt-2 text-3xl lg:text-4xl font-black text-slate-900">{state.currentUser.name}</h1>
+            <p className="mt-3 text-sm lg:text-base text-slate-700 max-w-2xl">
+              Great to see you again! Your Lifeline dashboard is ready with the latest donor network and emergency requests.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-[2.5rem] border border-slate-300/80 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-950 p-8 shadow-2xl shadow-slate-900/30 text-white animate-in fade-in duration-300">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs uppercase font-semibold tracking-[0.45em] text-rose-400">Guest mode</p>
+                <h1 className="mt-3 text-3xl lg:text-4xl font-black tracking-tight">Welcome to LifelineBD</h1>
+                <p className="mt-4 text-sm lg:text-base text-slate-300 max-w-2xl leading-7">
+                  You're browsing as a guest for now. No need to worry — click sign in to unlock your personalized donor dashboard and emergency alerts.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="mt-4 lg:mt-0 inline-flex items-center justify-center rounded-full bg-rose-500 px-6 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-rose-500/30 transition-transform duration-300 hover:-translate-y-1 hover:bg-rose-400"
+              >
+                Get Started
+              </button>
+            </div>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm animate-pulse">
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Fast access</p>
+                <p className="mt-2 text-sm font-bold text-white">Sign in quickly</p>
+              </div>
+              <div className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm animate-pulse delay-100">
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Real data</p>
+                <p className="mt-2 text-sm font-bold text-white">View live requests</p>
+              </div>
+              <div className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm animate-pulse delay-200">
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Safe steps</p>
+                <p className="mt-2 text-sm font-bold text-white">Join the community</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Main Structural Frame */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-[360px_1fr] min-h-[calc(100vh-5rem)]">
@@ -275,7 +384,14 @@ export function App() {
         donor={selectedProfileDonor}
         onClose={() => setSelectedProfileDonor(null)}
         onToggleAvailability={selectedProfileDonor?.id === state.currentUser?.id ? handleToggleCurrentUserAvailability : undefined}
-        onEdit={selectedProfileDonor?.id === state.currentUser?.id ? handleOpenProfileEdit : undefined}
+        onProfileUpdated={(updated) => {
+          setState(prev => ({
+            ...prev,
+            currentUser: prev.currentUser?.id === updated.id ? updated : prev.currentUser,
+            donors: prev.donors.map(d => d.id === updated.id ? updated : d)
+          }));
+          setSelectedProfileDonor(updated);
+        }}
       />
 
       <ProfileEditModal

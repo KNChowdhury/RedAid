@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import type { Session } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import { BANGLADESH_DISTRICTS, INITIAL_BADGES, INITIAL_DONORS, INITIAL_REQUESTS } from '../mockData';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBadge, SearchFilters } from '../types';
@@ -39,7 +40,7 @@ export function getAppState(): AppState {
     }
   }
 
-  const initialUser = INITIAL_DONORS[0];
+  const initialUser = null;
   const initialNotifications: NotificationItem[] = [
     {
       id: 'notif-1',
@@ -75,7 +76,7 @@ export function getAppState(): AppState {
     badges: INITIAL_BADGES,
     currentUser: initialUser,
     notifications: initialNotifications,
-    token: 'jwt_mock_token_lifelinebd_9988'
+    token: null
   };
 
   saveAppState(newState);
@@ -269,6 +270,12 @@ export async function updateDonorProfile(
     malariaStatus: string;
   }>
 ): Promise<DonorProfile | null> {
+  const supabaseClient = supabase;
+  if (!supabaseClient) {
+    console.error('Supabase client not configured.');
+    return null;
+  }
+
   const { lat, lng } = updates.district && updates.area
     ? lookupCoordinates(updates.district, updates.area)
     : { lat: undefined, lng: undefined };
@@ -287,7 +294,7 @@ export async function updateDonorProfile(
   if (updates.syphilisStatus !== undefined) dbUpdates.syphilis_status = updates.syphilisStatus;
   if (updates.malariaStatus !== undefined) dbUpdates.malaria_status = updates.malariaStatus;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('donors')
     .update(dbUpdates)
     .eq('id', donorId)
@@ -299,6 +306,42 @@ export async function updateDonorProfile(
     return null;
   }
   return mapDbDonorToProfile(data);
+}
+
+export async function toggleDonorVerification(donorId: string, isVerified: boolean): Promise<boolean> {
+  if (!supabase) {
+    console.error('Supabase client not configured.');
+    return false;
+  }
+
+  const { error } = await supabase
+    .from('donors')
+    .update({ is_verified: isVerified })
+    .eq('id', donorId);
+
+  if (error) {
+    console.error('Toggle verification error:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteRequestFromDb(requestId: string): Promise<boolean> {
+  if (!supabase) {
+    console.error('Supabase client not configured.');
+    return false;
+  }
+
+  const { error } = await supabase
+    .from('requests')
+    .delete()
+    .eq('id', requestId);
+
+  if (error) {
+    console.error('Delete request error:', error);
+    return false;
+  }
+  return true;
 }
 
 function mapDbRequestToRequest(row: any): EmergencyRequest {
@@ -399,6 +442,35 @@ export async function fetchSharedData(): Promise<{
   };
 }
 
+export async function sendPasswordResetEmail(email: string): Promise<{ error: string | null }> {
+  if (!supabase) {
+    return { error: 'Supabase client not configured.' };
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
+  });
+
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+export async function sendMagicLink(email: string): Promise<{ error: string | null }> {
+  if (!supabase) {
+    return { error: 'Supabase client not configured.' };
+  }
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
+    }
+  });
+
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
 export async function signUpDonor(profile: {
   name: string;
   email: string;
@@ -447,7 +519,7 @@ export async function signUpDonor(profile: {
     return { user: null, error: friendlyMessage };
   }
 
-  let session = signUpData?.session;
+  let session: Session | null = signUpData?.session ?? null;
   if (session?.access_token && session?.refresh_token) {
     await supabase.auth.setSession({
       access_token: session.access_token,
@@ -457,7 +529,7 @@ export async function signUpDonor(profile: {
 
   if (!session) {
     const sessionRes = await supabase.auth.getSession();
-    session = sessionRes.data?.session ?? undefined;
+    session = sessionRes.data?.session ?? null;
   }
 
   if (!session || !session.user) {
@@ -641,40 +713,6 @@ export async function uploadAvatar(file: File, userId: string): Promise<string |
     return null;
   } catch (err) {
     console.error('Avatar upload failed', err);
-    return null;
-  }
-}
-
-// Update donor profile fields by auth_user_id and return updated profile
-export async function updateDonorProfile(userId: string, updates: Record<string, any>): Promise<DonorProfile | null> {
-  if (!supabase) {
-    console.error('Supabase client not configured.');
-    return null;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('donors')
-      .update(updates)
-      .eq('auth_user_id', userId)
-      .select()
-      .single();
-
-    if (error || !data) {
-      // Try insert if update did not find a row (user may not have a donor row yet)
-      console.error('Supabase update donor profile error (attempting insert):', error);
-      const insertPayload = { auth_user_id: userId, ...updates };
-      const { data: inserted, error: insertErr } = await supabase.from('donors').insert(insertPayload).select().single();
-      if (insertErr || !inserted) {
-        console.error('Supabase insert donor profile error:', insertErr || 'no data');
-        return null;
-      }
-      return mapDbDonorToProfile(inserted);
-    }
-
-    return mapDbDonorToProfile(data);
-  } catch (err) {
-    console.error('updateDonorProfile exception', err);
     return null;
   }
 }

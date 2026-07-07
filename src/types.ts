@@ -40,7 +40,7 @@ export interface DonorProfile {
   whatsapp: string;
   avatar: string;
   role: UserRole;
-  bloodGroup: string;
+  bloodGroup: BloodGroup;
   district: string;
   area: string;
   lat: number;

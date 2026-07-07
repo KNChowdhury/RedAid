@@ -1,7 +1,7 @@
 import { AlertCircle, Award, Bell, Calendar, Heart, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { BANGLADESH_DISTRICTS } from '../mockData';
-import { signInDonor, signUpDonor, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 
 /* ================= 1. REQUEST BLOOD MODAL ================= */
@@ -165,7 +165,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
-  const [isRegister, setIsRegister] = useState(false);
+  const [view, setView] = useState<'login' | 'register' | 'reset'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -176,15 +176,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [isSmoker, setIsSmoker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
 
-    if (isRegister) {
+    if (view === 'reset') {
+      const { error } = await sendPasswordResetEmail(email);
+      setLoading(false);
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
+      setSuccessMsg('Password reset email sent. Please check your inbox.');
+      return;
+    }
+
+    if (view === 'register') {
       const { user, error } = await signUpDonor({
         name: name || 'New Donor',
         email,
@@ -198,23 +211,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       setLoading(false);
       if (error || !user) {
         if (error?.toLowerCase().includes('already registered')) {
-          setIsRegister(false);
+          setView('login');
         }
         setErrorMsg(error || 'Something went wrong. Please try again.');
         return;
       }
       onLoginSuccess(user);
       onClose();
-    } else {
-      const { user, error } = await signInDonor(email, password);
-      setLoading(false);
-      if (error || !user) {
-        setErrorMsg(error || 'Invalid email or password.');
-        return;
-      }
-      onLoginSuccess(user);
-      onClose();
+      return;
     }
+
+    const { user, error } = await signInDonor(email, password);
+    setLoading(false);
+    if (error || !user) {
+      setErrorMsg(error || 'Invalid email or password.');
+      return;
+    }
+    onLoginSuccess(user);
+    onClose();
   };
 
   return (
@@ -228,9 +242,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           <Heart className="w-6 h-6 fill-white" />
         </div>
 
-        <h2 className="editorial-title text-3xl font-black">{isRegister ? 'Join Lifeline Network' : 'Welcome Back Hero'}</h2>
+        <h2 className="editorial-title text-3xl font-black">
+          {view === 'register' ? 'Join Lifeline Network' : view === 'reset' ? 'Reset Password' : 'Welcome Back Hero'}
+        </h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
-          {isRegister ? 'Register as a verified whole blood donor' : 'Sign in to your LifelineBD account'}
+          {view === 'register'
+            ? 'Register as a verified whole blood donor'
+            : view === 'reset'
+            ? 'Enter your email to receive password reset instructions'
+            : 'Sign in to your LifelineBD account'}
         </p>
 
         {errorMsg && (
@@ -240,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {isRegister && (
+          {view === 'register' && (
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name</label>
               <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Kawsar Ahmed" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
@@ -252,12 +272,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Password</label>
-            <input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
-          </div>
+          {view !== 'reset' && (
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Password</label>
+              <input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+            </div>
+          )}
 
-          {isRegister && (
+          {view === 'login' && (
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+              <button type="button" onClick={() => { setView('reset'); setErrorMsg(''); setSuccessMsg(''); }} className="text-rose-600 hover:underline">
+                Forgot password?
+              </button>
+              <button type="button" onClick={async () => {
+                setErrorMsg('');
+                setSuccessMsg('');
+                setLoading(true);
+                const { error } = await sendMagicLink(email);
+                setLoading(false);
+                if (error) {
+                  setErrorMsg(error);
+                } else {
+                  setSuccessMsg('Magic login link sent to your email. Please check your inbox.');
+                }
+              }} className="text-slate-500 hover:text-slate-700">
+                Login with email link
+              </button>
+            </div>
+          )}
+
+          {view === 'register' && (
             <>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone Number</label>
@@ -295,15 +339,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           )}
 
           <button type="submit" disabled={loading} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
-            {loading ? 'Please wait...' : isRegister ? 'Create Secure Profile' : 'Sign In'}
+            {loading ? 'Please wait...' : view === 'register' ? 'Create Secure Profile' : view === 'reset' ? 'Send Reset Email' : 'Sign In'}
           </button>
+
+          {successMsg && (
+            <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold">
+              {successMsg}
+            </div>
+          )}
 
           <button
             type="button"
-            onClick={() => { setIsRegister(!isRegister); setErrorMsg(''); }}
+            onClick={() => {
+              setErrorMsg('');
+              setSuccessMsg('');
+              setView(view === 'register' ? 'login' : 'register');
+            }}
             className="w-full text-center py-2 text-xs font-bold text-rose-600 hover:underline cursor-pointer block"
           >
-            {isRegister ? 'Already registered? Sign In instead' : 'New donor? Create free profile'}
+            {view === 'register' ? 'Already registered? Sign In instead' : 'New donor? Create free profile'}
           </button>
         </form>
       </div>
@@ -317,11 +371,65 @@ interface ProfileModalProps {
   donor: DonorProfile | null;
   onClose: () => void;
   onToggleAvailability?: () => void;
-  onEdit?: () => void;
+  onProfileUpdated?: (updated: DonorProfile) => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onToggleAvailability, onEdit }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onToggleAvailability, onProfileUpdated }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [district, setDistrict] = useState('');
+  const [area, setArea] = useState('');
+  const [hbsagStatus, setHbsagStatus] = useState('Not Tested');
+  const [hcvStatus, setHcvStatus] = useState('Not Tested');
+  const [hivStatus, setHivStatus] = useState('Not Tested');
+  const [syphilisStatus, setSyphilisStatus] = useState('Not Tested');
+  const [malariaStatus, setMalariaStatus] = useState('Not Tested');
+
+  React.useEffect(() => {
+    if (donor) {
+      setName(donor.name);
+      setPhone(donor.phone);
+      setWhatsapp(donor.whatsapp);
+      setDistrict(donor.district);
+      setArea(donor.area);
+      setHbsagStatus(donor.healthInfo?.hbsagStatus || 'Not Tested');
+      setHcvStatus(donor.healthInfo?.hcvStatus || 'Not Tested');
+      setHivStatus(donor.healthInfo?.hivStatus || 'Not Tested');
+      setSyphilisStatus(donor.healthInfo?.syphilisStatus || 'Not Tested');
+      setMalariaStatus(donor.healthInfo?.malariaStatus || 'Not Tested');
+    }
+  }, [donor]);
+
   if (!donor) return null;
+
+  const districtObj = BANGLADESH_DISTRICTS.find(d => d.name === district);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const updated = await updateDonorProfile(donor.id, {
+      name,
+      phone,
+      whatsapp,
+      district,
+      area,
+      hbsagStatus,
+      hcvStatus,
+      hivStatus,
+      syphilisStatus,
+      malariaStatus
+    });
+    setSaving(false);
+    if (updated && onProfileUpdated) {
+      onProfileUpdated(updated);
+    }
+    setIsEditing(false);
+  };
+
+  const statusOptions = ['Not Tested', 'Negative', 'Positive'];
+  const statusColor = (s: string) => s === 'Positive' ? 'text-rose-600' : s === 'Negative' ? 'text-emerald-600' : 'text-slate-400';
 
   return (
     <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -332,11 +440,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onTo
 
         <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
           <img src={donor.avatar} alt="" className="w-20 h-20 rounded-3xl object-cover border-4 border-rose-500 shadow-md bg-slate-100" />
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-black text-2xl">{donor.name}</h3>
-              {donor.isVerified && <ShieldCheck className="w-5 h-5 text-rose-600" title="Verified Hospital Screening" />}
-            </div>
+          <div className="flex-1">
+            {isEditing ? (
+              <input value={name} onChange={e => setName(e.target.value)} className="font-black text-xl border border-slate-200 rounded-lg px-3 py-1.5 w-full mb-1" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-2xl">{donor.name}</h3>
+                {donor.isVerified && <ShieldCheck className="w-5 h-5 text-rose-600" aria-label="Verified Hospital Screening" />}
+              </div>
+            )}
             <p className="text-xs font-bold text-slate-500 flex items-center gap-1 mt-1">
               <MapPin className="w-3.5 h-3.5 text-rose-500" /> {donor.area}, {donor.district}
             </p>
@@ -346,32 +458,137 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onTo
           </div>
         </div>
 
-        {/* Health Screening Sheet */}
-        <div className="my-6 space-y-4">
-          <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">DGHS Health Telemetry</h4>
-          <div className="grid grid-cols-3 gap-3 font-mono text-xs text-center">
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 font-sans block font-bold">HEMOGLOBIN</span>
-              <span className="text-emerald-600 font-black text-sm">{donor.healthInfo?.hemoglobin || 14.8} g/dL</span>
+        {!isEditing ? (
+          <>
+            <div className="my-6 grid grid-cols-2 gap-3 text-xs font-bold">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 block">PHONE</span>
+                <span className="text-slate-900">{donor.phone}</span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 block">WHATSAPP</span>
+                <span className="text-slate-900">{donor.whatsapp}</span>
+              </div>
             </div>
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 font-sans block font-bold">BLOOD PRESSURE</span>
-              <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.bloodPressure || '120/80'}</span>
+
+            <div className="my-6 space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">DGHS Health Telemetry</h4>
+              <div className="grid grid-cols-3 gap-3 font-mono text-xs text-center">
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                  <span className="text-[10px] text-slate-400 font-sans block font-bold">HEMOGLOBIN</span>
+                  <span className="text-emerald-600 font-black text-sm">{donor.healthInfo?.hemoglobin || 14.8} g/dL</span>
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                  <span className="text-[10px] text-slate-400 font-sans block font-bold">BLOOD PRESSURE</span>
+                  <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.bloodPressure || '120/80'}</span>
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                  <span className="text-[10px] text-slate-400 font-sans block font-bold">WEIGHT</span>
+                  <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.weightKg || 70} kg</span>
+                </div>
+              </div>
+
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Mandatory TTI Screening</h4>
+              <div className="grid grid-cols-5 gap-2 font-mono text-[10px] text-center">
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[9px] text-slate-400 font-sans block font-bold">HBsAg</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.hbsagStatus || 'Not Tested')}`}>{donor.healthInfo?.hbsagStatus || 'Not Tested'}</span>
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[9px] text-slate-400 font-sans block font-bold">HCV</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.hcvStatus || 'Not Tested')}`}>{donor.healthInfo?.hcvStatus || 'Not Tested'}</span>
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[9px] text-slate-400 font-sans block font-bold">HIV</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.hivStatus || 'Not Tested')}`}>{donor.healthInfo?.hivStatus || 'Not Tested'}</span>
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[9px] text-slate-400 font-sans block font-bold">Syphilis</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.syphilisStatus || 'Not Tested')}`}>{donor.healthInfo?.syphilisStatus || 'Not Tested'}</span>
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[9px] text-slate-400 font-sans block font-bold">Malaria</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.malariaStatus || 'Not Tested')}`}>{donor.healthInfo?.malariaStatus || 'Not Tested'}</span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex justify-between font-bold">
+                <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600' : 'text-emerald-600'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
+                <span>Regular Donor: <strong className="text-rose-600">{donor.isRegular ? 'Yes (3+ times)' : 'New'}</strong></span>
+              </div>
             </div>
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 font-sans block font-bold">WEIGHT</span>
-              <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.weightKg || 70} kg</span>
+
+            {onProfileUpdated && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="w-full py-3.5 mb-4 border-2 border-slate-900 text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-colors"
+              >
+                ✏️ Edit Profile
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="my-6 space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone</label>
+              <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number</label>
+              <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
+                <select value={district} onChange={e => { setDistrict(e.target.value); setArea(''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
+                  {BANGLADESH_DISTRICTS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
+                <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
+                  {(districtObj?.areas || []).map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Mandatory TTI Screening (Lab Verified)</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'HBsAg (Hepatitis B)', value: hbsagStatus, setter: setHbsagStatus },
+                { label: 'Anti-HCV (Hepatitis C)', value: hcvStatus, setter: setHcvStatus },
+                { label: 'Anti-HIV', value: hivStatus, setter: setHivStatus },
+                { label: 'VDRL (Syphilis)', value: syphilisStatus, setter: setSyphilisStatus },
+                { label: 'MP Test (Malaria)', value: malariaStatus, setter: setMalariaStatus }
+              ].map(field => (
+                <div key={field.label}>
+                  <label className="block text-[10px] font-bold uppercase text-slate-700 mb-1">{field.label}</label>
+                  <select value={field.value} onChange={e => field.setter(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                    {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 py-3.5 blood-gradient text-white rounded-2xl text-xs font-black uppercase tracking-widest disabled:opacity-60"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-6 py-3.5 border-2 border-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest"
+              >
+                Cancel
+              </button>
             </div>
           </div>
+        )}
 
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex justify-between font-bold">
-            <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600' : 'text-emerald-600'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
-            <span>Regular Donor: <strong className="text-rose-600">{donor.isRegular ? 'Yes (3+ times)' : 'New'}</strong></span>
-          </div>
-        </div>
-
-        {/* Availability Toggle CTA */}
-        {onToggleAvailability && (
+        {onToggleAvailability && !isEditing && (
           <div className="p-5 bg-rose-50 rounded-3xl border border-rose-200 flex items-center justify-between mb-6">
             <div>
               <p className="text-xs font-black uppercase text-rose-900">Instant Telemetry Status</p>
@@ -388,31 +605,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onTo
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="flex gap-3">
-          <a
-            href={`https://wa.me/${donor.whatsapp}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex-1 py-4 bg-slate-900 hover:bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest text-center transition-colors shadow-lg"
-          >
-            WhatsApp Message
-          </a>
-          <a
-            href={`tel:${donor.phone}`}
-            className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors"
-          >
-            Call
-          </a>
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              className="px-6 py-3 bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:opacity-95"
+        {!isEditing && (
+          <div className="flex gap-3">
+            <a
+              href={`https://wa.me/${donor.whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 py-4 bg-slate-900 hover:bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest text-center transition-colors shadow-lg"
             >
-              Edit Profile
-            </button>
-          )}
-        </div>
+              WhatsApp Message
+            </a>
+            <a
+              href={`tel:${donor.phone}`}
+              className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors"
+            >
+              Call
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

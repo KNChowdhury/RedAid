@@ -109,7 +109,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                               {donor.name}
                             </h3>
                             {donor.isVerified && (
-                              <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" title="Hospital Verified Donor" />
+                              <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" aria-label="Hospital Verified Donor" />
                             )}
                           </div>
                           

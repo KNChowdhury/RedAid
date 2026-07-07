@@ -37,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'admin', label: 'Admin' }
   ];
 
+  const visibleNavItems = navItems.filter(item => item.id !== 'admin' || currentUser?.role === 'admin');
+
   return (
     <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
       {/* Brand Logo */}
@@ -57,7 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Desktop Navigation */}
       <nav className="hidden xl:flex items-center gap-7 text-xs font-bold uppercase tracking-widest text-slate-500">
-        {navItems.map(item => (
+        {visibleNavItems.map(item => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
@@ -151,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {mobileMenuOpen && (
         <div className="absolute top-full left-0 right-0 bg-white border-b border-slate-200 p-6 shadow-2xl xl:hidden flex flex-col gap-4 animate-in slide-in-from-top duration-200 z-50">
           <div className="grid grid-cols-2 gap-3">
-            {navItems.map(item => (
+            {visibleNavItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => {

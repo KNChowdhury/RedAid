@@ -8,6 +8,13 @@ export interface HealthInfo {
   hemoglobin: number; // g/dL
   hasChronicDisease: boolean;
   recentMedication: string;
+  healthMetrics?: {
+    hbsag?: string; // Hepatitis B surface antigen
+    anti_hcv?: string; // Hepatitis C
+    anti_hiv?: string; // HIV
+    vdrl?: string; // Syphilis
+    mp?: string; // Malaria parasite
+  };
 }
 
 export interface DonationRecord {
@@ -28,7 +35,7 @@ export interface DonorProfile {
   whatsapp: string;
   avatar: string;
   role: UserRole;
-  bloodGroup: BloodGroup;
+  bloodGroup: string;
   district: string;
   area: string;
   lat: number;

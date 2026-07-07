@@ -1,6 +1,7 @@
 import { AlertCircle, Award, Bell, Calendar, Heart, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { BANGLADESH_DISTRICTS } from '../mockData';
+import { signInDonor, signUpDonor, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 
 /* ================= 1. REQUEST BLOOD MODAL ================= */
@@ -166,44 +167,54 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('arif.rahaman@lifelinebd.org');
-  const [phone, setPhone] = useState('+880 1711-234567');
-  const [bloodGroup, setBloodGroup] = useState<BloodGroup>('B+');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('+880 ');
+  const [bloodGroup, setBloodGroup] = useState<string>('');
   const [district, setDistrict] = useState('Dhaka');
   const [area, setArea] = useState('Banani');
   const [isSmoker, setIsSmoker] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser: DonorProfile = {
-      id: `donor-${Date.now()}`,
-      name: name || 'Tanvir Chowdhury',
-      email,
-      phone,
-      whatsapp: phone.replace(/[^0-9]/g, ''),
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name || 'Donor')}`,
-      role: 'donor',
-      bloodGroup,
-      district,
-      area,
-      lat: 23.7937,
-      lng: 90.4066,
-      lastDonationDate: '',
-      nextEligibleDate: 'Ready Now!',
-      isSmoker,
-      isRegular: false,
-      isVerified: true,
-      availableNow: true,
-      healthInfo: { weightKg: 68, bloodPressure: '120/80', hemoglobin: 14.5, hasChronicDisease: false, recentMedication: 'None' },
-      impactScore: 100,
-      livesSaved: 1,
-      badges: ['Life Saver'],
-      donationsHistory: []
-    };
-    onLoginSuccess(newUser);
-    onClose();
+    setErrorMsg('');
+    setLoading(true);
+
+    if (isRegister) {
+      const { user, error } = await signUpDonor({
+        name: name || 'New Donor',
+        email,
+        password,
+        phone,
+        bloodGroup,
+        district,
+        area,
+        isSmoker
+      });
+      setLoading(false);
+      if (error || !user) {
+        if (error?.toLowerCase().includes('already registered')) {
+          setIsRegister(false);
+        }
+        setErrorMsg(error || 'Something went wrong. Please try again.');
+        return;
+      }
+      onLoginSuccess(user);
+      onClose();
+    } else {
+      const { user, error } = await signInDonor(email, password);
+      setLoading(false);
+      if (error || !user) {
+        setErrorMsg(error || 'Invalid email or password.');
+        return;
+      }
+      onLoginSuccess(user);
+      onClose();
+    }
   };
 
   return (
@@ -219,8 +230,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
         <h2 className="editorial-title text-3xl font-black">{isRegister ? 'Join Lifeline Network' : 'Welcome Back Hero'}</h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
-          {isRegister ? 'Register as a verified whole blood donor' : 'Sign in with JWT & Firebase credentials'}
+          {isRegister ? 'Register as a verified whole blood donor' : 'Sign in to your LifelineBD account'}
         </p>
+
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {isRegister && (
@@ -231,25 +248,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           )}
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Email or Phone</label>
-            <input required type="text" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Email</label>
+            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Password</label>
+            <input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
           </div>
 
           {isRegister && (
             <>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone Number</label>
+                <input required value={phone} onChange={e => setPhone(e.target.value)} placeholder="+880 1XXX-XXXXXX" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group</label>
-                  <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as any)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
+                  <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
+                    <option value="">Select blood group (optional)</option>
                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
-                  <select value={district} onChange={e => setDistrict(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
+                  <select value={district} onChange={e => { setDistrict(e.target.value); setArea(BANGLADESH_DISTRICTS.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
                     {BANGLADESH_DISTRICTS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
+                <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
+                  {BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
               </div>
 
               <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
@@ -259,13 +294,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             </>
           )}
 
-          <button type="submit" className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4">
-            {isRegister ? 'Create Secure Profile' : 'Sign In'}
+          <button type="submit" disabled={loading} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
+            {loading ? 'Please wait...' : isRegister ? 'Create Secure Profile' : 'Sign In'}
           </button>
 
           <button
             type="button"
-            onClick={() => setIsRegister(!isRegister)}
+            onClick={() => { setIsRegister(!isRegister); setErrorMsg(''); }}
             className="w-full text-center py-2 text-xs font-bold text-rose-600 hover:underline cursor-pointer block"
           >
             {isRegister ? 'Already registered? Sign In instead' : 'New donor? Create free profile'}
@@ -282,9 +317,10 @@ interface ProfileModalProps {
   donor: DonorProfile | null;
   onClose: () => void;
   onToggleAvailability?: () => void;
+  onEdit?: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onToggleAvailability }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onToggleAvailability, onEdit }) => {
   if (!donor) return null;
 
   return (
@@ -368,7 +404,164 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onTo
           >
             Call
           </a>
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="px-6 py-3 bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:opacity-95"
+            >
+              Edit Profile
+            </button>
+          )}
         </div>
+      </div>
+    </div>
+  );
+};
+
+/* ================= 5. PROFILE EDIT MODAL ================= */
+interface ProfileEditModalProps {
+  donor: DonorProfile | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (updated: DonorProfile) => void;
+}
+
+export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpen, onClose, onSave }) => {
+  const [name, setName] = useState(donor?.name || '');
+  const [phone, setPhone] = useState(donor?.phone || '');
+  const [whatsapp, setWhatsapp] = useState(donor?.whatsapp || '');
+  const [bloodGroup, setBloodGroup] = useState<BloodGroup>(donor?.bloodGroup || 'O+');
+  const [district, setDistrict] = useState(donor?.district || 'Dhaka');
+  const [area, setArea] = useState(donor?.area || (BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || ''));
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [hbsag, setHbsag] = useState<string>(donor?.healthInfo?.healthMetrics?.hbsag || 'Not Tested');
+  const [antiHcv, setAntiHcv] = useState<string>(donor?.healthInfo?.healthMetrics?.anti_hcv || 'Not Tested');
+  const [antiHiv, setAntiHiv] = useState<string>(donor?.healthInfo?.healthMetrics?.anti_hiv || 'Not Tested');
+  const [vdrl, setVdrl] = useState<string>(donor?.healthInfo?.healthMetrics?.vdrl || 'Not Tested');
+  const [mp, setMp] = useState<string>(donor?.healthInfo?.healthMetrics?.mp || 'Not Tested');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  React.useEffect(() => {
+    setName(donor?.name || '');
+    setPhone(donor?.phone || '');
+    setWhatsapp(donor?.whatsapp || '');
+    setBloodGroup(donor?.bloodGroup || 'O+');
+    setDistrict(donor?.district || 'Dhaka');
+    setArea(donor?.area || BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || '');
+    setHbsag(donor?.healthInfo?.healthMetrics?.hbsag || 'Not Tested');
+    setAntiHcv(donor?.healthInfo?.healthMetrics?.anti_hcv || 'Not Tested');
+    setAntiHiv(donor?.healthInfo?.healthMetrics?.anti_hiv || 'Not Tested');
+    setVdrl(donor?.healthInfo?.healthMetrics?.vdrl || 'Not Tested');
+    setMp(donor?.healthInfo?.healthMetrics?.mp || 'Not Tested');
+  }, [donor]);
+
+  if (!isOpen || !donor) return null;
+
+  const areasList = BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas || [];
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      let avatarUrl = donor.avatar;
+      if (avatarFile) {
+        const uploaded = await uploadAvatar(avatarFile, donor.id);
+        if (uploaded) avatarUrl = uploaded;
+      }
+
+      const updates: Record<string, any> = {
+        name,
+        phone,
+        whatsapp,
+        blood_group: bloodGroup,
+        district,
+        area,
+        avatar: avatarUrl
+      };
+      // Health metrics
+      updates.hbsag_status = hbsag;
+      updates.anti_hcv_status = antiHcv;
+      updates.anti_hiv_status = antiHiv;
+      updates.vdrl_status = vdrl;
+      updates.mp_status = mp;
+
+      const updated = await updateDonorProfile(donor.id, updates);
+      if (!updated) {
+        setErrorMsg('Failed to update profile. Try again later.');
+        setLoading(false);
+        return;
+      }
+
+      onSave(updated);
+      onClose();
+    } catch (err) {
+      console.error('Profile save error', err);
+      setErrorMsg('Unexpected error updating profile.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-[2.5rem] p-6 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900">
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
+          <X className="w-4 h-4" />
+        </button>
+
+        <h3 className="editorial-title text-2xl font-black mb-2">Edit Profile</h3>
+        {errorMsg && <div className="mb-3 p-2 bg-rose-50 border border-rose-200 text-rose-600 rounded">{errorMsg}</div>}
+
+        <form onSubmit={handleSave} className="space-y-3">
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone</label>
+            <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp</label>
+            <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group</label>
+              <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as any)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
+              <select value={district} onChange={e => { setDistrict(e.target.value); setArea(BANGLADESH_DISTRICTS.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                {BANGLADESH_DISTRICTS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
+            <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
+              {areasList.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Profile Photo</label>
+            <input type="file" accept="image/*" onChange={e => setAvatarFile(e.target.files?.[0] || null)} />
+          </div>
+
+          <div className="flex gap-2">
+            <button type="submit" disabled={loading} className="px-6 py-2 bg-rose-600 text-white rounded-xl font-bold">{loading ? 'Saving...' : 'Save Changes'}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl">Cancel</button>
+          </div>
+        </form>
       </div>
     </div>
   );

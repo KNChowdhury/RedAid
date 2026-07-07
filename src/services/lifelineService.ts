@@ -1,3 +1,4 @@
+import { supabase } from './supabaseClient';
 import { GoogleGenAI } from '@google/genai';
 import { BANGLADESH_DISTRICTS, INITIAL_BADGES, INITIAL_DONORS, INITIAL_REQUESTS } from '../mockData';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBadge, SearchFilters } from '../types';
@@ -38,7 +39,7 @@ export function getAppState(): AppState {
     }
   }
 
-  const initialUser = INITIAL_DONORS[0]; // Arif Rahaman
+  const initialUser = INITIAL_DONORS[0];
   const initialNotifications: NotificationItem[] = [
     {
       id: 'notif-1',
@@ -143,7 +144,7 @@ export function getCompatibleDonorGroups(recipientGroup: BloodGroup): BloodGroup
 
 // Simulate Gemini AI Assistant
 export async function askGeminiAssistant(prompt: string, userContext: DonorProfile | null): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined);
   
   if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
     try {
@@ -199,4 +200,463 @@ export function lookupCoordinates(district: string, area: string): { lat: number
     lat: Math.round((distObj.lat + offsetLat) * 10000) / 10000,
     lng: Math.round((distObj.lng + offsetLng) * 10000) / 10000
   };
+}
+// ============ SUPABASE: Map database rows to app types ============
+
+function mapDbDonorToProfile(row: any): DonorProfile {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email || '',
+    phone: row.phone,
+    whatsapp: row.whatsapp || '',
+    avatar: row.avatar || getDicebearAvatarUrl(row.name || row.email || row.auth_user_id),
+    role: row.role,
+    bloodGroup: row.blood_group,
+    district: row.district || '',
+    area: row.area || '',
+    lat: row.lat || 0,
+    lng: row.lng || 0,
+    lastDonationDate: row.last_donation_date || '',
+    nextEligibleDate: row.next_eligible_date || '',
+    isSmoker: row.is_smoker,
+    isRegular: row.is_regular,
+    isVerified: row.is_verified,
+    availableNow: row.available_now,
+    healthInfo: {
+      weightKg: row.weight_kg || 0,
+      bloodPressure: row.blood_pressure || '',
+      hemoglobin: row.hemoglobin || 0,
+      hasChronicDisease: row.has_chronic_disease,
+      recentMedication: row.recent_medication || ''
+      ,
+      healthMetrics: {
+        hbsag: row.hbsag_status || 'Not Tested',
+        anti_hcv: row.anti_hcv_status || 'Not Tested',
+        anti_hiv: row.anti_hiv_status || 'Not Tested',
+        vdrl: row.vdrl_status || 'Not Tested',
+        mp: row.mp_status || 'Not Tested'
+      }
+    },
+    impactScore: row.impact_score,
+    livesSaved: row.lives_saved,
+    badges: [],
+    donationsHistory: []
+  };
+}
+
+function getDicebearAvatarUrl(seed?: string) {
+  const s = encodeURIComponent(seed || 'user');
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${s}`;
+}
+
+function mapDbRequestToRequest(row: any): EmergencyRequest {
+  return {
+    id: row.id,
+    patientName: row.patient_name,
+    age: row.age || 0,
+    bloodGroup: row.blood_group,
+    hospitalName: row.hospital_name,
+    district: row.district || '',
+    area: row.area || '',
+    requiredBags: row.required_bags,
+    neededByTime: row.needed_by_time || '',
+    urgency: row.urgency,
+    contactPhone: row.contact_phone,
+    contactWhatsapp: row.contact_whatsapp || '',
+    reason: row.reason || '',
+    status: row.status,
+    createdAt: row.created_at,
+    requesterId: row.requester_id || '',
+    matchedDonorsCount: row.matched_donors_count
+  };
+}
+
+function buildDonorInsertPayload(user: any): Record<string, any> {
+  const nameFromMetadata = user?.user_metadata?.full_name || user?.user_metadata?.name;
+  const defaultName = nameFromMetadata || user?.email?.split('@')[0] || 'Lifeline Donor';
+  return {
+    auth_user_id: user.id,
+    name: defaultName,
+    email: user.email || '',
+    phone: '',
+    whatsapp: '',
+    role: 'donor',
+    blood_group: 'O+',
+    district: '',
+    area: '',
+    lat: 23.8103,
+    lng: 90.4125,
+    last_donation_date: null,
+    next_eligible_date: null,
+    is_smoker: false,
+    is_regular: false,
+    is_verified: false,
+    available_now: false,
+    weight_kg: 0,
+    blood_pressure: '',
+    hemoglobin: 0,
+    has_chronic_disease: false,
+    recent_medication: '',
+    avatar: getDicebearAvatarUrl(defaultName),
+    hbsag_status: 'Not Tested',
+    anti_hcv_status: 'Not Tested',
+    anti_hiv_status: 'Not Tested',
+    vdrl_status: 'Not Tested',
+    mp_status: 'Not Tested',
+    impact_score: 0,
+    lives_saved: 0
+  };
+}
+
+function mapDbBadgeToBadge(row: any): RewardBadge {
+  return {
+    id: row.id,
+    name: row.name,
+    icon: row.icon || '',
+    description: row.description || '',
+    pointsRequired: row.points_required,
+    achieved: false,
+    category: row.category
+  };
+}
+
+// ============ SUPABASE: Fetch real shared data ============
+export async function fetchSharedData(): Promise<{
+  donors: DonorProfile[];
+  requests: EmergencyRequest[];
+  badges: RewardBadge[];
+}> {
+  if (!supabase) {
+    return { donors: [], requests: [], badges: [] };
+  }
+
+  const [donorsRes, requestsRes, badgesRes] = await Promise.all([
+    supabase.from('donors').select('*'),
+    supabase.from('requests').select('*').order('created_at', { ascending: false }),
+    supabase.from('badges').select('*')
+  ]);
+
+  if (donorsRes.error) console.error('Supabase donors fetch error:', donorsRes.error);
+  if (requestsRes.error) console.error('Supabase requests fetch error:', requestsRes.error);
+  if (badgesRes.error) console.error('Supabase badges fetch error:', badgesRes.error);
+
+  return {
+    donors: (donorsRes.data || []).map(mapDbDonorToProfile),
+    requests: (requestsRes.data || []).map(mapDbRequestToRequest),
+    badges: (badgesRes.data || []).map(mapDbBadgeToBadge)
+  };
+}
+
+export async function signUpDonor(profile: {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  bloodGroup: string;
+  district: string;
+  area: string;
+  isSmoker: boolean;
+}): Promise<{ user: DonorProfile | null; error: string | null }> {
+  if (!supabase) {
+    return { user: null, error: 'Supabase client not configured.' };
+  }
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email: profile.email,
+    password: profile.password
+  });
+
+  const signedUpUser = signUpData?.user || signUpData?.session?.user;
+  const signUpErrorMessage = signUpError?.message || '';
+  const isDuplicateEmailError = /already registered|duplicate|user already exists|email.*already/i.test(signUpErrorMessage);
+
+  if (signUpError || !signedUpUser) {
+    if (isDuplicateEmailError) {
+      const { user, error: signInError } = await signInDonor(profile.email, profile.password);
+      if (signInError || !user) {
+        if (signInError?.toLowerCase().includes('invalid') || signInError?.toLowerCase().includes('wrong')) {
+          return {
+            user: null,
+            error: 'Email already registered. Please sign in with your password or reset it if you forgot.'
+          };
+        }
+        return {
+          user: null,
+          error: signInError || 'Email already registered. Please sign in instead.'
+        };
+      }
+      return { user, error: null };
+    }
+
+    const lowerMessage = signUpErrorMessage.toLowerCase();
+    const friendlyMessage = lowerMessage.includes('rate limit')
+      ? 'Email rate limit exceeded. Please wait a few minutes before trying again.'
+      : signUpErrorMessage || 'Signup failed. Check your email and password.';
+    return { user: null, error: friendlyMessage };
+  }
+
+  let session = signUpData?.session;
+  if (session?.access_token && session?.refresh_token) {
+    await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    });
+  }
+
+  if (!session) {
+    const sessionRes = await supabase.auth.getSession();
+    session = sessionRes.data?.session ?? undefined;
+  }
+
+  if (!session || !session.user) {
+    return {
+      user: null,
+      error: 'Registration received. Please check your email for a confirmation link before signing in.'
+    };
+  }
+
+  const currentUser = session.user;
+  const userId = currentUser.id;
+  const { data: donorData, error: donorError } = await supabase
+    .from('donors')
+    .insert({
+      auth_user_id: userId,
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+      whatsapp: profile.phone,
+      role: 'donor',
+      blood_group: profile.bloodGroup,
+      district: profile.district,
+      area: profile.area,
+      lat: 23.8103,
+      lng: 90.4125,
+      last_donation_date: null,
+      next_eligible_date: null,
+      is_smoker: profile.isSmoker,
+      is_regular: false,
+      is_verified: false,
+      available_now: true,
+      weight_kg: 0,
+      blood_pressure: '',
+      hemoglobin: 0,
+      has_chronic_disease: false,
+      recent_medication: '',
+      impact_score: 0,
+      lives_saved: 0
+    })
+    .select()
+    .single();
+
+  if (donorError || !donorData) {
+    console.error('Supabase donor profile create error:', donorError);
+    const rlsMessage = donorError?.message?.toLowerCase().includes('row-level security')
+      ? 'Donor profile creation blocked by row-level security. Ensure your Supabase donors policy allows inserts for authenticated users with auth.uid() = id.'
+      : donorError?.message || 'Donor profile creation failed.';
+    return { user: null, error: rlsMessage };
+  }
+
+  return { user: mapDbDonorToProfile(donorData), error: null };
+}
+
+export async function signInDonor(email: string, password: string): Promise<{ user: DonorProfile | null; error: string | null }> {
+  if (!supabase) {
+    return { user: null, error: 'Supabase client not configured.' };
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+  if (authError || !authData?.user) {
+    return { user: null, error: authError?.message || 'Invalid email or password.' };
+  }
+
+  if (authData.session?.access_token && authData.session?.refresh_token) {
+    await supabase.auth.setSession({
+      access_token: authData.session.access_token,
+      refresh_token: authData.session.refresh_token
+    });
+  }
+
+  const currentUser = authData.user || (await supabase.auth.getUser()).data.user;
+  if (!currentUser) {
+    return { user: null, error: 'Unable to resolve authenticated user after sign in.' };
+  }
+
+  const sessionCheck = await supabase.auth.getSession();
+  if (!sessionCheck.data?.session?.user || sessionCheck.data.session.user.id !== currentUser.id) {
+    return { user: null, error: 'Authenticated session is not active. Please refresh and sign in again.' };
+  }
+
+  const userId = currentUser.id;
+  let donorRes = await supabase.from('donors').select('*').eq('auth_user_id', userId).maybeSingle();
+  if ((!donorRes.data || donorRes.error) && authData.user.email) {
+    donorRes = await supabase.from('donors').select('*').eq('email', authData.user.email).maybeSingle();
+  }
+
+  if (donorRes.error || !donorRes.data) {
+    if (donorRes.error) {
+      console.error('Supabase donor lookup error:', donorRes.error);
+    }
+
+    const fallbackPayload = buildDonorInsertPayload(authData.user);
+    const { data: insertedDonor, error: insertError } = await supabase
+      .from('donors')
+      .insert(fallbackPayload)
+      .select()
+      .single();
+
+    if (insertError || !insertedDonor) {
+      console.error('Supabase donor profile fallback insert error:', insertError);
+      const rlsMessage = insertError?.message?.toLowerCase().includes('row-level security')
+        ? 'Authenticated user cannot create donor rows under current RLS rules. Verify donors insert policy allows auth.uid() = id.'
+        : insertError?.message || 'Your account is authenticated, but your donor profile could not be created.';
+      return { user: null, error: rlsMessage };
+    }
+
+    return { user: mapDbDonorToProfile(insertedDonor), error: null };
+  }
+
+  return { user: mapDbDonorToProfile(donorRes.data), error: null };
+}
+
+export async function getCurrentDonorFromSession(): Promise<DonorProfile | null> {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData?.session?.user) {
+    if (sessionError) console.error('Supabase session restore error:', sessionError.message);
+    return null;
+  }
+
+  const user = sessionData.session.user;
+  let donorRes = await supabase.from('donors').select('*').eq('auth_user_id', user.id).maybeSingle();
+  if ((!donorRes.data || donorRes.error) && user.email) {
+    donorRes = await supabase.from('donors').select('*').eq('email', user.email).maybeSingle();
+  }
+
+  if (donorRes.error || !donorRes.data) {
+    if (donorRes.error) console.error('Supabase donor restore error:', donorRes.error.message);
+    return null;
+  }
+
+  return mapDbDonorToProfile(donorRes.data);
+}
+
+export async function signOutDonor(): Promise<void> {
+  if (!supabase) {
+    return;
+  }
+
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error('Supabase sign out error:', error.message);
+  }
+}
+
+// Upload avatar image to Supabase Storage and return public URL
+export async function uploadAvatar(file: File, userId: string): Promise<string | null> {
+  if (!supabase) {
+    console.error('Supabase client not configured.');
+    return null;
+  }
+
+  try {
+    const bucket = 'avatars';
+    const filename = `${userId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+    const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
+      upsert: true,
+      contentType: file.type || 'application/octet-stream'
+    });
+    if (error) {
+      console.error('Supabase storage upload error:', error);
+      return null;
+    }
+
+    // Try to get public URL; if that fails, build a fallback public URL
+    try {
+      const urlRes = await supabase.storage.from(bucket).getPublicUrl(data.path);
+      const urlData = (urlRes as any)?.data;
+      if (urlData?.publicUrl) return urlData.publicUrl;
+    } catch (e) {
+      // continue to fallback
+    }
+
+    const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
+    if (supabaseUrl) {
+      return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${encodeURI(data.path)}`;
+    }
+    return null;
+  } catch (err) {
+    console.error('Avatar upload failed', err);
+    return null;
+  }
+}
+
+// Update donor profile fields by auth_user_id and return updated profile
+export async function updateDonorProfile(userId: string, updates: Record<string, any>): Promise<DonorProfile | null> {
+  if (!supabase) {
+    console.error('Supabase client not configured.');
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('donors')
+      .update(updates)
+      .eq('auth_user_id', userId)
+      .select()
+      .single();
+
+    if (error || !data) {
+      // Try insert if update did not find a row (user may not have a donor row yet)
+      console.error('Supabase update donor profile error (attempting insert):', error);
+      const insertPayload = { auth_user_id: userId, ...updates };
+      const { data: inserted, error: insertErr } = await supabase.from('donors').insert(insertPayload).select().single();
+      if (insertErr || !inserted) {
+        console.error('Supabase insert donor profile error:', insertErr || 'no data');
+        return null;
+      }
+      return mapDbDonorToProfile(inserted);
+    }
+
+    return mapDbDonorToProfile(data);
+  } catch (err) {
+    console.error('updateDonorProfile exception', err);
+    return null;
+  }
+}
+
+// ============ SUPABASE: Create a new emergency request ============
+export async function createRequestInDb(reqData: Partial<EmergencyRequest>): Promise<EmergencyRequest | null> {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('requests')
+    .insert({
+      patient_name: reqData.patientName,
+      age: reqData.age,
+      blood_group: reqData.bloodGroup,
+      hospital_name: reqData.hospitalName,
+      district: reqData.district,
+      area: reqData.area,
+      required_bags: reqData.requiredBags,
+      needed_by_time: reqData.neededByTime,
+      urgency: reqData.urgency,
+      contact_phone: reqData.contactPhone,
+      contact_whatsapp: reqData.contactWhatsapp,
+      reason: reqData.reason,
+      status: 'Pending'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase create request error:', error);
+    return null;
+  }
+  return mapDbRequestToRequest(data);
 }

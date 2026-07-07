@@ -18,3 +18,7 @@ View your app in AI Studio: https://ai.studio/apps/c3f9ac33-a008-4af0-a43c-e3342
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+Storage setup
+-------------
+If you plan to enable profile photo uploads, create a public Supabase Storage bucket named `avatars`. See `SUPABASE_STORAGE_SETUP.md` for step-by-step instructions.

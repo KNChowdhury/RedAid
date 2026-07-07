@@ -4,11 +4,11 @@ import { AiHealthAdvisor } from './components/AiHealthAdvisor';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
 import { HospitalPortal } from './components/HospitalPortal';
-import { AuthModal, NotificationsModal, ProfileModal, RequestBloodModal } from './components/Modals';
+import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
 import { SidebarStats } from './components/SidebarStats';
-import { filterDonors, getAppState, saveAppState } from './services/lifelineService';
+import { filterDonors, getAppState, saveAppState, getCurrentDonorFromSession, signOutDonor, updateDonorProfile } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
@@ -32,11 +32,27 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [selectedProfileDonor, setSelectedProfileDonor] = useState<DonorProfile | null>(null);
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   // Keep state synced to localStorage
   useEffect(() => {
     saveAppState(state);
   }, [state]);
+
+  // Restore Supabase auth session on startup
+  useEffect(() => {
+    async function restoreSession() {
+      const donor = await getCurrentDonorFromSession();
+      if (donor) {
+        setState(prev => ({
+          ...prev,
+          currentUser: donor,
+          donors: prev.donors.some(d => d.id === donor.id) ? prev.donors : [donor, ...prev.donors]
+        }));
+      }
+    }
+    restoreSession();
+  }, []);
 
   // Current User coordinates
   const currentLat = state.currentUser?.lat || 23.8103;
@@ -54,7 +70,7 @@ export function App() {
       notifications: [
         {
           id: `notif-${Date.now()}`,
-          title: `🚨 Emergency: ${newReq.requiredBags} Bags ${newReq.bloodGroup} Needed`,
+          title: `≡ƒÜ¿ Emergency: ${newReq.requiredBags} Bags ${newReq.bloodGroup} Needed`,
           message: `${newReq.patientName} at ${newReq.hospitalName}, ${newReq.area}.`,
           type: 'emergency',
           time: 'Just now',
@@ -74,7 +90,8 @@ export function App() {
     }));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOutDonor();
     setState(prev => ({ ...prev, currentUser: null }));
   };
 
@@ -91,6 +108,36 @@ export function App() {
     }
   };
 
+  const handleOpenProfileEdit = () => {
+    setIsProfileEditOpen(true);
+  };
+
+  const handleSaveProfile = (updated: DonorProfile) => {
+    setState(prev => ({
+      ...prev,
+      currentUser: updated,
+      donors: prev.donors.map(d => d.id === updated.id ? updated : d)
+    }));
+    if (selectedProfileDonor && selectedProfileDonor.id === updated.id) {
+      setSelectedProfileDonor(updated);
+    }
+    // Add a temporary in-app notification so user sees a confirmation
+    setState(prev => ({
+      ...prev,
+      notifications: [
+        {
+          id: `notif-save-${Date.now()}`,
+          title: 'Profile updated',
+          message: 'Your profile changes have been saved successfully.',
+          type: 'system',
+          time: 'Just now',
+          read: false
+        },
+        ...prev.notifications
+      ]
+    }));
+  };
+
   const handleDeleteRequest = (reqId: string) => {
     setState(prev => ({
       ...prev,
@@ -99,10 +146,25 @@ export function App() {
   };
 
   const handleToggleVerifyUser = (userId: string) => {
-    setState(prev => ({
-      ...prev,
-      donors: prev.donors.map(d => d.id === userId ? { ...d, isVerified: !d.isVerified } : d)
-    }));
+    (async () => {
+      const donor = state.donors.find(d => d.id === userId);
+      if (!donor) return;
+      const newVerified = !donor.isVerified;
+      const updated = await updateDonorProfile(donor.id, { is_verified: newVerified });
+      if (updated) {
+        setState(prev => ({
+          ...prev,
+          donors: prev.donors.map(d => d.id === userId ? updated : d),
+          currentUser: prev.currentUser?.id === userId ? updated : prev.currentUser
+        }));
+      } else {
+        // fallback to optimistic local toggle
+        setState(prev => ({
+          ...prev,
+          donors: prev.donors.map(d => d.id === userId ? { ...d, isVerified: !d.isVerified } : d)
+        }));
+      }
+    })();
   };
 
   const handleMarkAllNotificationsRead = () => {
@@ -213,6 +275,14 @@ export function App() {
         donor={selectedProfileDonor}
         onClose={() => setSelectedProfileDonor(null)}
         onToggleAvailability={selectedProfileDonor?.id === state.currentUser?.id ? handleToggleCurrentUserAvailability : undefined}
+        onEdit={selectedProfileDonor?.id === state.currentUser?.id ? handleOpenProfileEdit : undefined}
+      />
+
+      <ProfileEditModal
+        donor={state.currentUser}
+        isOpen={isProfileEditOpen}
+        onClose={() => setIsProfileEditOpen(false)}
+        onSave={handleSaveProfile}
       />
 
       <NotificationsModal

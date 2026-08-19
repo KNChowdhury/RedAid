@@ -369,12 +369,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 /* ================= 3. DONOR PROFILE / SCREENING MODAL ================= */
 interface ProfileModalProps {
   donor: DonorProfile | null;
+  isOwnProfile: boolean;
   onClose: () => void;
   onToggleAvailability?: () => void;
   onProfileUpdated?: (updated: DonorProfile) => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onToggleAvailability, onProfileUpdated }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, onClose, onToggleAvailability, onProfileUpdated }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -471,7 +472,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onTo
               </div>
             </div>
 
-            <div className="my-6 space-y-4">
+            {isOwnProfile ? <div className="my-6 space-y-4">
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">DGHS Health Telemetry</h4>
               <div className="grid grid-cols-3 gap-3 font-mono text-xs text-center">
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
@@ -516,7 +517,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, onClose, onTo
                 <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600' : 'text-emerald-600'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
                 <span>Regular Donor: <strong className="text-rose-600">{donor.isRegular ? 'Yes (3+ times)' : 'New'}</strong></span>
               </div>
-            </div>
+            </div> : (
+              <div className="my-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                Health and screening details are private and visible only to the donor.
+              </div>
+            )}
 
             {onProfileUpdated && (
               <button

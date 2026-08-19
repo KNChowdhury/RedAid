@@ -373,16 +373,17 @@ export function App() {
 
       <ProfileModal
         donor={selectedProfileDonor}
+        isOwnProfile={selectedProfileDonor?.id === state.currentUser?.id}
         onClose={() => setSelectedProfileDonor(null)}
         onToggleAvailability={selectedProfileDonor?.id === state.currentUser?.id ? handleToggleCurrentUserAvailability : undefined}
-        onProfileUpdated={(updated) => {
+        onProfileUpdated={selectedProfileDonor?.id === state.currentUser?.id ? (updated) => {
           setState(prev => ({
             ...prev,
             currentUser: prev.currentUser?.id === updated.id ? updated : prev.currentUser,
             donors: prev.donors.map(d => d.id === updated.id ? updated : d)
           }));
           setSelectedProfileDonor(updated);
-        }}
+        } : undefined}
       />
 
       <ProfileEditModal

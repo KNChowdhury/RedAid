@@ -216,8 +216,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         setLoading(false);
         return;
       }
+
+      // The recovery link already established a valid session, so load the donor
+      // directly rather than waiting on a USER_UPDATED auth event that may not
+      // arrive. If the profile row genuinely can't be read we still close and
+      // let the app's auth listener retry, instead of stranding the user here.
+      const donor = await getCurrentDonorFromSession();
       setLoading(false);
       onPasswordRecoveryComplete?.();
+      if (donor) {
+        onLoginSuccess(donor);
+      }
       onClose();
       return;
     }
@@ -699,11 +708,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
   const [district, setDistrict] = useState(donor?.district || 'Dhaka');
   const [area, setArea] = useState(donor?.area || (BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || ''));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [hbsag, setHbsag] = useState<string>(donor?.healthInfo?.healthMetrics?.hbsag || 'Not Tested');
-  const [antiHcv, setAntiHcv] = useState<string>(donor?.healthInfo?.healthMetrics?.anti_hcv || 'Not Tested');
-  const [antiHiv, setAntiHiv] = useState<string>(donor?.healthInfo?.healthMetrics?.anti_hiv || 'Not Tested');
-  const [vdrl, setVdrl] = useState<string>(donor?.healthInfo?.healthMetrics?.vdrl || 'Not Tested');
-  const [mp, setMp] = useState<string>(donor?.healthInfo?.healthMetrics?.mp || 'Not Tested');
+  const [hbsag, setHbsag] = useState<string>(donor?.healthInfo?.hbsagStatus || 'Not Tested');
+  const [antiHcv, setAntiHcv] = useState<string>(donor?.healthInfo?.hcvStatus || 'Not Tested');
+  const [antiHiv, setAntiHiv] = useState<string>(donor?.healthInfo?.hivStatus || 'Not Tested');
+  const [vdrl, setVdrl] = useState<string>(donor?.healthInfo?.syphilisStatus || 'Not Tested');
+  const [mp, setMp] = useState<string>(donor?.healthInfo?.malariaStatus || 'Not Tested');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -714,11 +723,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
     setBloodGroup(donor?.bloodGroup || 'O+');
     setDistrict(donor?.district || 'Dhaka');
     setArea(donor?.area || BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || '');
-    setHbsag(donor?.healthInfo?.healthMetrics?.hbsag || 'Not Tested');
-    setAntiHcv(donor?.healthInfo?.healthMetrics?.anti_hcv || 'Not Tested');
-    setAntiHiv(donor?.healthInfo?.healthMetrics?.anti_hiv || 'Not Tested');
-    setVdrl(donor?.healthInfo?.healthMetrics?.vdrl || 'Not Tested');
-    setMp(donor?.healthInfo?.healthMetrics?.mp || 'Not Tested');
+    setHbsag(donor?.healthInfo?.hbsagStatus || 'Not Tested');
+    setAntiHcv(donor?.healthInfo?.hcvStatus || 'Not Tested');
+    setAntiHiv(donor?.healthInfo?.hivStatus || 'Not Tested');
+    setVdrl(donor?.healthInfo?.syphilisStatus || 'Not Tested');
+    setMp(donor?.healthInfo?.malariaStatus || 'Not Tested');
   }, [donor]);
 
   if (!isOpen || !donor) return null;

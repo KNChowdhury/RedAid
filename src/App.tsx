@@ -33,6 +33,17 @@ export function App() {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [selectedProfileDonor, setSelectedProfileDonor] = useState<DonorProfile | null>(null);
+
+  // Donor cards come from v_donors_directory, which deliberately excludes health
+  // data. So when the selected donor IS the signed-in user, show the richer
+  // currentUser object instead — that one carries their own health record.
+  const openDonorProfile = (donor: DonorProfile | null) => {
+    if (donor && state.currentUser && donor.id === state.currentUser.id) {
+      setSelectedProfileDonor(state.currentUser);
+      return;
+    }
+    setSelectedProfileDonor(donor);
+  };
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   // Keep state synced to localStorage
@@ -353,7 +364,7 @@ export function App() {
             <DonorsNetwork
               donors={filteredDonorsList}
               filters={filters}
-              onSelectDonor={d => setSelectedProfileDonor(d)}
+              onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
             />
           )}
@@ -370,7 +381,7 @@ export function App() {
             <DonorsNetwork
               donors={filteredDonorsList}
               filters={filters}
-              onSelectDonor={d => setSelectedProfileDonor(d)}
+              onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
             />
           )}

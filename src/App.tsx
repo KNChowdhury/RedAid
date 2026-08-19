@@ -7,7 +7,7 @@ import { HospitalPortal } from './components/HospitalPortal';
 import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
-import { ConfirmDonationBanner, MarkDonatedModal } from './components/DonationLoop';
+import { ConfirmDonationBanner, MarkDonatedModal, ShareRequestModal } from './components/DonationLoop';
 import { SidebarStats } from './components/SidebarStats';
 import { createRequestInDb, deleteRequestFromDb, updateRequestInDb, offerToDonate, fetchMyOfferedRequestIds, fetchMyPendingConfirmations, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
@@ -73,6 +73,7 @@ export function App() {
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<EmergencyRequest | null>(null);
   const [markDonatedRequest, setMarkDonatedRequest] = useState<EmergencyRequest | null>(null);
+  const [justPostedRequest, setJustPostedRequest] = useState<EmergencyRequest | null>(null);
   const [offeredRequestIds, setOfferedRequestIds] = useState<string[]>([]);
   const [pendingConfirmations, setPendingConfirmations] = useState<any[]>([]);
 
@@ -241,6 +242,10 @@ export function App() {
     }));
     setActiveTab('requests');
     setIsRequestModalOpen(false);
+
+    // The single most useful moment to share: right after posting. Most blood in
+    // Bangladesh is found through group forwards, so prompt immediately.
+    setJustPostedRequest(savedReq);
     return true;
   };
 
@@ -515,6 +520,12 @@ export function App() {
       </main>
 
       {/* Dialog Modals Overlay */}
+      <ShareRequestModal
+        request={justPostedRequest}
+        isOpen={!!justPostedRequest}
+        onClose={() => setJustPostedRequest(null)}
+      />
+
       <MarkDonatedModal
         request={markDonatedRequest}
         isOpen={!!markDonatedRequest}

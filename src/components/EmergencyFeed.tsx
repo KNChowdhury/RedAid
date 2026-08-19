@@ -1,6 +1,6 @@
 import { AlertCircle, Clock, MapPin, Phone, Share2, ShieldCheck, Users } from 'lucide-react';
 import React from 'react';
-import { getWhatsAppUrl } from '../services/lifelineService';
+import { buildRequestShareText, buildWhatsAppShareUrl, getWhatsAppUrl } from '../services/lifelineService';
 import { EmergencyRequest } from '../types';
 
 interface EmergencyFeedProps {
@@ -143,6 +143,19 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                     >
                       <Phone className="w-3.5 h-3.5" />
                       Call
+                    </a>
+
+                    {/* Anyone can forward a request to their own groups. This is
+                        how blood actually gets found here, so it stays available
+                        to guests and signed-in users alike. */}
+                    <a
+                      href={buildWhatsAppShareUrl(buildRequestShareText(req))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-3 bg-[#25D366] hover:bg-[#1da851] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
+                      title="Forward this request on WhatsApp"
+                    >
+                      Share
                     </a>
 
                     {/* Donor side: offer to help. Hidden on your own request. */}

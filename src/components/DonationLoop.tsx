@@ -1,6 +1,8 @@
 import { AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {
+  buildRequestShareText,
+  buildWhatsAppShareUrl,
   confirmMyDonation,
   fetchRequestResponders,
   recordDonation,
@@ -270,6 +272,94 @@ export const ConfirmDonationBanner: React.FC<ConfirmDonationBannerProps> = ({
       {error && (
         <p className="text-xs font-bold text-rose-700 px-1">{error}</p>
       )}
+    </div>
+  );
+};
+
+
+/* ============================================================
+ * 3. Share prompt shown right after a request is posted
+ * ============================================================ */
+
+interface ShareRequestModalProps {
+  request: EmergencyRequest | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
+  request,
+  isOpen,
+  onClose
+}) => {
+  const [copied, setCopied] = useState(false);
+
+  useDismissable(isOpen && !!request, onClose);
+
+  if (!isOpen || !request) return null;
+
+  const text = buildRequestShareText(request);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div
+      onClick={backdropClose(onClose)}
+      className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200"
+    >
+      <div className="bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scroll">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="editorial-title text-2xl font-black text-slate-900">Request posted ✓</h2>
+            <p className="text-xs font-bold text-slate-400 mt-0.5">
+              Now spread it — this is what finds blood fastest
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+          Matching donors on LifelineBD have already been notified. Forwarding this to your own
+          WhatsApp groups reaches many more people.
+        </p>
+
+        <pre className="text-[11px] whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-700 font-sans mb-4">
+{text}
+        </pre>
+
+        <a
+          href={buildWhatsAppShareUrl(text)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-4 bg-[#25D366] hover:bg-[#1da851] text-white rounded-xl font-black uppercase text-xs tracking-widest transition-colors flex items-center justify-center gap-2"
+        >
+          Share on WhatsApp
+        </a>
+
+        <button
+          onClick={handleCopy}
+          className="mt-2 w-full py-3 border-2 border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-black uppercase text-xs tracking-widest transition-colors"
+        >
+          {copied ? 'Copied ✓' : 'Copy text'}
+        </button>
+
+        <button
+          onClick={onClose}
+          className="mt-3 w-full text-xs font-bold text-slate-400 hover:text-slate-600"
+        >
+          Skip for now
+        </button>
+      </div>
     </div>
   );
 };

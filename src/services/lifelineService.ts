@@ -77,6 +77,47 @@ export function normalizeWhatsAppNumber(value: string | null | undefined): strin
   return /^8801[3-9]\d{8}$/.test(international) ? international : null;
 }
 
+/**
+ * A ready-to-forward WhatsApp message for an emergency request.
+ *
+ * This needs no API, no business verification and costs nothing: it opens
+ * WhatsApp with the text pre-filled, and the person chooses which groups or
+ * contacts to send it to. In Bangladesh most blood is found through group
+ * forwards, so this simply makes what people already do much faster.
+ */
+export function buildRequestShareText(req: {
+  bloodGroup: string;
+  requiredBags: number;
+  patientName: string;
+  age?: number;
+  hospitalName: string;
+  area?: string;
+  district?: string;
+  neededByTime?: string;
+  urgency?: string;
+  contactPhone?: string;
+}): string {
+  const place = [req.area, req.district].filter(Boolean).join(', ');
+  const lines = [
+    `🩸 ${req.bloodGroup} রক্ত প্রয়োজন — ${req.requiredBags} ব্যাগ`,
+    '',
+    `রোগী: ${req.patientName}${req.age ? ` (${req.age} বছর)` : ''}`,
+    `হাসপাতাল: ${req.hospitalName}${place ? `, ${place}` : ''}`,
+    req.neededByTime ? `সময়: ${req.neededByTime}` : '',
+    req.urgency === 'Critical' ? '⚠️ অতি জরুরি' : '',
+    req.contactPhone ? `যোগাযোগ: ${req.contactPhone}` : '',
+    '',
+    'আপনার পরিচিত কেউ দিতে পারলে দয়া করে জানান।',
+    'বিস্তারিত ও অন্যান্য অনুরোধ: https://lifelinebd.vercel.app'
+  ];
+  return lines.filter(l => l !== '').join('\n');
+}
+
+/** wa.me link with no recipient, so WhatsApp asks the sender who to forward to. */
+export function buildWhatsAppShareUrl(text: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
 export function getWhatsAppUrl(value: string | null | undefined, message?: string): string | null {
   const number = normalizeWhatsAppNumber(value);
   if (!number) return null;

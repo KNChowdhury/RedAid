@@ -117,17 +117,16 @@ export function App() {
   const unreadNotifsCount = state.notifications.filter(n => !n.read).length;
 
   /* Handlers */
-  const handleAddNewRequest = async (reqData: Partial<EmergencyRequest>) => {
+  const handleAddNewRequest = async (reqData: Partial<EmergencyRequest>): Promise<boolean> => {
     if (!state.currentUser) {
       setIsRequestModalOpen(false);
       setIsAuthModalOpen(true);
-      return;
+      return false;
     }
 
     const savedReq = await createRequestInDb({ ...reqData, requesterId: state.currentUser.id });
     if (!savedReq) {
-      window.alert('Request could not be saved. Please check your connection and try again.');
-      return;
+      return false;
     }
 
     setState(prev => ({
@@ -146,6 +145,8 @@ export function App() {
       ]
     }));
     setActiveTab('requests');
+    setIsRequestModalOpen(false);
+    return true;
   };
 
   const handleLoginSuccess = (user: DonorProfile) => {

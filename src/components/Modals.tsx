@@ -8,7 +8,7 @@ import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '..
 interface RequestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (req: Partial<EmergencyRequest>) => void;
+  onSubmit: (req: Partial<EmergencyRequest>) => Promise<boolean>;
 }
 
 export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit }) => {
@@ -24,31 +24,39 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const [phone, setPhone] = useState('+880 ');
   const [whatsapp, setWhatsapp] = useState('880');
   const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!patientName || !hospitalName || !phone) return;
-    onSubmit({
-      id: `req-${Date.now()}`,
-      patientName,
-      age: Number(age) || 30,
-      bloodGroup,
-      hospitalName,
-      district,
-      area,
-      requiredBags: Number(bags) || 1,
-      neededByTime: neededBy,
-      urgency,
-      contactPhone: phone,
-      contactWhatsapp: whatsapp.replace(/[^0-9]/g, ''),
-      reason: reason || 'Urgent medical transfusion requirement.',
-      status: 'Pending',
-      createdAt: new Date().toISOString(),
-      matchedDonorsCount: Math.floor(Math.random() * 6) + 2
-    });
-    onClose();
+    setSubmitError('');
+    setSubmitting(true);
+    try {
+      const saved = await onSubmit({
+        id: `req-${Date.now()}`,
+        patientName,
+        age: Number(age) || 30,
+        bloodGroup,
+        hospitalName,
+        district,
+        area,
+        requiredBags: Number(bags) || 1,
+        neededByTime: neededBy,
+        urgency,
+        contactPhone: phone,
+        contactWhatsapp: whatsapp.replace(/[^0-9]/g, ''),
+        reason: reason || 'Urgent medical transfusion requirement.',
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        matchedDonorsCount: 0
+      });
+      if (!saved) setSubmitError('Request was not saved. Please sign in or try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const selectedDistObj = BANGLADESH_DISTRICTS.find(d => d.name === district);
@@ -72,6 +80,11 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {submitError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              {submitError}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Patient Full Name *</label>
@@ -147,8 +160,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             <textarea rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Emergency C-Section bleeding surgery scheduled at ICU." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900" />
           </div>
 
-          <button type="submit" className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-2">
-            🚨 Broadcast Emergency Request
+          <button type="submit" disabled={submitting} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-2 disabled:cursor-wait disabled:opacity-60">
+            {submitting ? 'Saving request...' : '🚨 Broadcast Emergency Request'}
           </button>
         </form>
       </div>

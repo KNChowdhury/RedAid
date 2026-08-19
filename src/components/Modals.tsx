@@ -65,7 +65,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         neededByTime: neededBy,
         urgency,
         contactPhone: toBdDialing(phone),
-        contactWhatsapp: toBdWhatsapp(whatsappSameAsPhone ? phone : whatsapp),
+        contactWhatsapp: toBdWhatsapp(whatsapp || phone),
         reason: reason || 'Urgent medical transfusion requirement.',
         status: 'Pending',
         createdAt: new Date().toISOString(),

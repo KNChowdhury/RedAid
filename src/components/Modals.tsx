@@ -1,6 +1,7 @@
 import { AlertCircle, Award, Bell, Calendar, Heart, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { BANGLADESH_DISTRICTS } from '../mockData';
+import { backdropClose, useDismissable } from '../hooks/useDismissable';
 import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 
@@ -57,6 +58,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const [submitError, setSubmitError] = useState('');
 
   const isEditMode = !!editingRequest;
+
+  useDismissable(isOpen, onClose);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -121,7 +124,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const areasList = selectedDistObj ? selectedDistObj.areas : [];
 
   return (
-    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 lg:p-10 max-w-2xl w-full border border-slate-200 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scroll my-auto">
         <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-5 h-5" />
@@ -292,6 +295,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  useDismissable(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -368,7 +373,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   };
 
   return (
-    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900">
         <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-5 h-5" />
@@ -542,6 +547,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     }
   }, [donor]);
 
+  useDismissable(!!donor, onClose);
+
   if (!donor) return null;
 
   const districtObj = BANGLADESH_DISTRICTS.find(d => d.name === district);
@@ -571,7 +578,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const statusColor = (s: string) => s === 'Positive' ? 'text-rose-600' : s === 'Negative' ? 'text-emerald-600' : 'text-slate-400';
 
   return (
-    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[3rem] p-8 lg:p-10 max-w-xl w-full border border-slate-200 shadow-2xl relative text-slate-900 max-h-[90vh] overflow-y-auto custom-scroll">
         <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-5 h-5" />
@@ -837,6 +844,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
     setMp(donor?.healthInfo?.malariaStatus || 'Not Tested');
   }, [donor]);
 
+  useDismissable(isOpen && !!donor, onClose);
+
   if (!isOpen || !donor) return null;
 
   const areasList = BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas || [];
@@ -885,7 +894,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
   };
 
   return (
-    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-6 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-4 h-4" />
@@ -957,10 +966,12 @@ interface NotifModalProps {
 }
 
 export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose, notifications, onMarkAllRead }) => {
+  useDismissable(isOpen, onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full border border-slate-200 shadow-2xl relative max-h-[85vh] flex flex-col text-slate-900">
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <div className="flex items-center gap-2">

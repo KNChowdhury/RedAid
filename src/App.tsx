@@ -13,7 +13,32 @@ import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
   const [state, setState] = useState(getAppState);
-  const [activeTab, setActiveTab] = useState('network'); // 'network' | 'requests' | 'map' | 'rewards' | 'ai-advisor' | 'hospital' | 'admin'
+  // Tab lives in the URL hash so the browser/Android back button moves between
+  // sections instead of leaving the app on the first tap.
+  const readTabFromHash = () => {
+    const t = window.location.hash.replace('#', '');
+    const valid = ['network', 'requests', 'map', 'rewards', 'ai-advisor', 'hospital', 'admin'];
+    return valid.includes(t) ? t : 'network';
+  };
+
+  const [activeTab, setActiveTabState] = useState(readTabFromHash);
+
+  const setActiveTab = React.useCallback((tab: string) => {
+    setActiveTabState(tab);
+    if (window.location.hash.replace('#', '') !== tab) {
+      window.history.pushState(null, '', `#${tab}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onHashChange = () => setActiveTabState(readTabFromHash());
+    window.addEventListener('popstate', onHashChange);
+    window.addEventListener('hashchange', onHashChange);
+    return () => {
+      window.removeEventListener('popstate', onHashChange);
+      window.removeEventListener('hashchange', onHashChange);
+    };
+  }, []);
 
   // Search Filter State
   const [filters, setFilters] = useState<SearchFilters>({

@@ -265,11 +265,28 @@ export async function updateDonorProfile(
   if (updates.area !== undefined) dbUpdates.area = updates.area;
   if (lat !== undefined) dbUpdates.lat = lat;
   if (lng !== undefined) dbUpdates.lng = lng;
-  if (updates.hbsagStatus !== undefined) dbUpdates.hbsag_status = updates.hbsagStatus;
-  if (updates.hcvStatus !== undefined) dbUpdates.hcv_status = updates.hcvStatus;
-  if (updates.hivStatus !== undefined) dbUpdates.hiv_status = updates.hivStatus;
-  if (updates.syphilisStatus !== undefined) dbUpdates.syphilis_status = updates.syphilisStatus;
-  if (updates.malariaStatus !== undefined) dbUpdates.malaria_status = updates.malariaStatus;
+
+  const healthUpdates: Record<string, string> = {};
+  if (updates.hbsagStatus !== undefined) healthUpdates.hbsag_status = updates.hbsagStatus;
+  if (updates.hcvStatus !== undefined) healthUpdates.hcv_status = updates.hcvStatus;
+  if (updates.hivStatus !== undefined) healthUpdates.hiv_status = updates.hivStatus;
+  if (updates.syphilisStatus !== undefined) healthUpdates.syphilis_status = updates.syphilisStatus;
+  if (updates.malariaStatus !== undefined) healthUpdates.malaria_status = updates.malariaStatus;
+
+  if (Object.keys(healthUpdates).length > 0) {
+    const { error: healthError } = await supabaseClient
+      .from('donor_health')
+      .upsert({ donor_id: donorId, ...healthUpdates }, { onConflict: 'donor_id' });
+    if (healthError) console.error('Update donor health error:', healthError);
+  }
+
+  if (Object.keys(dbUpdates).length === 0) {
+    const reloaded = await supabaseClient.from('donors').select('*').eq('id', donorId).maybeSingle();
+    if (!reloaded.data) return null;
+    const profile = mapDbDonorToProfile(reloaded.data);
+    profile.healthInfo = { ...(profile.healthInfo || {}), ...(await fetchMyHealthInfo(donorId)) } as any;
+    return profile;
+  }
 
   const { data, error } = await supabaseClient
     .from('donors')
@@ -282,7 +299,37 @@ export async function updateDonorProfile(
     console.error('Update donor error:', error);
     return null;
   }
-  return mapDbDonorToProfile(data);
+  const profile = mapDbDonorToProfile(data);
+  profile.healthInfo = { ...(profile.healthInfo || {}), ...(await fetchMyHealthInfo(donorId)) } as any;
+  return profile;
+}
+
+export async function fetchMyHealthInfo(donorId: string): Promise<Record<string, any>> {
+  if (!supabase) return {};
+
+  const { data, error } = await supabase
+    .from('donor_health')
+    .select('*')
+    .eq('donor_id', donorId)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) console.error('Fetch health info error:', error.message);
+    return {};
+  }
+
+  return {
+    weightKg: data.weight_kg ?? 0,
+    bloodPressure: data.blood_pressure || '',
+    hemoglobin: data.hemoglobin ?? 0,
+    hasChronicDisease: !!data.has_chronic_disease,
+    recentMedication: data.recent_medication || '',
+    hbsagStatus: data.hbsag_status || 'Not Tested',
+    hcvStatus: data.hcv_status || 'Not Tested',
+    hivStatus: data.hiv_status || 'Not Tested',
+    syphilisStatus: data.syphilis_status || 'Not Tested',
+    malariaStatus: data.malaria_status || 'Not Tested'
+  };
 }
 
 export async function toggleDonorVerification(donorId: string, isVerified: boolean): Promise<boolean> {
@@ -413,7 +460,7 @@ export async function fetchSharedData(
   }
 
   const donorsQuery = isLoggedIn
-    ? supabase.from('donors').select('*')
+    ? supabase.from('v_donors_directory').select('*')
     : supabase.from('v_public_donors').select('*');
 
   const [donorsRes, requestsRes, badgesRes] = await Promise.all([
@@ -626,7 +673,9 @@ export async function signUpDonor(profile: {
     return { user: null, error: rlsMessage };
   }
 
-  return { user: mapDbDonorToProfile(donorData), error: null };
+  const signedUpProfile = mapDbDonorToProfile(donorData);
+  signedUpProfile.healthInfo = { ...(signedUpProfile.healthInfo || {}), ...(await fetchMyHealthInfo(signedUpProfile.id)) } as any;
+  return { user: signedUpProfile, error: null };
 }
 
 export async function signInDonor(email: string, password: string): Promise<{ user: DonorProfile | null; error: string | null }> {
@@ -682,10 +731,14 @@ export async function signInDonor(email: string, password: string): Promise<{ us
       return { user: null, error: rlsMessage };
     }
 
-    return { user: mapDbDonorToProfile(insertedDonor), error: null };
+    const insertedProfile = mapDbDonorToProfile(insertedDonor);
+    insertedProfile.healthInfo = { ...(insertedProfile.healthInfo || {}), ...(await fetchMyHealthInfo(insertedProfile.id)) } as any;
+    return { user: insertedProfile, error: null };
   }
 
-  return { user: mapDbDonorToProfile(donorRes.data), error: null };
+  const signedInProfile = mapDbDonorToProfile(donorRes.data);
+  signedInProfile.healthInfo = { ...(signedInProfile.healthInfo || {}), ...(await fetchMyHealthInfo(signedInProfile.id)) } as any;
+  return { user: signedInProfile, error: null };
 }
 
 export async function getCurrentDonorFromSession(): Promise<DonorProfile | null> {
@@ -710,7 +763,9 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
     return null;
   }
 
-  return mapDbDonorToProfile(donorRes.data);
+  const restored = mapDbDonorToProfile(donorRes.data);
+  restored.healthInfo = { ...(restored.healthInfo || {}), ...(await fetchMyHealthInfo(restored.id)) } as any;
+  return restored;
 }
 
 export async function signOutDonor(): Promise<void> {

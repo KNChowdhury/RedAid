@@ -755,8 +755,13 @@ export async function signInDonor(email: string, password: string): Promise<{ us
 
   const userId = currentUser.id;
   let donorRes = await supabase.from('donors').select('*').eq('auth_user_id', userId).maybeSingle();
-  if ((!donorRes.data || donorRes.error) && authData.user.email) {
-    donorRes = await supabase.from('donors').select('*').eq('email', authData.user.email).maybeSingle();
+  if (!donorRes.data && !donorRes.error) {
+    const linked = await supabase.rpc('link_or_get_my_donor');
+    if (linked.error) {
+      console.error('link_or_get_my_donor error:', linked.error.message);
+    } else if (linked.data) {
+      donorRes = { ...donorRes, data: linked.data } as typeof donorRes;
+    }
   }
 
   if (donorRes.error || !donorRes.data) {
@@ -802,8 +807,13 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
 
   const user = sessionData.session.user;
   let donorRes = await supabase.from('donors').select('*').eq('auth_user_id', user.id).maybeSingle();
-  if ((!donorRes.data || donorRes.error) && user.email) {
-    donorRes = await supabase.from('donors').select('*').eq('email', user.email).maybeSingle();
+  if (!donorRes.data && !donorRes.error) {
+    const linked = await supabase.rpc('link_or_get_my_donor');
+    if (linked.error) {
+      console.error('link_or_get_my_donor error:', linked.error.message);
+    } else if (linked.data) {
+      donorRes = { ...donorRes, data: linked.data } as typeof donorRes;
+    }
   }
 
   if (donorRes.error || !donorRes.data) {

@@ -35,9 +35,11 @@ interface RequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (req: Partial<EmergencyRequest>) => Promise<boolean>;
+  /** When set, the modal edits this request instead of creating a new one. */
+  editingRequest?: EmergencyRequest | null;
 }
 
-export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit }) => {
+export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, editingRequest = null }) => {
   const [patientName, setPatientName] = useState('');
   const [age, setAge] = useState('35');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('O-');
@@ -54,6 +56,35 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  const isEditMode = !!editingRequest;
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setSubmitError('');
+    if (editingRequest) {
+      setPatientName(editingRequest.patientName || '');
+      setAge(String(editingRequest.age ?? 35));
+      setBloodGroup(editingRequest.bloodGroup);
+      setDistrict(editingRequest.district || 'Dhaka');
+      setArea(editingRequest.area || '');
+      setHospitalName(editingRequest.hospitalName || '');
+      setBags(String(editingRequest.requiredBags ?? 1));
+      setNeededBy(editingRequest.neededByTime || '');
+      setUrgency(editingRequest.urgency);
+      setPhone(editingRequest.contactPhone || '');
+      setWhatsapp(editingRequest.contactWhatsapp || '');
+      setReason(editingRequest.reason || '');
+    } else {
+      setPatientName('');
+      setAge('35');
+      setHospitalName('');
+      setPhone('');
+      setWhatsapp('');
+      setReason('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingRequest?.id]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +94,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
     setSubmitting(true);
     try {
       const saved = await onSubmit({
-        id: `req-${Date.now()}`,
+        id: editingRequest?.id || `req-${Date.now()}`,
         patientName,
         age: Number(age) || 30,
         bloodGroup,
@@ -80,7 +111,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         createdAt: new Date().toISOString(),
         matchedDonorsCount: 0
       });
-      if (!saved) setSubmitError('Request was not saved. Please sign in or try again.');
+      if (!saved) setSubmitError(isEditMode ? 'Could not update the request. You can only edit your own.' : 'Request was not saved. Please sign in or try again.');
     } finally {
       setSubmitting(false);
     }
@@ -101,8 +132,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="editorial-title text-2xl sm:text-3xl font-black text-slate-900">Broadcast Blood Requisition</h2>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Pushes immediate live feed & Firebase notification</p>
+            <h2 className="editorial-title text-2xl sm:text-3xl font-black text-slate-900">{isEditMode ? 'Edit Blood Requisition' : 'Broadcast Blood Requisition'}</h2>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{isEditMode ? 'Updates the live feed for everyone' : 'Pushes immediate live feed & notification'}</p>
           </div>
         </div>
 
@@ -213,7 +244,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           </div>
 
           <button type="submit" disabled={submitting} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-2 disabled:cursor-wait disabled:opacity-60">
-            {submitting ? 'Saving request...' : '🚨 Broadcast Emergency Request'}
+            {submitting ? 'Saving...' : (isEditMode ? '💾 Save Changes' : '🚨 Broadcast Emergency Request')}
           </button>
         </form>
       </div>

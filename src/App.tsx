@@ -8,7 +8,7 @@ import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestB
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
 import { SidebarStats } from './components/SidebarStats';
-import { createRequestInDb, deleteRequestFromDb, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
+import { createRequestInDb, deleteRequestFromDb, updateRequestInDb, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
@@ -45,6 +45,7 @@ export function App() {
     setSelectedProfileDonor(donor);
   };
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<EmergencyRequest | null>(null);
 
   // Keep state synced to localStorage
   useEffect(() => {
@@ -143,6 +144,21 @@ export function App() {
       setIsRequestModalOpen(false);
       setIsAuthModalOpen(true);
       return false;
+    }
+
+    // Editing an existing request updates it in place; no new feed entry, no
+    // duplicate notification.
+    if (editingRequest) {
+      const updated = await updateRequestInDb(editingRequest.id, reqData);
+      if (!updated) return false;
+
+      setState(prev => ({
+        ...prev,
+        requests: prev.requests.map(r => (r.id === updated.id ? updated : r))
+      }));
+      setEditingRequest(null);
+      setIsRequestModalOpen(false);
+      return true;
     }
 
     const savedReq = await createRequestInDb({ ...reqData, requesterId: state.currentUser.id });
@@ -376,8 +392,10 @@ export function App() {
           {activeTab === 'requests' && (
             <EmergencyFeed
               requests={state.requests}
+              currentDonorId={state.currentUser?.id || null}
+              onEditRequest={req => { setEditingRequest(req); setIsRequestModalOpen(true); }}
               onSelectRequest={r => alert(`Selected request for ${r.patientName}. Hospital: ${r.hospitalName}.`)}
-              onRequestBlood={() => setIsRequestModalOpen(true)}
+              onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
             />
           )}
 
@@ -423,7 +441,8 @@ export function App() {
       {/* Dialog Modals Overlay */}
       <RequestBloodModal
         isOpen={isRequestModalOpen}
-        onClose={() => setIsRequestModalOpen(false)}
+        editingRequest={editingRequest}
+        onClose={() => { setIsRequestModalOpen(false); setEditingRequest(null); }}
         onSubmit={handleAddNewRequest}
       />
 

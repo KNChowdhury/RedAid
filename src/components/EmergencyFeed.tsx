@@ -7,12 +7,17 @@ interface EmergencyFeedProps {
   requests: EmergencyRequest[];
   onSelectRequest: (req: EmergencyRequest) => void;
   onRequestBlood: () => void;
+  /** Donor id of the signed-in user, so we know which requests they may edit. */
+  currentDonorId?: string | null;
+  onEditRequest?: (req: EmergencyRequest) => void;
 }
 
 export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   requests,
   onSelectRequest,
-  onRequestBlood
+  onRequestBlood,
+  currentDonorId = null,
+  onEditRequest
 }) => {
   return (
     <section className="p-6 lg:p-10 overflow-hidden flex flex-col h-full bg-white">
@@ -131,6 +136,16 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                       <Phone className="w-3.5 h-3.5" />
                       Call
                     </a>
+
+                    {onEditRequest && currentDonorId && req.requesterId === currentDonorId && (
+                      <button
+                        onClick={() => onEditRequest(req)}
+                        className="px-4 py-3 bg-slate-900 text-white hover:bg-slate-700 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
+                        title="Edit your request"
+                      >
+                        Edit
+                      </button>
+                    )}
 
                     <button
                       onClick={() => onSelectRequest(req)}

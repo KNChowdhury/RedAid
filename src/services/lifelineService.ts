@@ -368,6 +368,47 @@ export async function toggleDonorVerification(donorId: string, isVerified: boole
   return true;
 }
 
+// Update an existing emergency request. RLS (requests_update_owner_or_admin)
+// means this only succeeds for the person who posted it, or an admin.
+export async function updateRequestInDb(
+  requestId: string,
+  updates: Partial<EmergencyRequest>
+): Promise<EmergencyRequest | null> {
+  if (!supabase) {
+    return null;
+  }
+
+  const dbUpdates: Record<string, any> = {};
+  if (updates.patientName !== undefined) dbUpdates.patient_name = updates.patientName;
+  if (updates.age !== undefined) dbUpdates.age = updates.age;
+  if (updates.bloodGroup !== undefined) dbUpdates.blood_group = updates.bloodGroup;
+  if (updates.hospitalName !== undefined) dbUpdates.hospital_name = updates.hospitalName;
+  if (updates.district !== undefined) dbUpdates.district = updates.district;
+  if (updates.area !== undefined) dbUpdates.area = updates.area;
+  if (updates.requiredBags !== undefined) dbUpdates.required_bags = updates.requiredBags;
+  if (updates.neededByTime !== undefined) dbUpdates.needed_by_time = updates.neededByTime;
+  if (updates.urgency !== undefined) dbUpdates.urgency = updates.urgency;
+  if (updates.contactPhone !== undefined) dbUpdates.contact_phone = updates.contactPhone;
+  if (updates.contactWhatsapp !== undefined) dbUpdates.contact_whatsapp = updates.contactWhatsapp;
+  if (updates.reason !== undefined) dbUpdates.reason = updates.reason;
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+
+  if (Object.keys(dbUpdates).length === 0) return null;
+
+  const { data, error } = await supabase
+    .from('requests')
+    .update(dbUpdates)
+    .eq('id', requestId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('Supabase update request error:', error);
+    return null;
+  }
+  return mapDbRequestToRequest(data);
+}
+
 export async function deleteRequestFromDb(requestId: string): Promise<boolean> {
   if (!supabase) {
     console.error('Supabase client not configured.');

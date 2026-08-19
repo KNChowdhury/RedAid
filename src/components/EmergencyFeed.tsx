@@ -28,7 +28,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   onMarkDonated
 }) => {
   return (
-    <section className="p-6 lg:p-10 overflow-hidden flex flex-col h-full bg-white">
+    <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white min-w-0">
       {/* Editorial Title Header */}
       <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

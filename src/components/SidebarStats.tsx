@@ -23,11 +23,11 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
   const areasList = selectedDistrictObj ? selectedDistrictObj.areas : [];
 
   return (
-    <aside className="border-r border-slate-200/80 p-6 lg:p-8 flex flex-col gap-8 bg-slate-50/70 overflow-y-auto">
+    <aside className="lg:border-r border-slate-200/80 p-6 lg:p-8 flex flex-col gap-8 bg-slate-50/70 lg:overflow-y-auto min-w-0">
       {/* Impact Score Section */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400">Impact Score</h2>
+          <h2 className="text-sm font-bold text-slate-700">Your impact</h2>
           {currentUser?.isVerified && (
             <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider bg-rose-100 px-2 py-0.5 rounded-full">
               Verified Donor
@@ -48,20 +48,14 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
             <p className="text-4xl font-black mb-1 tracking-tight font-mono">
               {(currentUser.impactScore ?? 0).toLocaleString()}
             </p>
-            <p className="text-xs opacity-90 uppercase tracking-wider font-semibold">Lifeline Points Earned</p>
+            <p className="text-sm opacity-90">Lifeline points</p>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <div className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">
-                <Heart className="w-3 h-3 text-rose-200 fill-rose-200" />
-                {currentUser.livesSaved ?? 0} Lives Saved
-              </div>
-              {currentUser.isRegular && (
-                <div className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">
-                  <Award className="w-3 h-3 text-yellow-300" />
-                  Regular Donor
-                </div>
-              )}
-            </div>
+            {/* One line of plain prose reads faster than a row of pills. */}
+            <p className="mt-4 text-sm opacity-90 flex items-center gap-1.5">
+              <Heart className="w-4 h-4 text-rose-200 fill-rose-200 shrink-0" />
+              {currentUser.livesSaved ?? 0} {currentUser.livesSaved === 1 ? 'life' : 'lives'} saved
+              {currentUser.isRegular ? ' · regular donor' : ''}
+            </p>
           </motion.div>
         ) : (
           <div className="p-6 rounded-3xl border border-dashed border-rose-200 bg-rose-50/60 text-center">
@@ -74,11 +68,11 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
       {/* Smart Search Filter Engine */}
       <section className="flex-1">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[10px] uppercase tracking-[0.2em] font-extrabold text-slate-400 flex items-center gap-1.5">
-            <Filter className="w-3 h-3 text-rose-600" />
-            Smart Search
+          <h2 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-rose-600" />
+            Filters
           </h2>
-          <span className="text-xs font-bold text-slate-700">{donorsCount} Active</span>
+          <span className="text-xs text-slate-500">{donorsCount} shown</span>
         </div>
 
         <div className="space-y-3.5">

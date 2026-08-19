@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { useBrowserNotifications } from './hooks/useBrowserNotifications';
 import { AdminDashboard } from './components/AdminDashboard';
+import { Footer } from './components/Footer';
 import { AiHealthAdvisor } from './components/AiHealthAdvisor';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
@@ -83,6 +85,9 @@ export function App() {
   }, [state]);
 
   const isLoggedIn = !!state.currentUser;
+  const knownRequestIdsRef = useRef<Set<string>>(new Set());
+  const hasLoadedOnceRef = useRef(false);
+  const { permission: notifyPermission, requestPermission: askNotifyPermission, notify } = useBrowserNotifications();
 
   // Pulls the current truth from Supabase and replaces local state with it.
   // Real data always wins — we never fall back to stale/local/demo data just
@@ -92,18 +97,34 @@ export function App() {
     try {
       const shared = await fetchSharedData(loggedIn, userPoints);
 
-      setState(prev => {
-        return {
-          ...prev,
-          donors: shared.donors,
-          requests: shared.requests,
-          badges: shared.badges
-        };
+      // Work out which requests are genuinely new since the last load, so a
+      // donor with the tab in the background still gets alerted.
+      const seen = knownRequestIdsRef.current;
+      const isFirstLoad = !hasLoadedOnceRef.current;
+      const newlySeen = isFirstLoad ? [] : shared.requests.filter(r => !seen.has(r.id));
+
+      knownRequestIdsRef.current = new Set(shared.requests.map(r => r.id));
+      hasLoadedOnceRef.current = true;
+
+      newlySeen.forEach(r => {
+        notify(
+          `${r.bloodGroup} blood needed${r.urgency === 'Critical' ? ' — urgent' : ''}`,
+          `${r.patientName} at ${r.hospitalName}. ${r.requiredBags} bag(s) needed.`,
+          `request-${r.id}`
+        );
       });
+
+      setState(prev => ({
+        ...prev,
+        donors: shared.donors,
+        requests: shared.requests,
+        badges: shared.badges
+      }));
     } catch (error) {
       console.error('Failed to fetch shared Supabase data:', error);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notify]);
 
   // Restore Supabase auth session on startup, then load real data for that
   // login state (logged-in donors see full profiles; guests see the public view).
@@ -357,7 +378,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100/60 font-sans text-slate-900 selection:bg-rose-500 selection:text-white antialiased">
+    <div className="min-h-screen overflow-x-hidden flex flex-col bg-slate-100/60 font-sans text-slate-900 selection:bg-rose-500 selection:text-white antialiased">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -373,65 +394,36 @@ export function App() {
 
       <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-10 py-4">
         {state.currentUser ? (
-          <div className="rounded-[2rem] border border-rose-200/80 bg-rose-50/90 p-6 shadow-lg shadow-rose-200/40 animate-in slide-in-from-top duration-300">
-            <p className="text-sm uppercase font-bold tracking-[0.35em] text-rose-600">Welcome back</p>
-            <h1 className="mt-2 text-3xl lg:text-4xl font-black text-slate-900">{state.currentUser.name}</h1>
-            <p className="mt-3 text-sm lg:text-base text-slate-700 max-w-2xl">
-              Great to see you again! Your Lifeline dashboard is ready with the latest donor network and emergency requests.
+          <div className="rounded-2xl border border-rose-100 bg-rose-50/70 px-5 py-4 flex items-center justify-between gap-4">
+            <p className="text-sm text-slate-700">
+              Signed in as <span className="font-bold text-slate-900">{state.currentUser.name}</span>
             </p>
+            <button
+              onClick={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
+              className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold transition-colors"
+            >
+              Request blood
+            </button>
           </div>
         ) : (
-          <div className="rounded-[2.5rem] border border-slate-300/80 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-950 p-8 shadow-2xl shadow-slate-900/30 text-white animate-in fade-in duration-300">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs uppercase font-semibold tracking-[0.45em] text-rose-400">Guest mode</p>
-                <h1 className="mt-3 text-3xl lg:text-4xl font-black tracking-tight">Welcome to LifelineBD</h1>
-                <p className="mt-4 text-sm lg:text-base text-slate-300 max-w-2xl leading-7">
-                  LifelineBD connects blood donors, patients, and hospitals across Bangladesh. Browse verified donor information, see live emergency requests, and take a safe step toward saving a life.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="mt-4 lg:mt-0 inline-flex items-center justify-center rounded-full bg-rose-500 px-6 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-rose-500/30 transition-transform duration-300 hover:-translate-y-1 hover:bg-rose-400"
-              >
-                Get Started
-              </button>
-            </div>
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setIsAuthModalOpen(true)}
-                className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm text-left transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-rose-400"
-                aria-label="Open sign in"
-              >
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Fast access</p>
-                <p className="mt-2 text-sm font-bold text-white">Sign in quickly</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('requests')}
-                className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm text-left transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-rose-400"
-                aria-label="View live emergency requests"
-              >
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Real data</p>
-                <p className="mt-2 text-sm font-bold text-white">View live requests</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('network')}
-                className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm text-left transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-rose-400"
-                aria-label="Join the donor community"
-              >
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Safe steps</p>
-                <p className="mt-2 text-sm font-bold text-white">Join the community</p>
-              </button>
-            </div>
+          /* Guests get one sentence and one action. The old panel had three
+             cards that carried no information and could not be acted on. */
+          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-sm text-slate-600">
+              Find blood donors across Bangladesh. Sign in to post a request or offer to donate.
+            </p>
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="shrink-0 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-colors"
+            >
+              Sign in
+            </button>
           </div>
         )}
       </div>
 
       {/* Main Structural Frame */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-[360px_1fr] min-h-[calc(100vh-5rem)]">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-[360px_1fr] lg:min-h-[calc(100vh-5rem)]">
         {/* Left Smart Filter & Impact Sidebar */}
         <SidebarStats
           currentUser={state.currentUser}
@@ -442,7 +434,7 @@ export function App() {
         />
 
         {/* Right Active Workspace Container */}
-        <div className="flex-1 overflow-hidden h-full flex flex-col bg-white">
+        <div className="flex-1 min-w-0 lg:overflow-hidden lg:h-full flex flex-col bg-white">
           {activeTab === 'network' && (
             <DonorsNetwork
               donors={filteredDonorsList}
@@ -454,6 +446,19 @@ export function App() {
 
           {activeTab === 'requests' && (
             <>
+            {isLoggedIn && notifyPermission === 'default' && (
+              <div className="mx-6 lg:mx-10 mt-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <p className="text-sm text-slate-600">
+                  Get alerted on screen when someone nearby needs your blood type.
+                </p>
+                <button
+                  onClick={askNotifyPermission}
+                  className="shrink-0 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-colors"
+                >
+                  Turn on alerts
+                </button>
+              </div>
+            )}
             <div className="px-6 lg:px-10 pt-6">
               <ConfirmDonationBanner
                 pending={pendingConfirmations}
@@ -518,6 +523,8 @@ export function App() {
           )}
         </div>
       </main>
+
+      <Footer />
 
       {/* Dialog Modals Overlay */}
       <ShareRequestModal

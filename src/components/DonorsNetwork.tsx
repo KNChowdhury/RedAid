@@ -25,49 +25,43 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
     : { lat: 23.7937, lng: 90.4066 };
 
   return (
-    <section className="p-6 lg:p-10 overflow-hidden flex flex-col h-full bg-white">
+    <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white min-w-0">
       {/* Header Bar */}
-      <header className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-100 pb-6">
+      {/* The count is the only status worth stating, so it sits in the heading
+          rather than in a decorative badge above it. */}
+      <header className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] uppercase font-black tracking-widest px-2.5 py-1 bg-rose-50 text-rose-600 rounded-md border border-rose-200">
-              Verified Donors Network
-            </span>
-            <span className="text-xs font-bold text-slate-400">• {donors.length} Ready</span>
-          </div>
-          <h1 className="editorial-title text-4xl sm:text-5xl text-slate-900 leading-tight">
-            Lifeline Heroes <span className="text-rose-600">Near You.</span>
-          </h1>
+          <h1 className="text-2xl font-black text-slate-900">Donors</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {donors.length === 0
+              ? 'No donors match these filters'
+              : `${donors.length} donor${donors.length === 1 ? '' : 's'} match your filters`}
+          </p>
         </div>
 
-        {/* View Switcher Tabs */}
-        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl shrink-0 self-start sm:self-auto">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 self-start sm:self-auto">
           <button
             onClick={() => setViewMode('grid')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-              viewMode === 'grid' 
-                ? 'bg-white text-slate-900 shadow-sm' 
-                : 'text-slate-500 hover:text-slate-900'
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+              viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            📇 Directory Grid
+            List
           </button>
           <button
             onClick={() => setViewMode('map')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
-              viewMode === 'map' 
-                ? 'blood-gradient text-white shadow-md shadow-rose-500/20' 
-                : 'text-slate-500 hover:text-slate-900'
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+              viewMode === 'map' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            📍 Live Radar Map
+            Map
           </button>
         </div>
       </header>
 
       {/* Main Content Area */}
       {viewMode === 'grid' ? (
-        <div className="flex-1 overflow-y-auto custom-scroll pr-2 pb-12">
+        <div className="flex-1 lg:overflow-y-auto custom-scroll lg:pr-2 pb-12">
           {donors.length === 0 ? (
             <div className="text-center py-20 bg-slate-50 rounded-[2.5rem] border border-slate-200/80 p-8">
               <Sparkles className="w-12 h-12 text-rose-500 mx-auto mb-4 animate-spin" />
@@ -89,91 +83,60 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                 return (
                   <div
                     key={donor.id}
-                    className="group bg-white rounded-3xl border border-slate-200/80 p-6 hover:shadow-xl hover:border-rose-300 transition-all flex flex-col justify-between relative overflow-hidden shadow-xs"
+                    className="group bg-white rounded-2xl border border-slate-200 p-5 hover:border-rose-300 hover:shadow-lg transition-all flex flex-col"
                   >
-                    {/* Top Blood Group Watermark */}
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-rose-50/80 rounded-bl-3xl flex items-center justify-center font-mono text-2xl font-black text-rose-600">
-                      {donor.bloodGroup}
-                    </div>
+                    {/* The blood group is the one thing someone is scanning for,
+                        so it anchors the card instead of hiding in a corner. */}
+                    <div className="flex items-start gap-4">
+                      <div className="shrink-0 w-16 h-16 rounded-xl bg-rose-50 border border-rose-100 flex flex-col items-center justify-center">
+                        <span className="font-mono text-xl font-black text-rose-600 leading-none">
+                          {donor.bloodGroup}
+                        </span>
+                      </div>
 
-                    <div>
-                      {/* Avatar + Info */}
-                      <div className="flex items-start gap-3.5 mb-4 pr-16">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-100 border-2 border-rose-500/30 overflow-hidden shrink-0 shadow-xs relative">
-                          <img src={donor.avatar} alt={donor.name} className="w-full h-full object-cover" />
-                        </div>
-
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <h3 className="font-extrabold text-base text-slate-900 group-hover:text-rose-600 transition-colors line-clamp-1">
-                              {donor.name}
-                            </h3>
-                            {donor.isVerified && (
-                              <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" aria-label="Hospital Verified Donor" />
-                            )}
-                          </div>
-                          
-                          <p className="text-xs font-bold text-slate-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                            {donor.area}, {donor.district}
-                          </p>
-
-                          {distKm > 0 && (
-                            <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md mt-1.5 inline-block">
-                              ~{distKm} km distance
-                            </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="font-bold text-slate-900 truncate">{donor.name}</h3>
+                          {donor.isVerified && (
+                            <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" aria-label="Hospital verified" />
                           )}
                         </div>
-                      </div>
 
-                      {/* Status Pills */}
-                      <div className="flex flex-wrap gap-1.5 mb-5">
-                        <span className={`text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-lg flex items-center gap-1 ${
-                          donor.availableNow 
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                            : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${donor.availableNow ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                          {donor.availableNow ? 'Available Now' : 'Resting'}
-                        </span>
+                        <p className="text-sm text-slate-500 truncate mt-0.5">
+                          {[donor.area, donor.district].filter(Boolean).join(', ') || 'Location not set'}
+                        </p>
 
-                        <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100 px-2.5 py-1 rounded-lg">
-                          ⭐ {donor.impactScore} Pts
-                        </span>
-
-                        {!donor.isSmoker && (
-                          <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
-                            🚭 Non-Smoker
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Last Donated Meta */}
-                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs text-slate-600 flex items-center justify-between mb-6">
-                        <span className="flex items-center gap-1.5 text-slate-400 font-bold uppercase text-[10px]">
-                          <Calendar className="w-3.5 h-3.5" />
-                          Last Donated:
-                        </span>
-                        <span className="font-mono font-bold text-slate-800">{donor.lastDonationDate || 'First time'}</span>
-                      </div>
-
-                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs text-slate-600 flex items-center justify-between mb-6 -mt-4">
-                        <span className="flex items-center gap-1.5 text-slate-400 font-bold uppercase text-[10px]">
-                          Times Donated:
-                        </span>
-                        <span className="font-mono font-bold text-slate-800">{donor.donationCount ?? 0}</span>
+                        <p className="text-xs text-slate-400 mt-1.5">
+                          {donor.availableNow ? (
+                            <span className="text-emerald-600 font-semibold">Available now</span>
+                          ) : (
+                            <span>Not available</span>
+                          )}
+                          {donor.donationCount
+                            ? ` · donated ${donor.donationCount}\u00d7`
+                            : ' · first-time donor'}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Action CTAs */}
-                    <div className="flex gap-2">
-                      <span className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold text-center flex items-center justify-center ${donor.availableNow ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-500'}`}>
-                        {donor.availableNow ? 'Open Profile to call or WhatsApp' : 'Donor is currently off-duty'}
-                      </span>
+                    {/* One action, and it does the actual job. */}
+                    <div className="mt-4 flex items-center gap-2">
+                      {donor.availableNow && donor.phone ? (
+                        <a
+                          href={`tel:${donor.phone}`}
+                          className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors"
+                        >
+                          Call
+                        </a>
+                      ) : (
+                        <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">
+                          {donor.availableNow ? 'No number' : 'Off duty'}
+                        </span>
+                      )}
 
                       <button
                         onClick={() => onSelectDonor(donor)}
-                        className="px-3.5 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors"
+                        className="px-4 py-2.5 text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors"
                       >
                         Profile
                       </button>

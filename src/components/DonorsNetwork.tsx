@@ -156,12 +156,19 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                         </span>
                         <span className="font-mono font-bold text-slate-800">{donor.lastDonationDate || 'First time'}</span>
                       </div>
+
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs text-slate-600 flex items-center justify-between mb-6 -mt-4">
+                        <span className="flex items-center gap-1.5 text-slate-400 font-bold uppercase text-[10px]">
+                          Times Donated:
+                        </span>
+                        <span className="font-mono font-bold text-slate-800">{donor.donationCount ?? 0}</span>
+                      </div>
                     </div>
 
                     {/* Action CTAs */}
                     <div className="flex gap-2">
-                      <span className="flex-1 py-2.5 bg-slate-50 text-slate-500 rounded-xl text-[10px] font-bold text-center flex items-center justify-center">
-                        Contact shared after donor consent
+                      <span className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold text-center flex items-center justify-center ${donor.availableNow ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-500'}`}>
+                        {donor.availableNow ? 'Open Profile to call or WhatsApp' : 'Donor is currently off-duty'}
                       </span>
 
                       <button

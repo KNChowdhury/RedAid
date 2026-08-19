@@ -221,6 +221,7 @@ function mapDbDonorToProfile(row: any): DonorProfile {
     },
     impactScore: row.impact_score,
     livesSaved: row.lives_saved,
+    donationCount: row.donation_count ?? 0,
     badges: [],
     donationsHistory: []
   };

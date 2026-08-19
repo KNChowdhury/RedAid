@@ -4,19 +4,27 @@ import { BANGLADESH_DISTRICTS } from '../mockData';
 import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 
+/* ---------- Bangladeshi phone number helpers ----------
+ * People type their number the way they say it: 01712345678.
+ * Storage and WhatsApp links need the country code. These accept whatever the
+ * person typed (spaces, dashes, +880, 880, or a leading 0) and normalise it, so
+ * nobody has to think about dialling codes.
+ */
 function bdDigits(input: string): string {
-  let d = (input || '').replace(/\D/g, '');
+  let d = (input || '').replace(/\D/g, '');   // strip spaces, dashes, plus
   if (d.startsWith('00880')) d = d.slice(5);
   if (d.startsWith('880')) d = d.slice(3);
-  if (d.startsWith('0')) d = d.slice(1);
+  if (d.startsWith('0')) d = d.slice(1);      // 01712345678 -> 1712345678
   return d;
 }
 
+/** For display/calling: +8801712345678 */
 export function toBdDialing(input: string): string {
   const d = bdDigits(input);
   return d ? `+880${d}` : '';
 }
 
+/** For wa.me links: 8801712345678 (no plus) */
 export function toBdWhatsapp(input: string): string {
   const d = bdDigits(input);
   return d ? `880${d}` : '';
@@ -40,7 +48,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const [neededBy, setNeededBy] = useState('Today, 6:00 PM');
   const [urgency, setUrgency] = useState<'Critical' | 'High' | 'Medium'>('Critical');
   const [phone, setPhone] = useState('');
-  const [whatsapp, setWhatsapp] = useState('880');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappSameAsPhone, setWhatsappSameAsPhone] = useState(true);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -65,7 +74,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         neededByTime: neededBy,
         urgency,
         contactPhone: toBdDialing(phone),
-        contactWhatsapp: toBdWhatsapp(whatsapp || phone),
+        contactWhatsapp: toBdWhatsapp(whatsappSameAsPhone ? phone : whatsapp),
         reason: reason || 'Urgent medical transfusion requirement.',
         status: 'Pending',
         createdAt: new Date().toISOString(),
@@ -165,11 +174,36 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Contact Phone Number *</label>
-              <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <input
+                required
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="01712345678"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">আপনার নম্বর যেভাবে লেখেন সেভাবেই দিন — ০ দিয়ে শুরু।</p>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number *</label>
-              <input required value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="01712345678" inputMode="numeric" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number</label>
+              <input
+                value={whatsappSameAsPhone ? phone : whatsapp}
+                onChange={e => setWhatsapp(e.target.value)}
+                disabled={whatsappSameAsPhone}
+                inputMode="numeric"
+                placeholder="01712345678"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 disabled:opacity-60"
+              />
+              <label className="mt-1.5 flex items-center gap-2 text-[11px] font-semibold text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={whatsappSameAsPhone}
+                  onChange={e => setWhatsappSameAsPhone(e.target.checked)}
+                  className="accent-rose-600"
+                />
+                ফোন নম্বরেই WhatsApp আছে
+              </label>
             </div>
           </div>
 
@@ -212,12 +246,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [successMsg, setSuccessMsg] = useState('');
 
   React.useEffect(() => {
-    if (passwordRecovery) {
-      setView('new-password');
+    setView(passwordRecovery ? 'new-password' : 'login');
+    setErrorMsg('');
+    setSuccessMsg('');
+  }, [passwordRecovery]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setView(passwordRecovery ? 'new-password' : 'login');
       setErrorMsg('');
       setSuccessMsg('');
+      setPassword('');
     }
-  }, [passwordRecovery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -265,7 +307,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         name: name || 'New Donor',
         email,
         password,
-        phone,
+        phone: toBdDialing(phone),
         bloodGroup,
         district,
         area,
@@ -370,7 +412,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             <>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone Number</label>
-                <input required value={phone} onChange={e => setPhone(e.target.value)} placeholder="01712345678" inputMode="numeric" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+                <input required value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="01712345678" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -477,8 +519,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     setSaving(true);
     const updated = await updateDonorProfile(donor.id, {
       name,
-      phone,
-      whatsapp,
+      phone: toBdDialing(phone),
+      whatsapp: toBdWhatsapp(whatsapp),
       district,
       area,
       hbsagStatus,
@@ -529,11 +571,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             <div className="my-6 grid grid-cols-2 gap-3 text-xs font-bold">
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <span className="text-[10px] text-slate-400 block">PHONE</span>
-                <span className="text-slate-900">{isOwnProfile ? donor.phone || 'Not provided' : 'Private'}</span>
+                <span className="text-slate-900">{(isOwnProfile || donor.availableNow) ? (donor.phone || 'Not provided') : 'Hidden while off-duty'}</span>
               </div>
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <span className="text-[10px] text-slate-400 block">WHATSAPP</span>
-                <span className="text-slate-900">{isOwnProfile ? donor.whatsapp || 'Not provided' : 'Private'}</span>
+                <span className="text-slate-900">{(isOwnProfile || donor.availableNow) ? (donor.whatsapp || donor.phone || 'Not provided') : 'Hidden while off-duty'}</span>
               </div>
             </div>
 
@@ -551,6 +593,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                   <span className="text-[10px] text-slate-400 font-sans block font-bold">WEIGHT</span>
                   <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.weightKg ? `${donor.healthInfo.weightKg} kg` : 'Not available'}</span>
+                </div>
+              </div>
+
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Donation Record</h4>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">Times Donated</span>
+                  <span className="font-mono font-black text-slate-900 text-lg">{donor.donationCount ?? 0}</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">Last Donated</span>
+                  <span className="font-mono font-bold text-slate-800 text-xs">{donor.lastDonationDate || 'Never'}</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">Next Eligible</span>
+                  <span className="font-mono font-bold text-slate-800 text-xs">{donor.nextEligibleDate || 'Now'}</span>
                 </div>
               </div>
 
@@ -677,7 +735,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
         {!isEditing && (
           <div className="flex gap-3">
-            {isOwnProfile && getWhatsAppUrl(donor.whatsapp) ? (
+            {(isOwnProfile || donor.availableNow) && getWhatsAppUrl(donor.whatsapp) ? (
               <a
                 href={getWhatsAppUrl(donor.whatsapp) || undefined}
                 target="_blank"
@@ -688,10 +746,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </a>
             ) : (
               <span className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
-                WhatsApp unavailable
+                {donor.availableNow ? 'WhatsApp unavailable' : 'Donor is off-duty'}
               </span>
             )}
-            {isOwnProfile ? (
+            {(isOwnProfile || (donor.availableNow && donor.phone)) ? (
               <a
                 href={`tel:${donor.phone}`}
                 className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors"
@@ -700,7 +758,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </a>
             ) : (
               <span className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center text-slate-400">
-                Contact private
+                {donor.availableNow ? 'No number' : 'Off-duty'}
               </span>
             )}
           </div>
@@ -765,8 +823,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
 
       const updates: Record<string, any> = {
         name,
-        phone,
-        whatsapp,
+        phone: toBdDialing(phone),
+        whatsapp: toBdWhatsapp(whatsapp),
         bloodGroup,
         district,
         area,

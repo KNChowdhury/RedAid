@@ -54,6 +54,8 @@ export interface DonorProfile {
   healthInfo: HealthInfo;
   impactScore: number;
   livesSaved: number;
+  /** Verified donations counted from donation_records. */
+  donationCount?: number;
   badges: string[];
   donationsHistory: DonationRecord[];
 }

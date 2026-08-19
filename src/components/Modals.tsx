@@ -4,6 +4,24 @@ import { BANGLADESH_DISTRICTS } from '../mockData';
 import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 
+function bdDigits(input: string): string {
+  let d = (input || '').replace(/\D/g, '');
+  if (d.startsWith('00880')) d = d.slice(5);
+  if (d.startsWith('880')) d = d.slice(3);
+  if (d.startsWith('0')) d = d.slice(1);
+  return d;
+}
+
+export function toBdDialing(input: string): string {
+  const d = bdDigits(input);
+  return d ? `+880${d}` : '';
+}
+
+export function toBdWhatsapp(input: string): string {
+  const d = bdDigits(input);
+  return d ? `880${d}` : '';
+}
+
 /* ================= 1. REQUEST BLOOD MODAL ================= */
 interface RequestModalProps {
   isOpen: boolean;
@@ -21,7 +39,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const [bags, setBags] = useState('2');
   const [neededBy, setNeededBy] = useState('Today, 6:00 PM');
   const [urgency, setUrgency] = useState<'Critical' | 'High' | 'Medium'>('Critical');
-  const [phone, setPhone] = useState('+880 ');
+  const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('880');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -46,8 +64,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         requiredBags: Number(bags) || 1,
         neededByTime: neededBy,
         urgency,
-        contactPhone: phone,
-        contactWhatsapp: whatsapp.replace(/[^0-9]/g, ''),
+        contactPhone: toBdDialing(phone),
+        contactWhatsapp: toBdWhatsapp(whatsappSameAsPhone ? phone : whatsapp),
         reason: reason || 'Urgent medical transfusion requirement.',
         status: 'Pending',
         createdAt: new Date().toISOString(),
@@ -151,7 +169,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number *</label>
-              <input required value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="8801711..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <input required value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="01712345678" inputMode="numeric" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
           </div>
 
@@ -184,7 +202,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('+880 ');
+  const [phone, setPhone] = useState('');
   const [bloodGroup, setBloodGroup] = useState<string>('');
   const [district, setDistrict] = useState('Dhaka');
   const [area, setArea] = useState('Banani');
@@ -352,7 +370,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             <>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone Number</label>
-                <input required value={phone} onChange={e => setPhone(e.target.value)} placeholder="+880 1XXX-XXXXXX" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+                <input required value={phone} onChange={e => setPhone(e.target.value)} placeholder="01712345678" inputMode="numeric" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

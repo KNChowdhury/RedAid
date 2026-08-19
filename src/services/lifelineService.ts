@@ -816,10 +816,14 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
   return restored;
 }
 
-export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => void): () => void {
+export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => void, onPasswordRecovery?: () => void): () => void {
   if (!supabase) return () => {};
 
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      onPasswordRecovery?.();
+      return;
+    }
     if (event === 'SIGNED_OUT' || !session?.user) {
       onChange(null);
       return;
@@ -832,6 +836,12 @@ export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => v
   });
 
   return () => data.subscription.unsubscribe();
+}
+
+export async function updatePassword(password: string): Promise<string | null> {
+  if (!supabase) return 'Supabase client not configured.';
+  const { error } = await supabase.auth.updateUser({ password });
+  return error?.message || null;
 }
 
 export async function signOutDonor(): Promise<void> {

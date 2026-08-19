@@ -1,7 +1,7 @@
 import { AlertCircle, Award, Bell, Calendar, Heart, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { BANGLADESH_DISTRICTS } from '../mockData';
-import { getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 
 /* ================= 1. REQUEST BLOOD MODAL ================= */
@@ -175,10 +175,12 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: DonorProfile) => void;
+  passwordRecovery?: boolean;
+  onPasswordRecoveryComplete?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
-  const [view, setView] = useState<'login' | 'register' | 'reset'>('login');
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, passwordRecovery = false, onPasswordRecoveryComplete }) => {
+  const [view, setView] = useState<'login' | 'register' | 'reset' | 'new-password'>(passwordRecovery ? 'new-password' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -191,6 +193,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  React.useEffect(() => {
+    if (passwordRecovery) {
+      setView('new-password');
+      setErrorMsg('');
+      setSuccessMsg('');
+    }
+  }, [passwordRecovery]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -198,6 +208,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setErrorMsg('');
     setSuccessMsg('');
     setLoading(true);
+
+    if (view === 'new-password') {
+      const error = await updatePassword(password);
+      if (error) {
+        setErrorMsg(error);
+        setLoading(false);
+        return;
+      }
+      const user = await getCurrentDonorFromSession();
+      setLoading(false);
+      if (!user) {
+        setErrorMsg('Password updated, but your donor profile could not be loaded. Please sign in again.');
+        return;
+      }
+      onLoginSuccess(user);
+      onPasswordRecoveryComplete?.();
+      onClose();
+      return;
+    }
 
     if (view === 'reset') {
       const { error } = await sendPasswordResetEmail(email);
@@ -256,13 +285,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         </div>
 
         <h2 className="editorial-title text-3xl font-black">
-          {view === 'register' ? 'Join Lifeline Network' : view === 'reset' ? 'Reset Password' : 'Welcome Back Hero'}
+          {view === 'register' ? 'Join Lifeline Network' : view === 'reset' ? 'Reset Password' : view === 'new-password' ? 'Set New Password' : 'Welcome Back Hero'}
         </h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
           {view === 'register'
             ? 'Register as a verified whole blood donor'
             : view === 'reset'
             ? 'Enter your email to receive password reset instructions'
+            : view === 'new-password'
+            ? 'Choose a new password for your LifelineBD account'
             : 'Sign in to your LifelineBD account'}
         </p>
 
@@ -280,10 +311,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             </div>
           )}
 
-          <div>
+          {view !== 'new-password' && <div>
             <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Email</label>
             <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
-          </div>
+          </div>}
 
           {view !== 'reset' && (
             <div>
@@ -352,7 +383,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           )}
 
           <button type="submit" disabled={loading} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
-            {loading ? 'Please wait...' : view === 'register' ? 'Create Secure Profile' : view === 'reset' ? 'Send Reset Email' : 'Sign In'}
+            {loading ? 'Please wait...' : view === 'register' ? 'Create Secure Profile' : view === 'reset' ? 'Send Reset Email' : view === 'new-password' ? 'Update Password' : 'Sign In'}
           </button>
 
           {successMsg && (

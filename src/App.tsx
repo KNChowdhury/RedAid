@@ -30,6 +30,7 @@ export function App() {
   // Modal Dialogs Control
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [selectedProfileDonor, setSelectedProfileDonor] = useState<DonorProfile | null>(null);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
@@ -73,10 +74,16 @@ export function App() {
     restoreSessionAndLoad();
   }, [refreshSharedData]);
 
-  useEffect(() => subscribeToAuthState(donor => {
-    setState(prev => ({ ...prev, currentUser: donor }));
-    refreshSharedData(!!donor, donor?.impactScore ?? null);
-  }), [refreshSharedData]);
+  useEffect(() => subscribeToAuthState(
+    donor => {
+      setState(prev => ({ ...prev, currentUser: donor }));
+      refreshSharedData(!!donor, donor?.impactScore ?? null);
+    },
+    () => {
+      setIsPasswordRecovery(true);
+      setIsAuthModalOpen(true);
+    }
+  ), [refreshSharedData]);
 
   // Live updates: instead of polling every 30s, subscribe to Postgres
   // changes on the tables that matter and refetch only when something
@@ -409,6 +416,8 @@ export function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
+        passwordRecovery={isPasswordRecovery}
+        onPasswordRecoveryComplete={() => setIsPasswordRecovery(false)}
       />
 
       <ProfileModal

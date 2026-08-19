@@ -10,6 +10,11 @@ interface EmergencyFeedProps {
   /** Donor id of the signed-in user, so we know which requests they may edit. */
   currentDonorId?: string | null;
   onEditRequest?: (req: EmergencyRequest) => void;
+  /** Request ids this donor has already offered to help with. */
+  offeredRequestIds?: string[];
+  onOfferToDonate?: (req: EmergencyRequest) => void;
+  /** Requester marks which donor actually gave blood. */
+  onMarkDonated?: (req: EmergencyRequest) => void;
 }
 
 export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
@@ -17,7 +22,10 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   onSelectRequest,
   onRequestBlood,
   currentDonorId = null,
-  onEditRequest
+  onEditRequest,
+  offeredRequestIds = [],
+  onOfferToDonate,
+  onMarkDonated
 }) => {
   return (
     <section className="p-6 lg:p-10 overflow-hidden flex flex-col h-full bg-white">
@@ -136,6 +144,34 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                       <Phone className="w-3.5 h-3.5" />
                       Call
                     </a>
+
+                    {/* Donor side: offer to help. Hidden on your own request. */}
+                    {onOfferToDonate && currentDonorId && req.requesterId !== currentDonorId && req.status !== 'Fulfilled' && (
+                      offeredRequestIds.includes(req.id) ? (
+                        <span className="px-4 py-3 bg-emerald-50 text-emerald-700 rounded-xl text-[11px] font-black uppercase tracking-wider">
+                          ✓ You offered
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => onOfferToDonate(req)}
+                          className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
+                          title="Let the requester know you can donate"
+                        >
+                          I can donate
+                        </button>
+                      )
+                    )}
+
+                    {/* Requester side: close the loop once blood was received. */}
+                    {onMarkDonated && currentDonorId && req.requesterId === currentDonorId && req.status !== 'Fulfilled' && (
+                      <button
+                        onClick={() => onMarkDonated(req)}
+                        className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
+                        title="Record who donated"
+                      >
+                        Got blood
+                      </button>
+                    )}
 
                     {onEditRequest && currentDonorId && req.requesterId === currentDonorId && (
                       <button

@@ -7,8 +7,9 @@ import { HospitalPortal } from './components/HospitalPortal';
 import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
+import { ConfirmDonationBanner, MarkDonatedModal } from './components/DonationLoop';
 import { SidebarStats } from './components/SidebarStats';
-import { createRequestInDb, deleteRequestFromDb, updateRequestInDb, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
+import { createRequestInDb, deleteRequestFromDb, updateRequestInDb, offerToDonate, fetchMyOfferedRequestIds, fetchMyPendingConfirmations, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
@@ -71,6 +72,9 @@ export function App() {
   };
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<EmergencyRequest | null>(null);
+  const [markDonatedRequest, setMarkDonatedRequest] = useState<EmergencyRequest | null>(null);
+  const [offeredRequestIds, setOfferedRequestIds] = useState<string[]>([]);
+  const [pendingConfirmations, setPendingConfirmations] = useState<any[]>([]);
 
   // Keep state synced to localStorage
   useEffect(() => {
@@ -124,6 +128,35 @@ export function App() {
       setIsAuthModalOpen(true);
     }
   ), [refreshSharedData]);
+
+  // Donation-loop data: which requests I've offered on, and which donations are
+  // waiting for my confirmation.
+  const refreshLoopData = React.useCallback(async (donorId: string | null | undefined) => {
+    if (!donorId) {
+      setOfferedRequestIds([]);
+      setPendingConfirmations([]);
+      return;
+    }
+    const [offered, pending] = await Promise.all([
+      fetchMyOfferedRequestIds(donorId),
+      fetchMyPendingConfirmations(donorId)
+    ]);
+    setOfferedRequestIds(offered);
+    setPendingConfirmations(pending);
+  }, []);
+
+  useEffect(() => {
+    refreshLoopData(state.currentUser?.id);
+  }, [state.currentUser?.id, state.requests.length, refreshLoopData]);
+
+  const handleOfferToDonate = async (req: EmergencyRequest) => {
+    const { ok, error } = await offerToDonate(req.id);
+    if (!ok) {
+      window.alert(error || 'Could not send your offer.');
+      return;
+    }
+    refreshLoopData(state.currentUser?.id);
+  };
 
   // Live updates: instead of polling every 30s, subscribe to Postgres
   // changes on the tables that matter and refetch only when something
@@ -415,13 +448,29 @@ export function App() {
           )}
 
           {activeTab === 'requests' && (
+            <>
+            <div className="px-6 lg:px-10 pt-6">
+              <ConfirmDonationBanner
+                pending={pendingConfirmations}
+                onConfirmed={async () => {
+                  const donor = await getCurrentDonorFromSession();
+                  setState(prev => ({ ...prev, currentUser: donor }));
+                  refreshSharedData(true, donor?.impactScore ?? null);
+                  refreshLoopData(donor?.id);
+                }}
+              />
+            </div>
             <EmergencyFeed
               requests={state.requests}
               currentDonorId={state.currentUser?.id || null}
+              offeredRequestIds={offeredRequestIds}
+              onOfferToDonate={handleOfferToDonate}
+              onMarkDonated={req => setMarkDonatedRequest(req)}
               onEditRequest={req => { setEditingRequest(req); setIsRequestModalOpen(true); }}
               onSelectRequest={r => alert(`Selected request for ${r.patientName}. Hospital: ${r.hospitalName}.`)}
               onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
             />
+            </>
           )}
 
           {activeTab === 'map' && (
@@ -448,7 +497,9 @@ export function App() {
           {activeTab === 'hospital' && (
             <HospitalPortal
               requests={state.requests}
-              onRequestBlood={() => setIsRequestModalOpen(true)}
+              currentUser={state.currentUser}
+              onDataChanged={() => refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null)}
+              onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
             />
           )}
 
@@ -464,6 +515,17 @@ export function App() {
       </main>
 
       {/* Dialog Modals Overlay */}
+      <MarkDonatedModal
+        request={markDonatedRequest}
+        isOpen={!!markDonatedRequest}
+        allDonors={state.donors}
+        onClose={() => setMarkDonatedRequest(null)}
+        onRecorded={() => {
+          refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null);
+          refreshLoopData(state.currentUser?.id);
+        }}
+      />
+
       <RequestBloodModal
         isOpen={isRequestModalOpen}
         editingRequest={editingRequest}

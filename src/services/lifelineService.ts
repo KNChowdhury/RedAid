@@ -578,6 +578,201 @@ export async function fetchSharedData(
   };
 }
 
+// ============ SUPABASE: Closing the donation loop ============
+//
+// Three steps, so neither side can fake a donation:
+//   offerToDonate      — donor says "I can help"
+//   recordDonation     — requester says "this person donated"
+//   confirmMyDonation  — donor confirms, and only then is credit awarded
+
+export async function offerToDonate(
+  requestId: string,
+  message = ''
+): Promise<{ ok: boolean; error: string | null }> {
+  if (!supabase) return { ok: false, error: 'Not connected.' };
+
+  const { error } = await supabase.rpc('offer_to_donate', {
+    p_request_id: requestId,
+    p_message: message
+  });
+
+  if (error) {
+    console.error('offer_to_donate error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, error: null };
+}
+
+export async function recordDonation(
+  requestId: string,
+  donorId: string,
+  units = 1
+): Promise<{ ok: boolean; error: string | null }> {
+  if (!supabase) return { ok: false, error: 'Not connected.' };
+
+  const { error } = await supabase.rpc('record_donation', {
+    p_request_id: requestId,
+    p_donor_id: donorId,
+    p_units: units
+  });
+
+  if (error) {
+    console.error('record_donation error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, error: null };
+}
+
+export interface PendingConfirmation {
+  donationId: string;
+  requestId: string;
+  patientName: string;
+  hospitalName: string;
+  bloodGroup: string;
+  units: number;
+  donatedAt: string;
+}
+
+/** Donations the requester logged that this donor hasn't confirmed yet. */
+export async function fetchMyPendingConfirmations(donorId: string): Promise<PendingConfirmation[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('v_my_pending_confirmations')
+    .select('*')
+    .eq('donor_id', donorId);
+
+  if (error) {
+    console.error('Fetch pending confirmations error:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    donationId: row.donation_id,
+    requestId: row.request_id,
+    patientName: row.patient_name || 'a patient',
+    hospitalName: row.hospital_name || '',
+    bloodGroup: row.blood_group || '',
+    units: row.units ?? 1,
+    donatedAt: row.donated_at || ''
+  }));
+}
+
+export async function confirmMyDonation(
+  donationId: string
+): Promise<{ ok: boolean; error: string | null }> {
+  if (!supabase) return { ok: false, error: 'Not connected.' };
+
+  const { error } = await supabase.rpc('confirm_my_donation', { p_donation_id: donationId });
+
+  if (error) {
+    console.error('confirm_my_donation error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, error: null };
+}
+
+/** Has the signed-in donor already offered to help with this request? */
+export async function fetchMyOfferedRequestIds(donorId: string): Promise<string[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('request_responses')
+    .select('request_id')
+    .eq('donor_id', donorId);
+
+  if (error) return [];
+  return (data || []).map((r: any) => r.request_id);
+}
+
+// ============ SUPABASE: Hospitals ============
+export interface HospitalStats {
+  hospitalId: string;
+  hospitalName: string;
+  district: string;
+  area: string;
+  activeRequests: number;
+  criticalRequests: number;
+  bagsNeeded: number;
+  unitsThisMonth: number;
+  onCallDonors: number;
+}
+
+/** Real hospitals from the database, replacing the old mockData list. */
+export async function fetchHospitalStats(): Promise<HospitalStats[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('v_hospital_stats')
+    .select('*')
+    .order('active_requests', { ascending: false });
+
+  if (error) {
+    console.error('Fetch hospital stats error:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    hospitalId: row.hospital_id,
+    hospitalName: row.hospital_name || 'Unnamed hospital',
+    district: row.district || '',
+    area: row.area || '',
+    activeRequests: row.active_requests ?? 0,
+    criticalRequests: row.critical_requests ?? 0,
+    bagsNeeded: row.bags_needed ?? 0,
+    unitsThisMonth: row.units_this_month ?? 0,
+    onCallDonors: row.on_call_donors ?? 0
+  }));
+}
+
+/**
+ * Records a verified donation. The database function credits the donor
+ * (+150 points, +1 life saved, 120-day clock reset), closes the request and
+ * notifies the donor. Only hospital staff and admins may call it.
+ */
+export async function verifyDonation(
+  requestId: string,
+  donorId: string,
+  units = 1
+): Promise<{ ok: boolean; error: string | null }> {
+  if (!supabase) return { ok: false, error: 'Not connected.' };
+
+  const { error } = await supabase.rpc('verify_donation', {
+    p_request_id: requestId,
+    p_donor_id: donorId,
+    p_units: units
+  });
+
+  if (error) {
+    console.error('verify_donation error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, error: null };
+}
+
+/** Donors who responded to a request — the real "checked in" list. */
+export async function fetchRequestResponders(requestId: string): Promise<
+  { donorId: string; donorName: string; bloodGroup: string }[]
+> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('request_responses')
+    .select('donor_id, donors(name, blood_group)')
+    .eq('request_id', requestId);
+
+  if (error) {
+    console.error('Fetch responders error:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    donorId: row.donor_id,
+    donorName: row.donors?.name || 'Donor',
+    bloodGroup: row.donors?.blood_group || ''
+  }));
+}
+
 // ============ SUPABASE: Realtime ============
 // Subscribes to live changes on the tables that power the emergency feed and
 // donor network, so the UI updates the instant someone else posts a request,

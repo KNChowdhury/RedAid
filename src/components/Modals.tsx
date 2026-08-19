@@ -194,20 +194,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [successMsg, setSuccessMsg] = useState('');
 
   React.useEffect(() => {
-    setView(passwordRecovery ? 'new-password' : 'login');
-    setErrorMsg('');
-    setSuccessMsg('');
-  }, [passwordRecovery]);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      setView(passwordRecovery ? 'new-password' : 'login');
+    if (passwordRecovery) {
+      setView('new-password');
       setErrorMsg('');
       setSuccessMsg('');
-      setPassword('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [passwordRecovery]);
 
   if (!isOpen) return null;
 

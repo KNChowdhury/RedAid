@@ -92,6 +92,9 @@ export function App() {
     },
     () => {
       setIsPasswordRecovery(true);
+      if (window.location.hash.includes('type=recovery')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
       setIsAuthModalOpen(true);
     }
   ), [refreshSharedData]);
@@ -174,6 +177,7 @@ export function App() {
 
   const handleLogout = async () => {
     await signOutDonor();
+    setIsPasswordRecovery(false);
     setState(prev => ({ ...prev, currentUser: null }));
     refreshSharedData(false, null);
   };

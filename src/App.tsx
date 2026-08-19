@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AiHealthAdvisor } from './components/AiHealthAdvisor';
 import { DonorsNetwork } from './components/DonorsNetwork';
@@ -8,7 +8,7 @@ import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestB
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
 import { SidebarStats } from './components/SidebarStats';
-import { createRequestInDb, deleteRequestFromDb, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, signOutDonor, subscribeToLiveUpdates, toggleDonorVerification, updateDonorProfile } from './services/lifelineService';
+import { createRequestInDb, deleteRequestFromDb, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
@@ -40,8 +40,6 @@ export function App() {
   }, [state]);
 
   const isLoggedIn = !!state.currentUser;
-  const knownRequestIdsRef = useRef<Set<string>>(new Set());
-  const hasLoadedOnceRef = useRef(false);
 
   // Pulls the current truth from Supabase and replaces local state with it.
   // Real data always wins — we never fall back to stale/local/demo data just
@@ -52,30 +50,11 @@ export function App() {
       const shared = await fetchSharedData(loggedIn, userPoints);
 
       setState(prev => {
-        const newlySeenRequests = hasLoadedOnceRef.current
-          ? shared.requests.filter(r => !knownRequestIdsRef.current.has(r.id))
-          : [];
-
-        const newNotifications = newlySeenRequests.map(newReq => ({
-          id: `notif-${Date.now()}-${newReq.id}`,
-          title: `New request: ${newReq.bloodGroup}`,
-          message: `${newReq.patientName} needs ${newReq.requiredBags} bags at ${newReq.hospitalName}.`,
-          type: 'emergency' as const,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          read: false,
-          relatedBloodGroup: newReq.bloodGroup,
-          relatedRequestId: newReq.id
-        }));
-
-        knownRequestIdsRef.current = new Set(shared.requests.map(r => r.id));
-        hasLoadedOnceRef.current = true;
-
         return {
           ...prev,
           donors: shared.donors,
           requests: shared.requests,
-          badges: shared.badges,
-          notifications: newNotifications.length ? [...newNotifications, ...prev.notifications] : prev.notifications
+          badges: shared.badges
         };
       });
     } catch (error) {
@@ -108,6 +87,23 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, state.currentUser?.id]);
 
+  useEffect(() => {
+    const donorId = state.currentUser?.id;
+    if (!donorId) {
+      setState(prev => ({ ...prev, notifications: [] }));
+      return;
+    }
+
+    fetchMyNotifications(donorId).then(notifications => {
+      setState(prev => ({ ...prev, notifications }));
+    });
+
+    return subscribeToNotifications(donorId, row => {
+      const notification = mapDbNotificationToNotification(row);
+      setState(prev => ({ ...prev, notifications: [notification, ...prev.notifications] }));
+    });
+  }, [state.currentUser?.id]);
+
   // Current User coordinates
   const currentLat = state.currentUser?.lat || 23.8103;
   const currentLng = state.currentUser?.lng || 90.4125;
@@ -117,17 +113,26 @@ export function App() {
 
   /* Handlers */
   const handleAddNewRequest = async (reqData: Partial<EmergencyRequest>) => {
-    const savedReq = await createRequestInDb(reqData);
-    const newReq = savedReq || (reqData as EmergencyRequest);
+    if (!state.currentUser) {
+      setIsRequestModalOpen(false);
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    const savedReq = await createRequestInDb({ ...reqData, requesterId: state.currentUser.id });
+    if (!savedReq) {
+      window.alert('Request could not be saved. Please check your connection and try again.');
+      return;
+    }
 
     setState(prev => ({
       ...prev,
-      requests: [newReq, ...prev.requests],
+      requests: [savedReq, ...prev.requests],
       notifications: [
         {
           id: `notif-${Date.now()}`,
-          title: `🚨 Emergency: ${newReq.requiredBags} Bags ${newReq.bloodGroup} Needed`,
-          message: `${newReq.patientName} at ${newReq.hospitalName}, ${newReq.area}.`,
+          title: `Emergency request posted: ${savedReq.bloodGroup}`,
+          message: `${savedReq.patientName} at ${savedReq.hospitalName}, ${savedReq.area}.`,
           type: 'emergency',
           time: 'Just now',
           read: false
@@ -160,6 +165,19 @@ export function App() {
     if (selectedProfileDonor && selectedProfileDonor.id === updatedUser.id) {
       setSelectedProfileDonor(updatedUser);
     }
+    updateDonorAvailability(updatedUser.id, updatedUser.availableNow).then(persisted => {
+      if (!persisted) {
+        setState(prev => ({
+          ...prev,
+          currentUser: prev.currentUser?.id === updatedUser.id ? { ...prev.currentUser, availableNow: !updatedUser.availableNow } : prev.currentUser,
+          donors: prev.donors.map(d => d.id === updatedUser.id ? { ...d, availableNow: !updatedUser.availableNow } : d)
+        }));
+        if (selectedProfileDonor?.id === updatedUser.id) {
+          setSelectedProfileDonor(prev => prev ? { ...prev, availableNow: !updatedUser.availableNow } : prev);
+        }
+        window.alert('Availability could not be saved. Please try again.');
+      }
+    });
   };
 
   const handleOpenProfileEdit = () => {
@@ -228,6 +246,7 @@ export function App() {
       ...prev,
       notifications: prev.notifications.map(n => ({ ...n, read: true }))
     }));
+    if (state.currentUser) markMyNotificationsRead(state.currentUser.id);
   };
 
   return (

@@ -103,7 +103,7 @@ create policy donor_health_admin on public.donor_health
 drop view if exists public.v_donors_directory;
 create view public.v_donors_directory as
 select
-  id, auth_user_id, name, email, phone, whatsapp, avatar, role,
+  id, auth_user_id, name, avatar, role,
   blood_group, district, area, lat, lng,
   last_donation_date, next_eligible_date,
   is_smoker, is_regular, is_verified, available_now,

@@ -1,6 +1,6 @@
-import { Award, Calendar, Heart, MapPin, MessageCircle, Phone, ShieldCheck, Sparkles } from 'lucide-react';
+import { Award, Calendar, Heart, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import { calculateDistanceKm, getWhatsAppUrl, lookupCoordinates } from '../services/lifelineService';
+import { calculateDistanceKm, lookupCoordinates } from '../services/lifelineService';
 import { DonorProfile, SearchFilters } from '../types';
 
 interface DonorsNetworkProps {
@@ -160,29 +160,9 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 
                     {/* Action CTAs */}
                     <div className="flex gap-2">
-                      {getWhatsAppUrl(donor.whatsapp, `Hi ${donor.name}, I found your verified donor profile on LifelineBD (${donor.bloodGroup}). Are you available for a blood donation?`) ? (
-                        <a
-                          href={getWhatsAppUrl(donor.whatsapp, `Hi ${donor.name}, I found your verified donor profile on LifelineBD (${donor.bloodGroup}). Are you available for a blood donation?`) || undefined}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-wider hover:bg-rose-600 transition-colors text-center flex items-center justify-center gap-1"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          WhatsApp
-                        </a>
-                      ) : (
-                        <span className="flex-1 py-2.5 bg-slate-100 text-slate-400 rounded-xl text-[11px] font-black uppercase tracking-wider text-center">
-                          WhatsApp unavailable
-                        </span>
-                      )}
-
-                      <a
-                        href={`tel:${donor.phone}`}
-                        className="p-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-center flex items-center justify-center transition-colors"
-                        title="Call Donor"
-                      >
-                        <Phone className="w-4 h-4" />
-                      </a>
+                      <span className="flex-1 py-2.5 bg-slate-50 text-slate-500 rounded-xl text-[10px] font-bold text-center flex items-center justify-center">
+                        Contact shared after donor consent
+                      </span>
 
                       <button
                         onClick={() => onSelectDonor(donor)}
@@ -284,20 +264,9 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
               </div>
 
               <div className="flex gap-2">
-                {getWhatsAppUrl(selectedMapPin.whatsapp) ? (
-                  <a
-                    href={getWhatsAppUrl(selectedMapPin.whatsapp) || undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2.5 blood-gradient rounded-xl text-xs font-black uppercase tracking-wider"
-                  >
-                    WhatsApp
-                  </a>
-                ) : (
-                  <span className="px-4 py-2.5 bg-slate-700 text-slate-400 rounded-xl text-xs font-black uppercase tracking-wider">
-                    Unavailable
-                  </span>
-                )}
+                <span className="px-4 py-2.5 bg-slate-700 text-slate-400 rounded-xl text-xs font-black uppercase tracking-wider">
+                  Contact private
+                </span>
                 <button
                   onClick={() => onSelectDonor(selectedMapPin)}
                   className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold uppercase tracking-wider"

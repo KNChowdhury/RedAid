@@ -66,7 +66,7 @@ export const AiHealthAdvisor: React.FC<AiHealthAdvisorProps> = ({ currentUser })
         {currentUser && (
           <div className="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600">
             <UserCheck className="w-4 h-4 text-emerald-500" />
-            Hemoglobin: {currentUser.healthInfo?.hemoglobin || 14.2} g/dL
+            Hemoglobin: {currentUser.healthInfo?.hemoglobin ? `${currentUser.healthInfo.hemoglobin} g/dL` : 'Not available'}
           </div>
         )}
       </header>

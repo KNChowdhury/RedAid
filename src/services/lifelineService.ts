@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient';
 import type { Session, RealtimeChannel } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
 import { BANGLADESH_DISTRICTS } from '../mockData';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBadge, SearchFilters } from '../types';
 
@@ -61,7 +60,15 @@ export function getAppState(): AppState {
 }
 
 export function saveAppState(state: AppState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const safeState = {
+    donors: state.donors.map(({ email, phone, whatsapp, healthInfo, ...donor }) => donor),
+    requests: state.requests.map(({ contactPhone, contactWhatsapp, ...request }) => request),
+    badges: state.badges,
+    currentUser: null,
+    notifications: [],
+    token: null
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(safeState));
 }
 
 export function normalizeWhatsAppNumber(value: string | null | undefined): string | null {
@@ -134,26 +141,6 @@ export function getCompatibleDonorGroups(recipientGroup: BloodGroup): BloodGroup
 
 // Simulate Gemini AI Assistant
 export async function askGeminiAssistant(prompt: string, userContext: DonorProfile | null): Promise<string> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined);
-  
-  if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      const systemInstruction = `You are the AI Health Advisor for LifelineBD, Bangladesh's modern blood donation network.
-User profile context: Name: ${userContext?.name || 'Guest'}, Blood Group: ${userContext?.bloodGroup || 'Unknown'}, Location: ${userContext?.district || 'Bangladesh'}.
-Keep responses empathetic, scientifically accurate, concise (max 3 short bullet points or paragraphs), and focused on blood donation safety, nutritional tips in Bangladesh (iron rich food like spinach/kochu shak, dates, lentils), or drafting urgent appeal messages.`;
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: { systemInstruction }
-      });
-      if (response.text) return response.text;
-    } catch {
-      // Fallback
-    }
-  }
-
   // Graceful fallback AI response
   const lower = prompt.toLowerCase();
   if (lower.includes('appeal') || lower.includes('message') || lower.includes('whatsapp') || lower.includes('draft')) {
@@ -226,10 +213,10 @@ function mapDbDonorToProfile(row: any): DonorProfile {
       malariaStatus: row.malaria_status || 'Not Tested',
       healthMetrics: {
         hbsag: row.hbsag_status || 'Not Tested',
-        anti_hcv: row.anti_hcv_status || 'Not Tested',
-        anti_hiv: row.anti_hiv_status || 'Not Tested',
-        vdrl: row.vdrl_status || 'Not Tested',
-        mp: row.mp_status || 'Not Tested'
+        anti_hcv: row.hcv_status || 'Not Tested',
+        anti_hiv: row.hiv_status || 'Not Tested',
+        vdrl: row.syphilis_status || 'Not Tested',
+        mp: row.malaria_status || 'Not Tested'
       }
     },
     impactScore: row.impact_score,
@@ -250,6 +237,8 @@ export async function updateDonorProfile(
     name: string;
     phone: string;
     whatsapp: string;
+    bloodGroup: BloodGroup;
+    avatar: string;
     district: string;
     area: string;
     hbsagStatus: string;
@@ -257,6 +246,10 @@ export async function updateDonorProfile(
     hivStatus: string;
     syphilisStatus: string;
     malariaStatus: string;
+    antiHcvStatus: string;
+    antiHivStatus: string;
+    vdrlStatus: string;
+    mpStatus: string;
   }>
 ): Promise<DonorProfile | null> {
   const supabaseClient = supabase;
@@ -273,6 +266,8 @@ export async function updateDonorProfile(
   if (updates.name !== undefined) dbUpdates.name = updates.name;
   if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
   if (updates.whatsapp !== undefined) dbUpdates.whatsapp = updates.whatsapp;
+  if (updates.bloodGroup !== undefined) dbUpdates.blood_group = updates.bloodGroup;
+  if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
   if (updates.district !== undefined) dbUpdates.district = updates.district;
   if (updates.area !== undefined) dbUpdates.area = updates.area;
   if (lat !== undefined) dbUpdates.lat = lat;
@@ -280,10 +275,10 @@ export async function updateDonorProfile(
 
   const healthUpdates: Record<string, string> = {};
   if (updates.hbsagStatus !== undefined) healthUpdates.hbsag_status = updates.hbsagStatus;
-  if (updates.hcvStatus !== undefined) healthUpdates.hcv_status = updates.hcvStatus;
-  if (updates.hivStatus !== undefined) healthUpdates.hiv_status = updates.hivStatus;
-  if (updates.syphilisStatus !== undefined) healthUpdates.syphilis_status = updates.syphilisStatus;
-  if (updates.malariaStatus !== undefined) healthUpdates.malaria_status = updates.malariaStatus;
+  if (updates.hcvStatus !== undefined || updates.antiHcvStatus !== undefined) healthUpdates.hcv_status = updates.hcvStatus || updates.antiHcvStatus || 'Not Tested';
+  if (updates.hivStatus !== undefined || updates.antiHivStatus !== undefined) healthUpdates.hiv_status = updates.hivStatus || updates.antiHivStatus || 'Not Tested';
+  if (updates.syphilisStatus !== undefined || updates.vdrlStatus !== undefined) healthUpdates.syphilis_status = updates.syphilisStatus || updates.vdrlStatus || 'Not Tested';
+  if (updates.malariaStatus !== undefined || updates.mpStatus !== undefined) healthUpdates.malaria_status = updates.malariaStatus || updates.mpStatus || 'Not Tested';
 
   if (Object.keys(healthUpdates).length > 0) {
     const { error: healthError } = await supabaseClient
@@ -344,6 +339,16 @@ export async function fetchMyHealthInfo(donorId: string): Promise<Record<string,
   };
 }
 
+export async function updateDonorAvailability(donorId: string, availableNow: boolean): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.from('donors').update({ available_now: availableNow }).eq('id', donorId);
+  if (error) {
+    console.error('Update donor availability error:', error.message);
+    return false;
+  }
+  return true;
+}
+
 export async function toggleDonorVerification(donorId: string, isVerified: boolean): Promise<boolean> {
   if (!supabase) {
     console.error('Supabase client not configured.');
@@ -402,6 +407,47 @@ function mapDbRequestToRequest(row: any): EmergencyRequest {
   };
 }
 
+export function mapDbNotificationToNotification(row: any): NotificationItem {
+  return {
+    id: row.id,
+    title: row.title || 'LifelineBD notification',
+    message: row.message || '',
+    type: row.type || 'system',
+    time: row.created_at ? new Date(row.created_at).toLocaleString() : 'Just now',
+    read: !!row.read,
+    relatedBloodGroup: row.related_blood_group || undefined,
+    relatedRequestId: row.related_request_id || undefined
+  };
+}
+
+export async function fetchMyNotifications(donorId: string): Promise<NotificationItem[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('donor_id', donorId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Fetch notifications error:', error.message);
+    return [];
+  }
+  return (data || []).map(mapDbNotificationToNotification);
+}
+
+export async function markMyNotificationsRead(donorId: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('donor_id', donorId)
+    .eq('read', false);
+  if (error) {
+    console.error('Mark notifications read error:', error.message);
+    return false;
+  }
+  return true;
+}
+
 function buildDonorInsertPayload(user: any): Record<string, any> {
   const nameFromMetadata = user?.user_metadata?.full_name || user?.user_metadata?.name;
   const defaultName = nameFromMetadata || user?.email?.split('@')[0] || 'Lifeline Donor';
@@ -423,17 +469,7 @@ function buildDonorInsertPayload(user: any): Record<string, any> {
     is_regular: false,
     is_verified: false,
     available_now: false,
-    weight_kg: 0,
-    blood_pressure: '',
-    hemoglobin: 0,
-    has_chronic_disease: false,
-    recent_medication: '',
     avatar: getDicebearAvatarUrl(defaultName),
-    hbsag_status: 'Not Tested',
-    anti_hcv_status: 'Not Tested',
-    anti_hiv_status: 'Not Tested',
-    vdrl_status: 'Not Tested',
-    mp_status: 'Not Tested',
     impact_score: 0,
     lives_saved: 0
   };
@@ -851,6 +887,7 @@ export async function createRequestInDb(reqData: Partial<EmergencyRequest>): Pro
       contact_phone: reqData.contactPhone,
       contact_whatsapp: reqData.contactWhatsapp,
       reason: reqData.reason,
+      requester_id: reqData.requesterId,
       status: 'Pending'
     })
     .select()

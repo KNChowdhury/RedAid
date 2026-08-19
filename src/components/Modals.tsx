@@ -464,11 +464,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             <div className="my-6 grid grid-cols-2 gap-3 text-xs font-bold">
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <span className="text-[10px] text-slate-400 block">PHONE</span>
-                <span className="text-slate-900">{donor.phone}</span>
+                <span className="text-slate-900">{isOwnProfile ? donor.phone || 'Not provided' : 'Private'}</span>
               </div>
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <span className="text-[10px] text-slate-400 block">WHATSAPP</span>
-                <span className="text-slate-900">{donor.whatsapp}</span>
+                <span className="text-slate-900">{isOwnProfile ? donor.whatsapp || 'Not provided' : 'Private'}</span>
               </div>
             </div>
 
@@ -477,15 +477,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               <div className="grid grid-cols-3 gap-3 font-mono text-xs text-center">
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                   <span className="text-[10px] text-slate-400 font-sans block font-bold">HEMOGLOBIN</span>
-                  <span className="text-emerald-600 font-black text-sm">{donor.healthInfo?.hemoglobin || 14.8} g/dL</span>
+                  <span className="text-emerald-600 font-black text-sm">{donor.healthInfo?.hemoglobin ? `${donor.healthInfo.hemoglobin} g/dL` : 'Not available'}</span>
                 </div>
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                   <span className="text-[10px] text-slate-400 font-sans block font-bold">BLOOD PRESSURE</span>
-                  <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.bloodPressure || '120/80'}</span>
+                  <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.bloodPressure || 'Not available'}</span>
                 </div>
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                   <span className="text-[10px] text-slate-400 font-sans block font-bold">WEIGHT</span>
-                  <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.weightKg || 70} kg</span>
+                  <span className="text-slate-900 font-black text-sm">{donor.healthInfo?.weightKg ? `${donor.healthInfo.weightKg} kg` : 'Not available'}</span>
                 </div>
               </div>
 
@@ -612,7 +612,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
         {!isEditing && (
           <div className="flex gap-3">
-            {getWhatsAppUrl(donor.whatsapp) ? (
+            {isOwnProfile && getWhatsAppUrl(donor.whatsapp) ? (
               <a
                 href={getWhatsAppUrl(donor.whatsapp) || undefined}
                 target="_blank"
@@ -626,12 +626,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 WhatsApp unavailable
               </span>
             )}
-            <a
-              href={`tel:${donor.phone}`}
-              className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors"
-            >
-              Call
-            </a>
+            {isOwnProfile ? (
+              <a
+                href={`tel:${donor.phone}`}
+                className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors"
+              >
+                Call
+              </a>
+            ) : (
+              <span className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center text-slate-400">
+                Contact private
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -696,17 +702,16 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
         name,
         phone,
         whatsapp,
-        blood_group: bloodGroup,
+        bloodGroup,
         district,
         area,
-        avatar: avatarUrl
+        avatar: avatarUrl,
+        hbsagStatus: hbsag,
+        antiHcvStatus: antiHcv,
+        antiHivStatus: antiHiv,
+        vdrlStatus: vdrl,
+        mpStatus: mp
       };
-      // Health metrics
-      updates.hbsag_status = hbsag;
-      updates.anti_hcv_status = antiHcv;
-      updates.anti_hiv_status = antiHiv;
-      updates.vdrl_status = vdrl;
-      updates.mp_status = mp;
 
       const updated = await updateDonorProfile(donor.id, updates);
       if (!updated) {

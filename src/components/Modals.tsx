@@ -1,7 +1,7 @@
 import { AlertCircle, Award, Bell, Calendar, Heart, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { BANGLADESH_DISTRICTS } from '../mockData';
-import { sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 
 /* ================= 1. REQUEST BLOOD MODAL ================= */
@@ -612,14 +612,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
         {!isEditing && (
           <div className="flex gap-3">
-            <a
-              href={`https://wa.me/${donor.whatsapp}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 py-4 bg-slate-900 hover:bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest text-center transition-colors shadow-lg"
-            >
-              WhatsApp Message
-            </a>
+            {getWhatsAppUrl(donor.whatsapp) ? (
+              <a
+                href={getWhatsAppUrl(donor.whatsapp) || undefined}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 py-4 bg-slate-900 hover:bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest text-center transition-colors shadow-lg"
+              >
+                WhatsApp Message
+              </a>
+            ) : (
+              <span className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
+                WhatsApp unavailable
+              </span>
+            )}
             <a
               href={`tel:${donor.phone}`}
               className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors"

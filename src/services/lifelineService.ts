@@ -64,6 +64,18 @@ export function saveAppState(state: AppState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+export function normalizeWhatsAppNumber(value: string | null | undefined): string | null {
+  const digits = (value || '').replace(/\D/g, '').replace(/^00/, '');
+  const international = digits.startsWith('0') ? `88${digits}` : digits;
+  return /^8801[3-9]\d{8}$/.test(international) ? international : null;
+}
+
+export function getWhatsAppUrl(value: string | null | undefined, message?: string): string | null {
+  const number = normalizeWhatsAppNumber(value);
+  if (!number) return null;
+  return `https://wa.me/${number}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
+}
+
 // Filter Donors Logic
 export function filterDonors(donors: DonorProfile[], filters: SearchFilters, currentLat: number, currentLng: number): DonorProfile[] {
   return donors.filter(donor => {

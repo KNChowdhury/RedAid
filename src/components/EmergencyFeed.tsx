@@ -1,5 +1,6 @@
 import { AlertCircle, Clock, MapPin, Phone, Share2, ShieldCheck, Users } from 'lucide-react';
 import React from 'react';
+import { getWhatsAppUrl } from '../services/lifelineService';
 import { EmergencyRequest } from '../types';
 
 interface EmergencyFeedProps {
@@ -47,6 +48,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
         ) : (
           requests.map(req => {
             const isCritical = req.urgency === 'Critical';
+            const whatsappUrl = getWhatsAppUrl(req.contactWhatsapp, `Hi, I saw your urgent request on LifelineBD for ${req.requiredBags} bags of ${req.bloodGroup} blood for ${req.patientName} at ${req.hospitalName}. I am available to donate.`);
             return (
               <div
                 key={req.id}
@@ -107,16 +109,20 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                   </div>
 
                   <div className="flex gap-2.5 w-full sm:w-auto">
-                    <a
-                      href={`https://wa.me/${req.contactWhatsapp}?text=${encodeURIComponent(
-                        `🚨 Hi, I saw your urgent request on LifelineBD for ${req.requiredBags} bags of ${req.bloodGroup} blood for ${req.patientName} at ${req.hospitalName}. I am available to donate.`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 sm:flex-initial px-5 py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-600 transition-colors text-center shadow-sm flex items-center justify-center gap-1.5"
-                    >
-                      WhatsApp
-                    </a>
+                    {whatsappUrl ? (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 sm:flex-initial px-5 py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-600 transition-colors text-center shadow-sm flex items-center justify-center gap-1.5"
+                      >
+                        WhatsApp
+                      </a>
+                    ) : (
+                      <span className="flex-1 sm:flex-initial px-5 py-3 bg-slate-100 text-slate-400 rounded-xl text-[11px] font-black uppercase tracking-widest text-center">
+                        WhatsApp unavailable
+                      </span>
+                    )}
 
                     <a
                       href={`tel:${req.contactPhone}`}

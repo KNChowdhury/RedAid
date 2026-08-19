@@ -8,7 +8,7 @@ import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestB
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
 import { SidebarStats } from './components/SidebarStats';
-import { createRequestInDb, deleteRequestFromDb, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
+import { createRequestInDb, deleteRequestFromDb, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
@@ -72,6 +72,11 @@ export function App() {
     }
     restoreSessionAndLoad();
   }, [refreshSharedData]);
+
+  useEffect(() => subscribeToAuthState(donor => {
+    setState(prev => ({ ...prev, currentUser: donor }));
+    refreshSharedData(!!donor, donor?.impactScore ?? null);
+  }), [refreshSharedData]);
 
   // Live updates: instead of polling every 30s, subscribe to Postgres
   // changes on the tables that matter and refetch only when something

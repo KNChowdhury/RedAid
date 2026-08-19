@@ -816,6 +816,24 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
   return restored;
 }
 
+export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => void): () => void {
+  if (!supabase) return () => {};
+
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || !session?.user) {
+      onChange(null);
+      return;
+    }
+
+    // Let Supabase finish its internal token storage before querying donor data.
+    window.setTimeout(async () => {
+      onChange(await getCurrentDonorFromSession());
+    }, 0);
+  });
+
+  return () => data.subscription.unsubscribe();
+}
+
 export async function signOutDonor(): Promise<void> {
   if (!supabase) {
     return;

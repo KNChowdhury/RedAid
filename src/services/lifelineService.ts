@@ -242,6 +242,8 @@ export async function updateDonorProfile(
     avatar: string;
     district: string;
     area: string;
+    lastDonationDate: string;
+    isSmoker: boolean;
     hbsagStatus: string;
     hcvStatus: string;
     hivStatus: string;
@@ -271,6 +273,12 @@ export async function updateDonorProfile(
   if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
   if (updates.district !== undefined) dbUpdates.district = updates.district;
   if (updates.area !== undefined) dbUpdates.area = updates.area;
+  if (updates.isSmoker !== undefined) dbUpdates.is_smoker = updates.isSmoker;
+  // The set_next_eligible trigger recomputes next_eligible_date (+120 days)
+  // whenever this changes, so we never store that date by hand.
+  if (updates.lastDonationDate !== undefined) {
+    dbUpdates.last_donation_date = updates.lastDonationDate || null;
+  }
   if (lat !== undefined) dbUpdates.lat = lat;
   if (lng !== undefined) dbUpdates.lng = lng;
 

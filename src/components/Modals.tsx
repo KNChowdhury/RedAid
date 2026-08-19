@@ -822,6 +822,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
   const [district, setDistrict] = useState(donor?.district || 'Dhaka');
   const [area, setArea] = useState(donor?.area || (BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || ''));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [lastDonationDate, setLastDonationDate] = useState(donor?.lastDonationDate || '');
+  const [isSmoker, setIsSmoker] = useState(!!donor?.isSmoker);
   const [hbsag, setHbsag] = useState<string>(donor?.healthInfo?.hbsagStatus || 'Not Tested');
   const [antiHcv, setAntiHcv] = useState<string>(donor?.healthInfo?.hcvStatus || 'Not Tested');
   const [antiHiv, setAntiHiv] = useState<string>(donor?.healthInfo?.hivStatus || 'Not Tested');
@@ -837,6 +839,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
     setBloodGroup(donor?.bloodGroup || 'O+');
     setDistrict(donor?.district || 'Dhaka');
     setArea(donor?.area || BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || '');
+    setLastDonationDate(donor?.lastDonationDate || '');
+    setIsSmoker(!!donor?.isSmoker);
     setHbsag(donor?.healthInfo?.hbsagStatus || 'Not Tested');
     setAntiHcv(donor?.healthInfo?.hcvStatus || 'Not Tested');
     setAntiHiv(donor?.healthInfo?.hivStatus || 'Not Tested');
@@ -869,6 +873,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
         district,
         area,
         avatar: avatarUrl,
+        lastDonationDate,
+        isSmoker,
         hbsagStatus: hbsag,
         antiHcvStatus: antiHcv,
         antiHivStatus: antiHiv,
@@ -940,6 +946,30 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
               {areasList.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Last Donation Date</label>
+            <input
+              type="date"
+              value={lastDonationDate}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={e => setLastDonationDate(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+            />
+            <p className="mt-1 text-[11px] text-slate-500">
+              শেষ কবে রক্ত দিয়েছেন? খালি রাখলে "First time" দেখাবে। পরবর্তী তারিখ ১২০ দিন পর নিজে থেকেই হিসাব হবে।
+            </p>
+          </div>
+
+          <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isSmoker}
+              onChange={e => setIsSmoker(e.target.checked)}
+              className="accent-rose-600"
+            />
+            <span className="text-xs font-bold text-slate-700">আমি ধূমপান করি</span>
+          </label>
 
           <div>
             <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Profile Photo</label>

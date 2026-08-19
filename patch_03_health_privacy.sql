@@ -119,6 +119,7 @@ grant select on public.v_donors_directory to authenticated;
 -- ============================================================================
 
 drop policy if exists donors_select on public.donors;
+drop policy if exists donors_select_own on public.donors;
 create policy donors_select_own on public.donors
   for select to authenticated
   using (auth_user_id = auth.uid() or public.is_admin());

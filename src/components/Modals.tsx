@@ -216,13 +216,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         setLoading(false);
         return;
       }
-      const user = await getCurrentDonorFromSession();
       setLoading(false);
-      if (!user) {
-        setErrorMsg('Password updated, but your donor profile could not be loaded. Please sign in again.');
-        return;
-      }
-      onLoginSuccess(user);
       onPasswordRecoveryComplete?.();
       onClose();
       return;

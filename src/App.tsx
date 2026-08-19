@@ -261,7 +261,7 @@ export function App() {
                 <p className="text-xs uppercase font-semibold tracking-[0.45em] text-rose-400">Guest mode</p>
                 <h1 className="mt-3 text-3xl lg:text-4xl font-black tracking-tight">Welcome to LifelineBD</h1>
                 <p className="mt-4 text-sm lg:text-base text-slate-300 max-w-2xl leading-7">
-                  You're browsing as a guest for now. No need to worry — click sign in to unlock your personalized donor dashboard and emergency alerts.
+                  LifelineBD connects blood donors, patients, and hospitals across Bangladesh. Browse verified donor information, see live emergency requests, and take a safe step toward saving a life.
                 </p>
               </div>
               <button
@@ -271,19 +271,34 @@ export function App() {
                 Get Started
               </button>
             </div>
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              <div className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm animate-pulse">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm text-left transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-rose-400"
+                aria-label="Open sign in"
+              >
                 <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Fast access</p>
                 <p className="mt-2 text-sm font-bold text-white">Sign in quickly</p>
-              </div>
-              <div className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm animate-pulse delay-100">
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('requests')}
+                className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm text-left transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-rose-400"
+                aria-label="View live emergency requests"
+              >
                 <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Real data</p>
                 <p className="mt-2 text-sm font-bold text-white">View live requests</p>
-              </div>
-              <div className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm animate-pulse delay-200">
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('network')}
+                className="rounded-3xl bg-white/5 border border-white/10 p-4 backdrop-blur-sm text-left transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-rose-400"
+                aria-label="Join the donor community"
+              >
                 <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Safe steps</p>
                 <p className="mt-2 text-sm font-bold text-white">Join the community</p>
-              </div>
+              </button>
             </div>
           </div>
         )}

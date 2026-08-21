@@ -608,6 +608,10 @@ export function App() {
             openDonorProfile(donor);
           }
         }}
+        onOpenRequest={() => {
+          setIsNotifModalOpen(false);
+          setActiveTab('requests');
+        }}
       />
     </div>
   );

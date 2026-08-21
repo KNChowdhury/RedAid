@@ -996,9 +996,10 @@ interface NotifModalProps {
   notifications: NotificationItem[];
   onMarkAllRead: () => void;
   onOpenDonor?: (notification: NotificationItem) => void;
+  onOpenRequest?: () => void;
 }
 
-export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose, notifications, onMarkAllRead, onOpenDonor }) => {
+export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose, notifications, onMarkAllRead, onOpenDonor, onOpenRequest }) => {
   useDismissable(isOpen, onClose);
 
   if (!isOpen) return null;
@@ -1029,13 +1030,18 @@ export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose,
             (() => {
               const offerNotification = /\(([^)]+)\) can donate for /i.test(notif.message);
               const canViewDonor = !!notif.relatedDonorId || offerNotification;
+              const isConfirmation = notif.type === 'reminder' && notif.relatedRequestId;
+              const clickable = canViewDonor || isConfirmation;
               return (
             <div
               key={notif.id}
-              onClick={() => canViewDonor && onOpenDonor?.(notif)}
+              onClick={() => {
+                if (canViewDonor) onOpenDonor?.(notif);
+                else if (isConfirmation) onOpenRequest?.();
+              }}
               className={`p-4 rounded-2xl border transition-colors ${
                 notif.read ? 'bg-slate-50/70 border-slate-100' : 'bg-rose-50/60 border-rose-200 shadow-2xs'
-              } ${canViewDonor && onOpenDonor ? 'cursor-pointer hover:border-rose-400' : ''}`}
+              } ${clickable ? 'cursor-pointer hover:border-rose-400' : ''}`}
             >
               <div className="flex justify-between items-start mb-1">
                 <p className="font-bold text-sm">{notif.title}</p>
@@ -1044,6 +1050,9 @@ export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose,
               <p className="text-xs text-slate-600 leading-relaxed font-medium">{notif.message}</p>
               {canViewDonor && onOpenDonor && (
                 <p className="mt-2 text-[11px] font-bold text-rose-600">View donor profile</p>
+              )}
+              {isConfirmation && onOpenRequest && (
+                <p className="mt-2 text-[11px] font-bold text-emerald-600">Open Requests to confirm</p>
               )}
             </div>
               );

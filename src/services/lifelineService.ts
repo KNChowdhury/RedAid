@@ -977,10 +977,15 @@ export async function signUpDonor(profile: {
   });
 
   const signedUpUser = signUpData?.user || signUpData?.session?.user;
+  const looksLikeExistingAccount = !!signedUpUser
+    && Array.isArray((signedUpUser as any).identities)
+    && (signedUpUser as any).identities.length === 0;
   const signUpErrorMessage = signUpError?.message || '';
-  const isDuplicateEmailError = /already registered|duplicate|user already exists|email.*already/i.test(signUpErrorMessage);
+  const isDuplicateEmailError =
+    looksLikeExistingAccount ||
+    /already registered|duplicate|user already exists|email.*already/i.test(signUpErrorMessage);
 
-  if (signUpError || !signedUpUser) {
+  if (signUpError || !signedUpUser || looksLikeExistingAccount) {
     if (isDuplicateEmailError) {
       const { user, error: signInError } = await signInDonor(profile.email, profile.password);
       if (signInError || !user) {

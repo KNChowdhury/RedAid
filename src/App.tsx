@@ -24,7 +24,9 @@ export function App() {
   };
 
   const [activeTab, setActiveTabState] = useState(readTabFromHash);
-  const recoveryModeRef = useRef(window.location.hash.includes('type=recovery'));
+  const recoveryModeRef = useRef(
+    window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery')
+  );
 
   const setActiveTab = React.useCallback((tab: string) => {
     setActiveTabState(tab);

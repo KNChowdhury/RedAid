@@ -298,7 +298,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  useDismissable(isOpen, onClose);
+  useDismissable(isOpen && !passwordRecovery, onClose);
 
   if (!isOpen) return null;
 

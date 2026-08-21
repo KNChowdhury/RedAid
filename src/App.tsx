@@ -24,6 +24,7 @@ export function App() {
   };
 
   const [activeTab, setActiveTabState] = useState(readTabFromHash);
+  const recoveryModeRef = useRef(window.location.hash.includes('type=recovery'));
 
   const setActiveTab = React.useCallback((tab: string) => {
     setActiveTabState(tab);
@@ -130,8 +131,9 @@ export function App() {
   useEffect(() => {
     async function restoreSessionAndLoad() {
       const donor = await getCurrentDonorFromSession();
-      setState(prev => ({ ...prev, currentUser: donor }));
-      await refreshSharedData(!!donor, donor?.impactScore ?? null);
+      const activeDonor = recoveryModeRef.current ? null : donor;
+      setState(prev => ({ ...prev, currentUser: activeDonor }));
+      await refreshSharedData(!!activeDonor, activeDonor?.impactScore ?? null);
     }
     restoreSessionAndLoad();
   }, [refreshSharedData]);
@@ -142,6 +144,9 @@ export function App() {
       refreshSharedData(!!donor, donor?.impactScore ?? null);
     },
     () => {
+      recoveryModeRef.current = true;
+      setState(prev => ({ ...prev, currentUser: null }));
+      refreshSharedData(false, null);
       setIsPasswordRecovery(true);
       if (window.location.hash.includes('type=recovery')) {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -551,7 +556,10 @@ export function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
         passwordRecovery={isPasswordRecovery}
-        onPasswordRecoveryComplete={() => setIsPasswordRecovery(false)}
+        onPasswordRecoveryComplete={() => {
+          recoveryModeRef.current = false;
+          setIsPasswordRecovery(false);
+        }}
       />
 
       <ProfileModal

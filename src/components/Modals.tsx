@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, 
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
@@ -316,16 +316,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         return;
       }
 
-      // The recovery link already established a valid session, so load the donor
-      // directly rather than waiting on a USER_UPDATED auth event that may not
-      // arrive. If the profile row genuinely can't be read we still close and
-      // let the app's auth listener retry, instead of stranding the user here.
-      const donor = await getCurrentDonorFromSession();
+      // A recovery session is only for changing the password. End it afterward
+      // so the user must sign in again with the new password.
+      await signOutDonor();
       setLoading(false);
       onPasswordRecoveryComplete?.();
-      if (donor) {
-        onLoginSuccess(donor);
-      }
       onClose();
       return;
     }

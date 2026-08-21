@@ -6,6 +6,7 @@ import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPassword
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
+import { CompactSelect } from './CompactSelect';
 
 /* ---------- Bangladeshi phone number helpers ----------
  * People type their number the way they say it: 01712345678.
@@ -176,9 +177,12 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District *</label>
-                <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900">
-                  {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-                </select>
+                <CompactSelect
+                  value={district}
+                  onChange={value => { setDistrict(value); setArea(districts.find(d => d.name === value)?.areas[0] || ''); }}
+                  options={districts.map(d => ({ value: d.name, label: d.name }))}
+                  className="text-sm"
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area *</label>

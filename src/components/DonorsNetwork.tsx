@@ -9,15 +9,17 @@ interface DonorsNetworkProps {
   filters: SearchFilters;
   onSelectDonor: (donor: DonorProfile) => void;
   onRequestBlood: () => void;
+  initialViewMode?: 'grid' | 'map';
 }
 
 export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   donors,
   filters,
   onSelectDonor,
-  onRequestBlood
+  onRequestBlood,
+  initialViewMode = 'grid'
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>(initialViewMode);
   const [selectedMapPin, setSelectedMapPin] = useState<DonorProfile | null>(null);
 
   // Default map center

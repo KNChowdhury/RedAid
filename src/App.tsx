@@ -28,7 +28,9 @@ export function App() {
 
   const setActiveTab = React.useCallback((tab: string) => {
     setActiveTabState(tab);
-    if (window.location.hash.replace('#', '') !== tab) {
+    if (tab === 'network') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    } else if (window.location.hash.replace('#', '') !== tab) {
       window.history.pushState(null, '', `#${tab}`);
     }
   }, []);
@@ -496,6 +498,7 @@ export function App() {
               filters={filters}
               onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
+              initialViewMode="map"
             />
           )}
 

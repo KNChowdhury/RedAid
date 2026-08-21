@@ -4,7 +4,6 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { Footer } from './components/Footer';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
-import { HospitalPortal } from './components/HospitalPortal';
 import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
@@ -19,7 +18,7 @@ export function App() {
   // sections instead of leaving the app on the first tap.
   const readTabFromHash = () => {
     const t = window.location.hash.replace('#', '');
-    const valid = ['network', 'requests', 'map', 'rewards', 'hospital', 'admin'];
+    const valid = ['network', 'requests', 'map', 'rewards', 'admin'];
     return valid.includes(t) ? t : 'network';
   };
 
@@ -509,15 +508,6 @@ export function App() {
               currentUser={state.currentUser}
               badges={state.badges}
               leaderboard={[...state.donors].sort((a, b) => (b.impactScore || 0) - (a.impactScore || 0)).slice(0, 8)}
-            />
-          )}
-
-          {activeTab === 'hospital' && (
-            <HospitalPortal
-              requests={state.requests}
-              currentUser={state.currentUser}
-              onDataChanged={() => refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null)}
-              onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
             />
           )}
 

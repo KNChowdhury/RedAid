@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useBrowserNotifications } from './hooks/useBrowserNotifications';
 import { AdminDashboard } from './components/AdminDashboard';
-import { AiHealthAdvisor } from './components/AiHealthAdvisor';
 import { Footer } from './components/Footer';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
@@ -20,7 +19,7 @@ export function App() {
   // sections instead of leaving the app on the first tap.
   const readTabFromHash = () => {
     const t = window.location.hash.replace('#', '');
-    const valid = ['network', 'requests', 'map', 'rewards', 'hospital', 'advisor', 'admin'];
+    const valid = ['network', 'requests', 'map', 'rewards', 'hospital', 'admin'];
     return valid.includes(t) ? t : 'network';
   };
 
@@ -507,10 +506,6 @@ export function App() {
               onDataChanged={() => refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null)}
               onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
             />
-          )}
-
-          {activeTab === 'advisor' && (
-            <AiHealthAdvisor currentUser={state.currentUser} />
           )}
 
           {activeTab === 'admin' && (

@@ -179,42 +179,6 @@ export function getCompatibleDonorGroups(recipientGroup: BloodGroup): BloodGroup
   }
 }
 
-/**
- * Health advisor.
- *
- * This used to return one of three pre-written paragraphs chosen by keyword, so
- * unrelated questions produced identical answers. It now calls a real model
- * through our own /api/health-advisor endpoint, which keeps the API key on the
- * server where visitors can't read it.
- */
-export async function askGeminiAssistant(
-  prompt: string,
-  userContext: DonorProfile | null
-): Promise<string> {
-  try {
-    const response = await fetch('/api/health-advisor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        // Only non-identifying context leaves the app: no name, phone or email.
-        bloodGroup: userContext?.bloodGroup || null,
-        lastDonationDate: userContext?.lastDonationDate || null
-      })
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      return data?.error || 'The advisor is unavailable right now. Please try again shortly.';
-    }
-    return data?.text || 'No answer came back. Please try rephrasing your question.';
-  } catch (err) {
-    console.error('Health advisor request failed:', err);
-    return 'Could not reach the advisor. Please check your connection and try again.';
-  }
-}
-
 // Every district's division, so a donor anywhere in Bangladesh gets a map
 // point near their own region instead of always defaulting to Dhaka. Source:
 // bangladesh.gov.bd's official upazila list (same data behind patch_12).

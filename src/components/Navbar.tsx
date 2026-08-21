@@ -33,8 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'requests', label: 'Requests' },
     { id: 'map', label: 'Live Map' },
     { id: 'rewards', label: 'Rewards' },
-    { id: 'hospital', label: 'Hospital Portal' },
-    { id: 'advisor', label: 'AI Advisor' }
+    { id: 'hospital', label: 'Hospital Portal' }
   ];
 
   const navItems = currentUser?.role === 'admin'
@@ -62,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Desktop Navigation */}
-      <nav className="hidden xl:flex items-center gap-7 text-xs font-bold uppercase tracking-widest text-slate-500">
+      <nav className="hidden xl:flex items-center gap-4 2xl:gap-6 text-xs font-bold uppercase tracking-widest text-slate-500">
         {visibleNavItems.map(item => (
           <button
             key={item.id}

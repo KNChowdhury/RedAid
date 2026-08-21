@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useBrowserNotifications } from './hooks/useBrowserNotifications';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Footer } from './components/Footer';
-import { AiHealthAdvisor } from './components/AiHealthAdvisor';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
 import { HospitalPortal } from './components/HospitalPortal';
@@ -20,7 +19,7 @@ export function App() {
   // sections instead of leaving the app on the first tap.
   const readTabFromHash = () => {
     const t = window.location.hash.replace('#', '');
-    const valid = ['network', 'requests', 'map', 'rewards', 'ai-advisor', 'hospital', 'admin'];
+    const valid = ['network', 'requests', 'map', 'rewards', 'hospital', 'admin'];
     return valid.includes(t) ? t : 'network';
   };
 
@@ -477,7 +476,7 @@ export function App() {
               onOfferToDonate={handleOfferToDonate}
               onMarkDonated={req => setMarkDonatedRequest(req)}
               onEditRequest={req => { setEditingRequest(req); setIsRequestModalOpen(true); }}
-              onSelectRequest={r => alert(`Selected request for ${r.patientName}. Hospital: ${r.hospitalName}.`)}
+              onSelectRequest={() => setActiveTab('requests')}
               onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
             />
             </>
@@ -498,10 +497,6 @@ export function App() {
               badges={state.badges}
               leaderboard={[...state.donors].sort((a, b) => (b.impactScore || 0) - (a.impactScore || 0)).slice(0, 8)}
             />
-          )}
-
-          {activeTab === 'ai-advisor' && (
-            <AiHealthAdvisor currentUser={state.currentUser} />
           )}
 
           {activeTab === 'hospital' && (

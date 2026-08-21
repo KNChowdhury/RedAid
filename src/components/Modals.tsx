@@ -1,9 +1,11 @@
-import { AlertCircle, Award, Bell, Calendar, Heart, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { BANGLADESH_DISTRICTS } from '../mockData';
+import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
 import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
+import { Avatar } from './Avatar';
+import { AreaField } from './AreaField';
 
 /* ---------- Bangladeshi phone number helpers ----------
  * People type their number the way they say it: 01712345678.
@@ -41,6 +43,7 @@ interface RequestModalProps {
 }
 
 export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, editingRequest = null }) => {
+  const districts = useDistricts();
   const [patientName, setPatientName] = useState('');
   const [age, setAge] = useState('35');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('O-');
@@ -120,7 +123,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
     }
   };
 
-  const selectedDistObj = BANGLADESH_DISTRICTS.find(d => d.name === district);
+  const selectedDistObj = districts.find(d => d.name === district);
   const areasList = selectedDistObj ? selectedDistObj.areas : [];
 
   return (
@@ -173,15 +176,13 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District *</label>
-                <select value={district} onChange={e => { setDistrict(e.target.value); setArea(BANGLADESH_DISTRICTS.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900">
-                  {BANGLADESH_DISTRICTS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900">
+                  {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area *</label>
-                <select value={area} onChange={e => setArea(e.target.value)} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900">
-                  {areasList.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
+                <AreaField areas={areasList} value={area} onChange={setArea} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
               </div>
             </div>
           </div>
@@ -266,10 +267,12 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, passwordRecovery = false, onPasswordRecoveryComplete }) => {
+  const districts = useDistricts();
   const [view, setView] = useState<'login' | 'register' | 'reset' | 'new-password'>(passwordRecovery ? 'new-password' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
   const [bloodGroup, setBloodGroup] = useState<string>('');
   const [district, setDistrict] = useState('Dhaka');
@@ -418,7 +421,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           {view !== 'reset' && (
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Password</label>
-              <input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+              <div className="relative">
+                <input required type={showPassword ? 'text' : 'password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+                <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700" aria-label={showPassword ? 'Hide password' : 'Show password'} tabIndex={-1}>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           )}
 
@@ -461,17 +469,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
-                  <select value={district} onChange={e => { setDistrict(e.target.value); setArea(BANGLADESH_DISTRICTS.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                    {BANGLADESH_DISTRICTS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                  <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
+                    {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
-                <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                  {BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
+                <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
               </div>
 
               <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
@@ -519,6 +525,7 @@ interface ProfileModalProps {
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, onClose, onToggleAvailability, onProfileUpdated }) => {
+  const districts = useDistricts();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -551,7 +558,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
   if (!donor) return null;
 
-  const districtObj = BANGLADESH_DISTRICTS.find(d => d.name === district);
+  const districtObj = districts.find(d => d.name === district);
 
   const handleSave = async () => {
     setSaving(true);
@@ -585,14 +592,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
         </button>
 
         <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
-          <img src={donor.avatar} alt="" className="w-20 h-20 rounded-3xl object-cover border-4 border-rose-500 shadow-md bg-slate-100" />
+          <Avatar name={donor.name} src={donor.avatar} className="w-20 h-20" textClassName="text-2xl" />
           <div className="flex-1">
             {isEditing ? (
               <input value={name} onChange={e => setName(e.target.value)} className="font-black text-xl border border-slate-200 rounded-lg px-3 py-1.5 w-full mb-1" />
             ) : (
               <div className="flex items-center gap-2">
                 <h3 className="font-black text-2xl">{donor.name}</h3>
-                {donor.isVerified && <ShieldCheck className="w-5 h-5 text-rose-600" aria-label="Verified Hospital Screening" />}
               </div>
             )}
             <p className="text-xs font-bold text-slate-500 flex items-center gap-1 mt-1">
@@ -707,18 +713,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
                 <select value={district} onChange={e => { setDistrict(e.target.value); setArea(''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                  {BANGLADESH_DISTRICTS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                  {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
-                <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                  {(districtObj?.areas || []).map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
+                <AreaField areas={districtObj?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
               </div>
             </div>
 
-            <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Mandatory TTI Screening (Lab Verified)</h4>
+            <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Screening results you entered</h4>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'HBsAg (Hepatitis B)', value: hbsagStatus, setter: setHbsagStatus },
@@ -815,12 +819,13 @@ interface ProfileEditModalProps {
 }
 
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpen, onClose, onSave }) => {
+  const districts = useDistricts();
   const [name, setName] = useState(donor?.name || '');
   const [phone, setPhone] = useState(donor?.phone || '');
   const [whatsapp, setWhatsapp] = useState(donor?.whatsapp || '');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>(donor?.bloodGroup || 'O+');
   const [district, setDistrict] = useState(donor?.district || 'Dhaka');
-  const [area, setArea] = useState(donor?.area || (BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || ''));
+  const [area, setArea] = useState(donor?.area || (districts.find(d => d.name === district)?.areas[0] || ''));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [lastDonationDate, setLastDonationDate] = useState(donor?.lastDonationDate || '');
   const [isSmoker, setIsSmoker] = useState(!!donor?.isSmoker);
@@ -838,7 +843,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
     setWhatsapp(donor?.whatsapp || '');
     setBloodGroup(donor?.bloodGroup || 'O+');
     setDistrict(donor?.district || 'Dhaka');
-    setArea(donor?.area || BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas[0] || '');
+    setArea(donor?.area || districts.find(d => d.name === district)?.areas[0] || '');
     setLastDonationDate(donor?.lastDonationDate || '');
     setIsSmoker(!!donor?.isSmoker);
     setHbsag(donor?.healthInfo?.hbsagStatus || 'Not Tested');
@@ -852,7 +857,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
 
   if (!isOpen || !donor) return null;
 
-  const areasList = BANGLADESH_DISTRICTS.find(d => d.name === district)?.areas || [];
+  const areasList = districts.find(d => d.name === district)?.areas || [];
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -934,17 +939,15 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
-              <select value={district} onChange={e => { setDistrict(e.target.value); setArea(BANGLADESH_DISTRICTS.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                {BANGLADESH_DISTRICTS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+              <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
-            <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
-              {areasList.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
+            <AreaField areas={areasList} value={area} onChange={setArea} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl" />
           </div>
 
           <div>

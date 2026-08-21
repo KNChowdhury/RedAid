@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient';
 import type { Session, RealtimeChannel } from '@supabase/supabase-js';
-import { BANGLADESH_DISTRICTS } from '../mockData';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBadge, SearchFilters } from '../types';
 
 // V3: bumped on purpose. Earlier versions of this app seeded localStorage with
@@ -180,43 +179,142 @@ export function getCompatibleDonorGroups(recipientGroup: BloodGroup): BloodGroup
   }
 }
 
-// Simulate Gemini AI Assistant
-export async function askGeminiAssistant(prompt: string, userContext: DonorProfile | null): Promise<string> {
-  // Graceful fallback AI response
-  const lower = prompt.toLowerCase();
-  if (lower.includes('appeal') || lower.includes('message') || lower.includes('whatsapp') || lower.includes('draft')) {
-    return `🚨 **URGENT BLOOD REQUEST** 🚨
-**Patient:** Emergency Casualty
-**Requirement:** 2 Bags of **${userContext?.bloodGroup || 'O-'}** Blood
-**Location:** Dhaka Medical / United Hospital
-**Contact:** ${userContext?.phone || '+880 1711-000000'}
+/**
+ * Health advisor.
+ *
+ * This used to return one of three pre-written paragraphs chosen by keyword, so
+ * unrelated questions produced identical answers. It now calls a real model
+ * through our own /api/health-advisor endpoint, which keeps the API key on the
+ * server where visitors can't read it.
+ */
+export async function askGeminiAssistant(
+  prompt: string,
+  userContext: DonorProfile | null
+): Promise<string> {
+  try {
+    const response = await fetch('/api/health-advisor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        // Only non-identifying context leaves the app: no name, phone or email.
+        bloodGroup: userContext?.bloodGroup || null,
+        lastDonationDate: userContext?.lastDonationDate || null
+      })
+    });
 
-*Every drop saves a life. Please share or contact immediately if available!* #LifelineBD #BloodDonation`;
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return data?.error || 'The advisor is unavailable right now. Please try again shortly.';
+    }
+    return data?.text || 'No answer came back. Please try rephrasing your question.';
+  } catch (err) {
+    console.error('Health advisor request failed:', err);
+    return 'Could not reach the advisor. Please check your connection and try again.';
   }
-  if (lower.includes('food') || lower.includes('diet') || lower.includes('iron') || lower.includes('eat')) {
-    return `🥗 **Nutrition Tips for Donors in Bangladesh:**
-1. **Iron-Rich Greens:** Increase intake of *Kochu Shak* (colocasia leaves), red spinach (*Lal Shak*), and lentils (*Dal*).
-2. **Vitamin C Boost:** Drink fresh *Lemon water* or *Amra* with your iron-rich meals to enhance absorption dramatically.
-3. **Hydration & Rest:** Drink at least 3-4 glasses of water or coconut water immediately after donating and avoid heavy lifting for 24 hours.`;
-  }
-  return `🩸 **LifelineBD Smart Health Advisor:**
-As a registered donor (${userContext?.bloodGroup || 'B+'}), your safety and recovery are our top priority.
-- Standard waiting interval is **120 days** (approx. 4 months) between whole blood donations.
-- Ensure hemoglobin is above **12.5 g/dL** and BP is stable.
-- If you received any recent vaccination or antibiotics, defer donation for 14 days.`;
 }
 
-// Find coordinates for area/district
+// Every district's division, so a donor anywhere in Bangladesh gets a map
+// point near their own region instead of always defaulting to Dhaka. Source:
+// bangladesh.gov.bd's official upazila list (same data behind patch_12).
+const DISTRICT_TO_DIVISION: Record<string, string> = {
+  'Dhaka': 'Dhaka',
+  'Faridpur': 'Dhaka',
+  'Gazipur': 'Dhaka',
+  'Gopalganj': 'Dhaka',
+  'Kishoreganj': 'Dhaka',
+  'Madaripur': 'Dhaka',
+  'Manikganj': 'Dhaka',
+  'Munshiganj': 'Dhaka',
+  'Narayanganj': 'Dhaka',
+  'Narsingdi': 'Dhaka',
+  'Rajbari': 'Dhaka',
+  'Shariatpur': 'Dhaka',
+  'Tangail': 'Dhaka',
+  'Bagerhat': 'Khulna',
+  'Chuadanga': 'Khulna',
+  'Jashore': 'Khulna',
+  'Jhenaidah': 'Khulna',
+  'Khulna': 'Khulna',
+  'Kushtia': 'Khulna',
+  'Magura': 'Khulna',
+  'Meherpur': 'Khulna',
+  'Narail': 'Khulna',
+  'Satkhira': 'Khulna',
+  'Bandarban': 'Chattogram',
+  'Brahmanbaria': 'Chattogram',
+  'Chandpur': 'Chattogram',
+  'Chattogram': 'Chattogram',
+  'Cumilla': 'Chattogram',
+  "Cox's Bazar": 'Chattogram',
+  'Feni': 'Chattogram',
+  'Khagrachhari': 'Chattogram',
+  'Lakshmipur': 'Chattogram',
+  'Noakhali': 'Chattogram',
+  'Rangamati': 'Chattogram',
+  'Bogra': 'Rajshahi',
+  'Joypurhat': 'Rajshahi',
+  'Naogaon': 'Rajshahi',
+  'Natore': 'Rajshahi',
+  'Chapainawabganj': 'Rajshahi',
+  'Pabna': 'Rajshahi',
+  'Rajshahi': 'Rajshahi',
+  'Sirajganj': 'Rajshahi',
+  'Habiganj': 'Sylhet',
+  'Moulvibazar': 'Sylhet',
+  'Sunamganj': 'Sylhet',
+  'Sylhet': 'Sylhet',
+  'Dinajpur': 'Rangpur',
+  'Gaibandha': 'Rangpur',
+  'Kurigram': 'Rangpur',
+  'Lalmonirhat': 'Rangpur',
+  'Nilphamari': 'Rangpur',
+  'Panchagarh': 'Rangpur',
+  'Rangpur': 'Rangpur',
+  'Thakurgaon': 'Rangpur',
+  'Jamalpur': 'Mymensingh',
+  'Mymensingh': 'Mymensingh',
+  'Netrokona': 'Mymensingh',
+  'Sherpur': 'Mymensingh',
+  'Barguna': 'Barishal',
+  'Barishal': 'Barishal',
+  'Bhola': 'Barishal',
+  'Jhalakathi': 'Barishal',
+  'Patuakhali': 'Barishal',
+  'Pirojpur': 'Barishal'
+};
+
+const DIVISION_CENTERS: Record<string, { lat: number; lng: number }> = {
+  Dhaka: { lat: 23.8103, lng: 90.4125 },
+  Chattogram: { lat: 22.3569, lng: 91.7832 },
+  Sylhet: { lat: 24.8949, lng: 91.8687 },
+  Rajshahi: { lat: 24.3745, lng: 88.6042 },
+  Khulna: { lat: 22.8456, lng: 89.5403 },
+  Barishal: { lat: 22.701, lng: 90.3535 },
+  Rangpur: { lat: 25.7439, lng: 89.2752 },
+  Mymensingh: { lat: 24.7471, lng: 90.4203 }
+};
+
+/**
+ * Approximate coordinates for a district/area, used only as a fallback point
+ * for the map when a donor hasn't set a precise location. Not exact — there's
+ * no reliable per-district coordinate source we could verify for all 64
+ * districts — but it places someone in the right region instead of always
+ * defaulting to Dhaka, which was actively wrong for the other 63 districts.
+ */
 export function lookupCoordinates(district: string, area: string): { lat: number; lng: number } {
-  const distObj = BANGLADESH_DISTRICTS.find(d => d.name === district);
-  if (!distObj) return { lat: 23.8103, lng: 90.4125 }; // Dhaka default
-  // Add small random offset for area variation
-  const areaIndex = distObj.areas.indexOf(area);
-  const offsetLat = (areaIndex > -1 ? areaIndex - 4 : 0) * 0.008;
-  const offsetLng = (areaIndex > -1 ? 4 - areaIndex : 0) * 0.008;
+  const division = DISTRICT_TO_DIVISION[district];
+  const center = DIVISION_CENTERS[division] || DIVISION_CENTERS.Dhaka;
+  // Small deterministic offset so different areas within a district don't all
+  // land on exactly the same pixel.
+  let hash = 0;
+  for (let i = 0; i < area.length; i++) hash = (hash * 31 + area.charCodeAt(i)) >>> 0;
+  const offsetLat = ((hash % 9) - 4) * 0.008;
+  const offsetLng = (((hash >> 4) % 9) - 4) * 0.008;
   return {
-    lat: Math.round((distObj.lat + offsetLat) * 10000) / 10000,
-    lng: Math.round((distObj.lng + offsetLng) * 10000) / 10000
+    lat: Math.round((center.lat + offsetLat) * 10000) / 10000,
+    lng: Math.round((center.lng + offsetLng) * 10000) / 10000
   };
 }
 // ============ SUPABASE: Map database rows to app types ============
@@ -228,7 +326,7 @@ function mapDbDonorToProfile(row: any): DonorProfile {
     email: row.email || '',
     phone: row.phone,
     whatsapp: row.whatsapp || '',
-    avatar: row.avatar || getDicebearAvatarUrl(row.name || row.email || row.auth_user_id),
+    avatar: row.avatar || '',
     role: row.role,
     bloodGroup: row.blood_group,
     district: row.district || '',
@@ -268,10 +366,7 @@ function mapDbDonorToProfile(row: any): DonorProfile {
   };
 }
 
-function getDicebearAvatarUrl(seed?: string) {
-  const s = encodeURIComponent(seed || 'user');
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${s}`;
-}
+
 
 export async function updateDonorProfile(
   donorId: string,
@@ -560,7 +655,7 @@ function buildDonorInsertPayload(user: any): Record<string, any> {
     is_regular: false,
     is_verified: false,
     available_now: false,
-    avatar: getDicebearAvatarUrl(defaultName),
+    avatar: '',
     impact_score: 0,
     lives_saved: 0
   };

@@ -1,7 +1,7 @@
-import { Award, Filter, Heart, MapPin, Search } from 'lucide-react';
+import { Award, Filter, Heart, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
-import React from 'react';
-import { BANGLADESH_DISTRICTS } from '../mockData';
+import React, { useState } from 'react';
+import { useDistricts } from '../hooks/useDistricts';
 import { DonorProfile, SearchFilters } from '../types';
 
 interface SidebarStatsProps {
@@ -19,8 +19,21 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
   onSearch,
   donorsCount
 }) => {
-  const selectedDistrictObj = BANGLADESH_DISTRICTS.find(d => d.name === filters.district);
+  const districts = useDistricts();
+  const selectedDistrictObj = districts.find(d => d.name === filters.district);
   const areasList = selectedDistrictObj ? selectedDistrictObj.areas : [];
+
+  const [showMore, setShowMore] = useState(false);
+
+  // Only offer "clear" when there is something to clear, so the control isn't
+  // sitting there implying the list is filtered when it isn't.
+  const hasActiveFilters =
+    filters.bloodGroup !== 'ALL' ||
+    filters.district !== 'ALL' ||
+    filters.area !== 'ALL' ||
+    filters.availableNowOnly ||
+    filters.regularOnly ||
+    filters.nonSmokerOnly;
 
   return (
     <aside className="lg:border-r border-slate-200/80 p-6 lg:p-8 flex flex-col gap-8 bg-slate-50/70 lg:overflow-y-auto min-w-0">
@@ -28,11 +41,6 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold text-slate-700">Your impact</h2>
-          {currentUser?.isVerified && (
-            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider bg-rose-100 px-2 py-0.5 rounded-full">
-              Verified Donor
-            </span>
-          )}
         </div>
 
         {currentUser ? (
@@ -75,49 +83,52 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
           <span className="text-xs text-slate-500">{donorsCount} shown</span>
         </div>
 
-        <div className="space-y-3.5">
-          {/* Blood Group Select */}
-          <div className="relative">
-            <select 
-              value={filters.bloodGroup}
-              onChange={e => setFilters(prev => ({ ...prev, bloodGroup: e.target.value }))}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 appearance-none outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all cursor-pointer shadow-xs"
-            >
-              <option value="ALL">🩸 Any Blood Group</option>
-              <option value="A+">Blood Group: A+</option>
-              <option value="A-">Blood Group: A-</option>
-              <option value="B+">Blood Group: B+</option>
-              <option value="B-">Blood Group: B-</option>
-              <option value="AB+">Blood Group: AB+</option>
-              <option value="AB-">Blood Group: AB-</option>
-              <option value="O+">Blood Group: O+</option>
-              <option value="O-">Blood Group: O-</option>
-            </select>
+        <div className="space-y-4">
+          {/* Blood group is how people actually think about this ("O+ লাগবে"),
+              so it gets tappable chips rather than a dropdown you have to open
+              and hunt through. One tap, and you can see all options at once. */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-2">Blood group</label>
+            <div className="grid grid-cols-3 gap-2">
+              {['ALL', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => (
+                <button
+                  key={group}
+                  onClick={() => setFilters(prev => ({ ...prev, bloodGroup: group }))}
+                  className={`py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                    filters.bloodGroup === group
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:border-rose-300'
+                  }`}
+                >
+                  {group === 'ALL' ? 'Any' : group}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* District Select */}
-          <div className="relative">
-            <select 
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-2">District</label>
+            <select
               value={filters.district}
               onChange={e => setFilters(prev => ({ ...prev, district: e.target.value, area: 'ALL' }))}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 appearance-none outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all cursor-pointer shadow-xs"
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 outline-hidden focus:border-rose-500 transition-colors cursor-pointer"
             >
-              <option value="ALL">📍 All Districts</option>
-              {BANGLADESH_DISTRICTS.map(dist => (
-                <option key={dist.name} value={dist.name}>{dist.name} District</option>
+              <option value="ALL">All districts</option>
+              {districts.map(dist => (
+                <option key={dist.name} value={dist.name}>{dist.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Area Select (if District picked) */}
           {filters.district !== 'ALL' && areasList.length > 0 && (
-            <div className="relative animate-in fade-in duration-200">
-              <select 
+            <div className="animate-in fade-in duration-200">
+              <label className="block text-xs font-semibold text-slate-500 mb-2">Area</label>
+              <select
                 value={filters.area}
                 onChange={e => setFilters(prev => ({ ...prev, area: e.target.value }))}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 appearance-none outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all cursor-pointer shadow-xs"
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 outline-hidden focus:border-rose-500 transition-colors cursor-pointer"
               >
-                <option value="ALL">🏙️ All Areas in {filters.district}</option>
+                <option value="ALL">All areas</option>
                 {areasList.map(area => (
                   <option key={area} value={area}>{area}</option>
                 ))}
@@ -125,84 +136,71 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
             </div>
           )}
 
-          {/* Distance Radius Slider */}
-          <div className="bg-white p-3.5 border border-slate-200 rounded-xl shadow-xs">
-            <div className="flex justify-between text-xs font-bold mb-2 text-slate-700">
-              <span>Max Distance Radius</span>
-              <span className="text-rose-600 font-mono">
-                {filters.maxDistanceKm === 0 ? 'Any distance' : `${filters.maxDistanceKm} km`}
-              </span>
-            </div>
-            <input 
-              type="range"
-              min="0"
-              max="150"
-              step="5"
-              value={filters.maxDistanceKm}
-              onChange={e => setFilters(prev => ({ ...prev, maxDistanceKm: Number(e.target.value) }))}
-              className="w-full accent-rose-600 cursor-pointer"
-            />
+          {/* Everything below is a refinement most people never need, so it
+              stays folded away. The distance slider was removed entirely: donor
+              coordinates aren't real yet, so it filtered on a made-up number. */}
+          <div>
+            <button
+              onClick={() => setShowMore(v => !v)}
+              className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+            >
+              {showMore ? '− Fewer options' : '+ More options'}
+            </button>
+
+            {showMore && (
+              <div className="mt-3 space-y-2 animate-in fade-in duration-200">
+                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-rose-300 transition-colors select-none">
+                  <input
+                    type="checkbox"
+                    checked={filters.availableNowOnly}
+                    onChange={e => setFilters(prev => ({ ...prev, availableNowOnly: e.target.checked }))}
+                    className="accent-rose-600 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-700">Available right now</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-rose-300 transition-colors select-none">
+                  <input
+                    type="checkbox"
+                    checked={filters.regularOnly}
+                    onChange={e => setFilters(prev => ({ ...prev, regularOnly: e.target.checked }))}
+                    className="accent-rose-600 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-700">Has donated before</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-rose-300 transition-colors select-none">
+                  <input
+                    type="checkbox"
+                    checked={filters.nonSmokerOnly}
+                    onChange={e => setFilters(prev => ({ ...prev, nonSmokerOnly: e.target.checked }))}
+                    className="accent-rose-600 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-700">Non-smoker</span>
+                </label>
+              </div>
+            )}
           </div>
 
-          {/* Smart Checkboxes */}
-          <div className="space-y-2 pt-1">
-            <label className="flex items-center gap-3 p-3 bg-white border border-slate-200/90 rounded-xl cursor-pointer hover:border-rose-300 transition-colors shadow-2xs select-none">
-              <input 
-                type="checkbox" 
-                checked={filters.availableNowOnly}
-                onChange={e => setFilters(prev => ({ ...prev, availableNowOnly: e.target.checked }))}
-                className="accent-rose-600 w-4 h-4 rounded-sm cursor-pointer" 
-              />
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-tight flex-1">Available Now Only</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </label>
-
-            <label className="flex items-center gap-3 p-3 bg-white border border-slate-200/90 rounded-xl cursor-pointer hover:border-rose-300 transition-colors shadow-2xs select-none">
-              <input 
-                type="checkbox" 
-                checked={filters.verifiedOnly}
-                onChange={e => setFilters(prev => ({ ...prev, verifiedOnly: e.target.checked }))}
-                className="accent-rose-600 w-4 h-4 rounded-sm cursor-pointer" 
-              />
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">Hospital Verified Only</span>
-            </label>
-
-            <label className="flex items-center gap-3 p-3 bg-white border border-slate-200/90 rounded-xl cursor-pointer hover:border-rose-300 transition-colors shadow-2xs select-none">
-              <input 
-                type="checkbox" 
-                checked={filters.nonSmokerOnly}
-                onChange={e => setFilters(prev => ({ ...prev, nonSmokerOnly: e.target.checked }))}
-                className="accent-rose-600 w-4 h-4 rounded-sm cursor-pointer" 
-              />
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">Non-Smoker Donors</span>
-            </label>
-          </div>
-
-          {/* Search Trigger Button */}
-          <button 
-            onClick={onSearch}
-            className="w-full py-4 blood-gradient text-white rounded-xl font-extrabold uppercase text-xs tracking-[0.1em] shadow-lg shadow-rose-500/30 hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
-          >
-            <Search className="w-4 h-4" />
-            Find Matching Donors
-          </button>
-          
-          {/* Reset Filters */}
-          <button
-            onClick={() => setFilters({
-              bloodGroup: 'ALL',
-              district: 'ALL',
-              area: 'ALL',
-              verifiedOnly: false,
-              nonSmokerOnly: false,
-              regularOnly: false,
-              availableNowOnly: false,
-              maxDistanceKm: 0
-            })}
-            className="w-full text-center py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-          >
-            Reset All Filters
-          </button>
+          {/* Results update as you choose, so there is no "search" step. The
+              reset link only appears once something is actually filtered. */}
+          {hasActiveFilters && (
+            <button
+              onClick={() => setFilters({
+                bloodGroup: 'ALL',
+                district: 'ALL',
+                area: 'ALL',
+                verifiedOnly: false,
+                nonSmokerOnly: false,
+                regularOnly: false,
+                availableNowOnly: false,
+                maxDistanceKm: 0
+              })}
+              className="w-full text-center py-2 text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       </section>
 

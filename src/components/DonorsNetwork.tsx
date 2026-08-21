@@ -1,7 +1,8 @@
-import { Award, Calendar, Heart, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { Award, Calendar, Heart, MapPin, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { calculateDistanceKm, lookupCoordinates } from '../services/lifelineService';
 import { DonorProfile, SearchFilters } from '../types';
+import { Avatar } from './Avatar';
 
 interface DonorsNetworkProps {
   donors: DonorProfile[];
@@ -97,9 +98,6 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <h3 className="font-bold text-slate-900 truncate">{donor.name}</h3>
-                          {donor.isVerified && (
-                            <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" aria-label="Hospital verified" />
-                          )}
                         </div>
 
                         <p className="text-sm text-slate-500 truncate mt-0.5">
@@ -221,7 +219,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
           {selectedMapPin && (
             <div className="relative z-30 bg-slate-800 border border-slate-700 p-5 rounded-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-200 shadow-2xl">
               <div className="flex items-center gap-4">
-                <img src={selectedMapPin.avatar} alt="" className="w-12 h-12 rounded-xl border border-rose-500 object-cover bg-slate-700" />
+                <Avatar name={selectedMapPin.name} src={selectedMapPin.avatar} className="w-12 h-12" />
                 <div>
                   <div className="flex items-center gap-2">
                     <h4 className="font-extrabold text-base">{selectedMapPin.name}</h4>

@@ -3,6 +3,7 @@ import { Award, CalendarCheck, Crown, Download, Heart, ShieldCheck, Trophy, Zap 
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { DonorProfile, RewardBadge } from '../types';
+import { Avatar } from './Avatar';
 
 interface RewardsHubProps {
   currentUser: DonorProfile | null;
@@ -212,12 +213,11 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
                   {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                 </span>
 
-                <img src={user.avatar} alt="" className="w-11 h-11 rounded-xl object-cover border border-slate-200" />
+                <Avatar name={user.name} src={user.avatar} className="w-11 h-11" textClassName="text-xs" />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="font-bold text-sm text-slate-900 truncate">{user.name}</p>
-                    {user.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
                     {user.id === currentUser?.id && (
                       <span className="text-[9px] bg-rose-600 text-white font-black px-1.5 py-0.5 rounded uppercase">You</span>
                     )}
@@ -276,14 +276,13 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               </div>
             </div>
 
+            {/* The browser's print dialog gives a real PDF via "Save as PDF",
+                which is honest, works everywhere and needs no PDF library. */}
             <button
-              onClick={() => {
-                alert('Official PDF Certificate downloaded.');
-                setShowCertificateModal(false);
-              }}
+              onClick={() => window.print()}
               className="mt-8 px-8 py-4 blood-gradient text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer"
             >
-              📄 Print / Download PDF
+              Print / Save as PDF
             </button>
           </div>
         </div>

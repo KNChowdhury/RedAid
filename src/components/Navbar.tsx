@@ -1,6 +1,7 @@
-import { Award, Bell, Heart, LogOut, Menu, ShieldCheck, User, X } from 'lucide-react';
+import { Award, Bell, Heart, LogOut, Menu, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { DonorProfile } from '../types';
+import { Avatar } from './Avatar';
 
 interface NavbarProps {
   activeTab: string;
@@ -32,7 +33,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'requests', label: 'Requests' },
     { id: 'map', label: 'Live Map' },
     { id: 'rewards', label: 'Rewards' },
-    { id: 'ai-advisor', label: 'AI Health Hub' },
     { id: 'hospital', label: 'Hospital Portal' }
   ];
 
@@ -108,9 +108,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
             <div className="hidden md:block text-right cursor-pointer" onClick={onOpenProfile}>
               <div className="flex items-center justify-end gap-1">
-                {currentUser.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-rose-600" />}
                 <p className="text-[10px] uppercase font-extrabold tracking-wider text-rose-600">
-                  {currentUser.role === 'admin' ? 'System Admin' : currentUser.role === 'hospital' ? 'Verified Hospital' : 'Verified Donor'}
+                  {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'hospital' ? 'Hospital' : 'Donor'}
                 </p>
               </div>
               <p className="text-sm font-bold text-slate-900 leading-tight">{currentUser.name}</p>
@@ -120,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onOpenProfile}
               className="w-11 h-11 rounded-2xl bg-slate-100 border-2 border-rose-500 overflow-hidden cursor-pointer shadow-sm relative group"
             >
-              <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+              <Avatar name={currentUser.name} src={currentUser.avatar} className="w-full h-full" textClassName="text-xs" />
               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                 <User className="w-4 h-4 text-white" />
               </div>
@@ -187,7 +186,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {currentUser ? (
             <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3" onClick={() => { onOpenProfile(); setMobileMenuOpen(false); }}>
-                <img src={currentUser.avatar} alt="" className="w-10 h-10 rounded-xl border border-rose-500" />
+                <Avatar name={currentUser.name} src={currentUser.avatar} className="w-10 h-10" textClassName="text-xs" />
                 <div>
                   <p className="text-xs font-bold text-slate-900">{currentUser.name}</p>
                   <p className="text-[10px] text-rose-600 font-semibold">{currentUser.bloodGroup} • {currentUser.district}</p>

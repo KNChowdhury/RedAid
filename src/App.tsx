@@ -140,8 +140,11 @@ export function App() {
 
   useEffect(() => subscribeToAuthState(
     donor => {
-      setState(prev => ({ ...prev, currentUser: donor }));
-      refreshSharedData(!!donor, donor?.impactScore ?? null);
+      // A password-reset link also creates a temporary session. Ignore the
+      // generic sign-in callback while the recovery form is active.
+      const activeDonor = recoveryModeRef.current ? null : donor;
+      setState(prev => ({ ...prev, currentUser: activeDonor }));
+      refreshSharedData(!!activeDonor, activeDonor?.impactScore ?? null);
     },
     () => {
       recoveryModeRef.current = true;

@@ -991,9 +991,10 @@ interface NotifModalProps {
   onClose: () => void;
   notifications: NotificationItem[];
   onMarkAllRead: () => void;
+  onOpenDonor?: (donorId: string) => void;
 }
 
-export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose, notifications, onMarkAllRead }) => {
+export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose, notifications, onMarkAllRead, onOpenDonor }) => {
   useDismissable(isOpen, onClose);
 
   if (!isOpen) return null;
@@ -1004,7 +1005,7 @@ export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose,
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-rose-600" />
-            <h3 className="font-black text-xl">Live Firebase Feed</h3>
+            <h3 className="font-black text-xl">Live Notification Feed</h3>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={onMarkAllRead} className="text-[10px] font-bold uppercase text-rose-600 hover:underline">
@@ -1017,18 +1018,25 @@ export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose,
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-3 custom-scroll pr-1">
+          {notifications.length === 0 && (
+            <p className="py-10 text-center text-sm font-semibold text-slate-400">No notifications yet.</p>
+          )}
           {notifications.map(notif => (
             <div
               key={notif.id}
+              onClick={() => notif.relatedDonorId && onOpenDonor?.(notif.relatedDonorId)}
               className={`p-4 rounded-2xl border transition-colors ${
                 notif.read ? 'bg-slate-50/70 border-slate-100' : 'bg-rose-50/60 border-rose-200 shadow-2xs'
-              }`}
+              } ${notif.relatedDonorId && onOpenDonor ? 'cursor-pointer hover:border-rose-400' : ''}`}
             >
               <div className="flex justify-between items-start mb-1">
                 <p className="font-bold text-sm">{notif.title}</p>
                 <span className="text-[10px] text-slate-400 font-mono shrink-0 ml-2">{notif.time}</span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed font-medium">{notif.message}</p>
+              {notif.relatedDonorId && onOpenDonor && (
+                <p className="mt-2 text-[11px] font-bold text-rose-600">View donor profile</p>
+              )}
             </div>
           ))}
         </div>

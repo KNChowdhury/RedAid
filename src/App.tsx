@@ -597,6 +597,13 @@ export function App() {
         onClose={() => setIsNotifModalOpen(false)}
         notifications={state.notifications}
         onMarkAllRead={handleMarkAllNotificationsRead}
+        onOpenDonor={donorId => {
+          const donor = state.donors.find(item => item.id === donorId);
+          if (donor) {
+            setIsNotifModalOpen(false);
+            openDonorProfile(donor);
+          }
+        }}
       />
     </div>
   );

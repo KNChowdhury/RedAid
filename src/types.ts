@@ -99,6 +99,7 @@ export interface NotificationItem {
   read: boolean;
   relatedBloodGroup?: BloodGroup;
   relatedRequestId?: string;
+  relatedDonorId?: string;
 }
 
 export interface SearchFilters {

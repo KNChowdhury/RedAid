@@ -566,7 +566,8 @@ export function mapDbNotificationToNotification(row: any): NotificationItem {
     time: row.created_at ? new Date(row.created_at).toLocaleString() : 'Just now',
     read: !!row.read,
     relatedBloodGroup: row.related_blood_group || undefined,
-    relatedRequestId: row.related_request_id || undefined
+    relatedRequestId: row.related_request_id || undefined,
+    relatedDonorId: row.related_donor_id || row.actor_donor_id || undefined
   };
 }
 

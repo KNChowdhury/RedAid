@@ -53,8 +53,14 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!response.ok) {
-      console.error('Gemini error:', response.status, await response.text());
-      res.status(502).json({ error: 'The advisor could not answer right now. Please try again.' });
+      const detail = await response.text();
+      console.error('Gemini error:', response.status, detail);
+      const error = response.status === 401 || response.status === 403
+        ? 'Gemini API key is invalid or this API is not enabled for the project.'
+        : response.status === 429
+        ? 'Gemini quota is currently exhausted. Please check the Google AI Studio quota or try again later.'
+        : 'The advisor could not answer right now. Please try again.';
+      res.status(502).json({ error });
       return;
     }
 

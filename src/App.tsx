@@ -597,8 +597,12 @@ export function App() {
         onClose={() => setIsNotifModalOpen(false)}
         notifications={state.notifications}
         onMarkAllRead={handleMarkAllNotificationsRead}
-        onOpenDonor={donorId => {
-          const donor = state.donors.find(item => item.id === donorId);
+        onOpenDonor={notification => {
+          const offerMatch = notification.message.match(/^(.+?)\s+\(([^)]+)\) can donate for /i);
+          const donor = state.donors.find(item =>
+            item.id === notification.relatedDonorId ||
+            (offerMatch && item.name.toLowerCase() === offerMatch[1].trim().toLowerCase() && item.bloodGroup === offerMatch[2])
+          );
           if (donor) {
             setIsNotifModalOpen(false);
             openDonorProfile(donor);

@@ -1,0 +1,34 @@
+-- LifelineBD PATCH 10: Keep the legacy double-crediting trigger gone.
+-- ----------------------------------------------------------------------------
+-- HISTORY: an untracked trigger `donation_records_apply` (AFTER INSERT OR
+-- UPDATE OF status ON donation_records, executing apply_donation()) existed
+-- in Supabase but was never created by any patch_NN file in this repo —
+-- it must have been added directly via the SQL Editor in an earlier session.
+--
+-- confirm_my_donation() (patch_07) sets donation_records.status in the same
+-- UPDATE statement where it directly credits the donor +150 impact_score /
+-- +1 lives_saved. Because the trigger fired on that same status transition,
+-- it applied its own credit on top, double-crediting every donor who
+-- confirmed a donation. One affected donor was found with 4 credited rows
+-- but impact_score/lives_saved reflecting extra, inconsistent credits.
+--
+-- FIX ALREADY APPLIED LIVE (2026-08-22, direct SQL Editor, not through this
+-- repo): the trigger was dropped, confirm_my_donation's status literal was
+-- changed from 'Completed' to 'verified' so it no longer matches whatever
+-- apply_donation() was keying on, and the one affected donor's impact_score
+-- (600) and lives_saved (4) were corrected to match their 4 confirmed
+-- donations at 150 points each.
+--
+-- This patch is a no-op today (the trigger is already gone) — it exists so
+-- that if `apply_donation()`/`donation_records_apply` is ever reintroduced
+-- without this history being known, running the repo's patches back-to-back
+-- puts things back in the safe state. Safe to run repeatedly.
+-- ============================================================================
+
+drop trigger if exists donation_records_apply on public.donation_records;
+
+-- apply_donation() itself is left in place (not dropped) since its body was
+-- never fully retrieved from the live database before it was disconnected,
+-- and it may still be referenced elsewhere. Detaching the trigger is
+-- sufficient to stop the double-credit; only drop the function itself after
+-- confirming it has no other callers.

@@ -1,5 +1,14 @@
 -- LifelineBD PATCH 07: Fix donor confirmation status.
 -- Run in Supabase SQL Editor after patch_06_fix_donation_status.sql.
+--
+-- UPDATED 2026-08-22: this function originally set status = 'Completed' here.
+-- An untracked trigger (donation_records_apply -> apply_donation(), created
+-- directly in Supabase, never defined in any patch_NN file in this repo)
+-- fired AFTER INSERT OR UPDATE OF status and re-applied its own credit on
+-- that same transition, double-crediting donors alongside the direct credit
+-- below. The trigger has been dropped live and status changed to 'verified'
+-- to match verify_donation()'s convention. DO NOT change this back to
+-- 'Completed' — see patch_10_remove_legacy_apply_donation_trigger.sql.
 
 create or replace function public.confirm_my_donation(p_donation_id uuid)
 returns public.donation_records
@@ -27,7 +36,7 @@ begin
   update public.donation_records
   set donor_confirmed = true,
       verified_at = now(),
-      status = 'Completed',
+      status = 'verified',
       credited = true
   where id = p_donation_id
   returning * into rec;

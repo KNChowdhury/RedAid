@@ -1033,36 +1033,64 @@ export async function signUpDonor(profile: {
 
   const currentUser = session.user;
   const userId = currentUser.id;
-  const { data: donorData, error: donorError } = await supabase
-    .from('donors')
-    .insert({
-      auth_user_id: userId,
-      name: profile.name,
-      email: profile.email,
-      phone: profile.phone,
-      whatsapp: profile.phone,
-      role: 'donor',
-      blood_group: profile.bloodGroup,
-      district: profile.district,
-      area: profile.area,
-      lat: 23.8103,
-      lng: 90.4125,
-      last_donation_date: null,
-      next_eligible_date: null,
-      is_smoker: profile.isSmoker,
-      is_regular: false,
-      is_verified: false,
-      available_now: true,
-      weight_kg: 0,
-      blood_pressure: '',
-      hemoglobin: 0,
-      has_chronic_disease: false,
-      recent_medication: '',
-      impact_score: 0,
-      lives_saved: 0
-    })
-    .select()
-    .single();
+
+  // setSession() above fires the onAuthStateChange listener (subscribeToAuthState),
+  // which asynchronously calls link_or_get_my_donor to ensure a donor row exists.
+  // That can race ahead of the insert below and create the row first, so check
+  // for it (and merge the submitted profile in) instead of inserting a duplicate.
+  const donorPayload = {
+    name: profile.name,
+    email: profile.email,
+    phone: profile.phone,
+    whatsapp: profile.phone,
+    role: 'donor',
+    blood_group: profile.bloodGroup,
+    district: profile.district,
+    area: profile.area,
+    is_smoker: profile.isSmoker
+  };
+
+  async function upsertDonorRow(): Promise<{ data: any; error: any }> {
+    const existing = await supabase!.from('donors').select('*').eq('auth_user_id', userId).maybeSingle();
+    if (existing.data) {
+      return supabase!.from('donors').update(donorPayload).eq('id', existing.data.id).select().single();
+    }
+
+    const inserted = await supabase!
+      .from('donors')
+      .insert({
+        auth_user_id: userId,
+        ...donorPayload,
+        lat: 23.8103,
+        lng: 90.4125,
+        last_donation_date: null,
+        next_eligible_date: null,
+        is_regular: false,
+        is_verified: false,
+        available_now: true,
+        weight_kg: 0,
+        blood_pressure: '',
+        hemoglobin: 0,
+        has_chronic_disease: false,
+        recent_medication: '',
+        impact_score: 0,
+        lives_saved: 0
+      })
+      .select()
+      .single();
+
+    if (inserted.error?.code === '23505') {
+      // Lost the race between our check and our insert — fetch the row the
+      // listener created and fill in the profile the donor just submitted.
+      const retry = await supabase!.from('donors').select('*').eq('auth_user_id', userId).maybeSingle();
+      if (retry.data) {
+        return supabase!.from('donors').update(donorPayload).eq('id', retry.data.id).select().single();
+      }
+    }
+    return inserted;
+  }
+
+  const { data: donorData, error: donorError } = await upsertDonorRow();
 
   if (donorError || !donorData) {
     console.error('Supabase donor profile create error:', donorError);

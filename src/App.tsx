@@ -87,6 +87,15 @@ export function App() {
     saveAppState(state);
   }, [state]);
 
+  // #admin is reachable by typing the hash directly; the server (RLS) blocks
+  // any actual admin mutation for non-admins, but the governance UI itself
+  // should never render for them.
+  useEffect(() => {
+    if (activeTab === 'admin' && state.currentUser?.role !== 'admin') {
+      setActiveTab('network');
+    }
+  }, [activeTab, state.currentUser, setActiveTab]);
+
   const isLoggedIn = !!state.currentUser;
   const knownRequestIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedOnceRef = useRef(false);
@@ -511,7 +520,7 @@ export function App() {
             />
           )}
 
-          {activeTab === 'admin' && (
+          {activeTab === 'admin' && state.currentUser?.role === 'admin' && (
             <AdminDashboard
               donors={state.donors}
               requests={state.requests}

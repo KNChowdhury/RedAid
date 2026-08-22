@@ -1,0 +1,34 @@
+-- LifelineBD PATCH 11: Close a self-crediting forgery hole on donation_records.
+-- ----------------------------------------------------------------------------
+-- PROBLEM: donation_records_insert_own (INSERT, authenticated) allows any
+-- signed-in donor to insert their own donation_records row directly:
+--
+--   with_check: (donor_id = current_donor_id())
+--
+-- This entirely bypasses record_donation()'s authorization (only the
+-- request's requester/admin/hospital may log a donation, and you can't
+-- record yourself as the donor). A donor can insert a row with donor_id =
+-- themselves, any request_id, any recorded_by/requester_confirmed/status
+-- values they like, then call confirm_my_donation() on it themselves.
+-- confirm_my_donation() only checks that the row's donor_id matches the
+-- caller and that it isn't already credited — it does not verify the row
+-- was legitimately created by record_donation() — so this grants unlimited
+-- self-awarded +150 impact_score / +1 lives_saved with zero real donations.
+--
+-- Note this is NOT something patch_09's donors-table guard trigger catches:
+-- confirm_my_donation() is a SECURITY DEFINER function, so its own credit to
+-- public.donors runs as the function owner, not as 'authenticated' — exactly
+-- the trusted path patch_09 is designed to let through.
+--
+-- FIX: drop the policy. No legitimate path needs it — record_donation() is
+-- SECURITY DEFINER and inserts as its owning role, which bypasses RLS
+-- entirely (confirmed: record_donation() inserts with donor_id = p_donor_id,
+-- the donor being credited, while the *caller* is the requester — so under
+-- RLS as the caller, current_donor_id() would be the requester's id, not
+-- p_donor_id, meaning this policy's condition wouldn't even match a
+-- legitimate call. It was only ever reachable via a direct client insert).
+-- No client code in this repo calls .from('donation_records').insert(...)
+-- directly, so removing this has zero functional impact on the app.
+-- ============================================================================
+
+drop policy if exists "donation_records_insert_own" on public.donation_records;

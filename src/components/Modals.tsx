@@ -390,7 +390,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900">
+      <div className="bg-white rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl relative text-slate-900">
         <button onClick={onClose} aria-label="Close authentication dialog" className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-5 h-5" />
         </button>

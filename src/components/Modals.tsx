@@ -152,16 +152,16 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Patient Full Name *</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Patient Full Name <span className="text-rose-600">*</span></label>
               <input required value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="e.g. Mrs. Rahima Begum" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Age *</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Age <span className="text-rose-600">*</span></label>
                 <input required type="number" value={age} onChange={e => setAge(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group *</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
                 <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-rose-600 font-mono">
                   {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                 </select>
@@ -171,12 +171,12 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Hospital / Clinic Name *</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Hospital / Clinic Name <span className="text-rose-600">*</span></label>
               <input required value={hospitalName} onChange={e => setHospitalName(e.target.value)} placeholder="e.g. Dhaka Medical College Hospital" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District *</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
                 <CompactSelect
                   value={district}
                   onChange={value => { setDistrict(value); setArea(districts.find(d => d.name === value)?.areas[0] || ''); }}
@@ -185,7 +185,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area *</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
                 <AreaField areas={areasList} value={area} onChange={setArea} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
               </div>
             </div>
@@ -193,15 +193,15 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Required Bags *</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Required Bags <span className="text-rose-600">*</span></label>
               <input type="number" min="1" max="10" value={bags} onChange={e => setBags(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Needed By Time *</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Needed By Time <span className="text-rose-600">*</span></label>
               <input value={neededBy} onChange={e => setNeededBy(e.target.value)} placeholder="e.g. Today, 5 PM" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Urgency Priority *</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Urgency Priority <span className="text-rose-600">*</span></label>
               <select value={urgency} onChange={e => setUrgency(e.target.value as any)} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900">
                 <option value="Critical">🚨 Critical</option>
                 <option value="High">⚠️ High</option>
@@ -212,7 +212,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Contact Phone Number *</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Contact Phone Number <span className="text-rose-600">*</span></label>
               <input
                 required
                 type="tel"
@@ -225,7 +225,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
               <p className="mt-1 text-[11px] text-slate-500">আপনার নম্বর যেভাবে লেখেন সেভাবেই দিন — ০ দিয়ে শুরু।</p>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
               <input
                 value={whatsappSameAsPhone ? phone : whatsapp}
                 onChange={e => setWhatsapp(e.target.value)}
@@ -247,7 +247,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Reason / Clinical Notes</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Reason / Clinical Notes <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
             <textarea rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Emergency C-Section bleeding surgery scheduled at ICU." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900" />
           </div>
 
@@ -407,19 +407,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {view === 'register' && (
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
               <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Kawsar Ahmed" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
             </div>
           )}
 
           {view !== 'new-password' && <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Email</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Email <span className="text-rose-600">*</span></label>
             <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
           </div>}
 
           {view !== 'reset' && (
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Password</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Password <span className="text-rose-600">*</span></label>
               <div className="relative">
                 <input required type={showPassword ? 'text' : 'password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
                 <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700" aria-label={showPassword ? 'Hide password' : 'Show password'} tabIndex={-1}>
@@ -454,20 +454,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           {view === 'register' && (
             <>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone Number</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone Number <span className="text-rose-600">*</span></label>
                 <input required value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="01712345678" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group</label>
+                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
                   <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
                     <option value="">Select blood group (optional)</option>
                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
+                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
                   <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
                     {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                   </select>
@@ -475,7 +475,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
                 <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
               </div>
 
@@ -530,6 +530,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [bloodGroup, setBloodGroup] = useState<BloodGroup>('O+');
   const [district, setDistrict] = useState('');
   const [area, setArea] = useState('');
   const [hbsagStatus, setHbsagStatus] = useState('Not Tested');
@@ -539,10 +540,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [malariaStatus, setMalariaStatus] = useState('Not Tested');
 
   React.useEffect(() => {
+    // Reset to view mode every time this opens for a donor — otherwise
+    // closing via the X/backdrop while mid-edit (skipping Save/Cancel, which
+    // are the only places that reset it) leaves isEditing stuck true, so
+    // reopening jumps straight back into the edit form instead of the
+    // normal read-only view.
+    setIsEditing(false);
     if (donor) {
       setName(donor.name);
       setPhone(donor.phone);
       setWhatsapp(donor.whatsapp);
+      setBloodGroup(donor.bloodGroup);
       setDistrict(donor.district);
       setArea(donor.area);
       setHbsagStatus(donor.healthInfo?.hbsagStatus || 'Not Tested');
@@ -565,6 +573,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       name,
       phone: toBdDialing(phone),
       whatsapp: toBdWhatsapp(whatsapp),
+      bloodGroup,
       district,
       area,
       hbsagStatus,
@@ -701,22 +710,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
         ) : (
           <div className="my-6 space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone <span className="text-rose-600">*</span></label>
               <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
               <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
+              <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
+                {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
                 <select value={district} onChange={e => { setDistrict(e.target.value); setArea(''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
                   {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
                 <AreaField areas={districtObj?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
               </div>
             </div>
@@ -837,6 +852,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
   const [errorMsg, setErrorMsg] = useState('');
 
   React.useEffect(() => {
+    if (!isOpen) return;
     setName(donor?.name || '');
     setPhone(donor?.phone || '');
     setWhatsapp(donor?.whatsapp || '');
@@ -850,7 +866,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
     setAntiHiv(donor?.healthInfo?.hivStatus || 'Not Tested');
     setVdrl(donor?.healthInfo?.syphilisStatus || 'Not Tested');
     setMp(donor?.healthInfo?.malariaStatus || 'Not Tested');
-  }, [donor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [donor, isOpen]);
 
   useDismissable(isOpen && !!donor, onClose);
 
@@ -915,29 +932,29 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
 
         <form onSubmit={handleSave} className="space-y-3">
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
             <input value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone <span className="text-rose-600">*</span></label>
             <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
             <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
               <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as any)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
                 {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District</label>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
               <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
                 {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
               </select>
@@ -945,12 +962,12 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
             <AreaField areas={areasList} value={area} onChange={setArea} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl" />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Last Donation Date</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Last Donation Date <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
             <input
               type="date"
               value={lastDonationDate}
@@ -974,7 +991,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
           </label>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Profile Photo</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Profile Photo <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
             <input type="file" accept="image/*" onChange={e => setAvatarFile(e.target.files?.[0] || null)} />
           </div>
 

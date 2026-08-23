@@ -24,7 +24,7 @@ export const Footer: React.FC = () => {
             <p className="text-sm font-bold text-slate-700">Contact</p>
             <p className="mt-2 text-sm text-slate-900 font-semibold">Kawsar Newaz Chowdhury</p>
             <p className="text-sm text-slate-500">
-              Founder, Shaznaz and Manik Foundation
+              Founder, Shahnaz and Manik Foundation
             </p>
             <a
               href="mailto:kawsarnewazchowdhury@gmail.com"

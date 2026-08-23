@@ -87,9 +87,9 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                     <AlertCircle className="w-6 h-6" />
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-extrabold text-lg sm:text-xl text-slate-900">{req.hospitalName}</h3>
+                      <h3 className="font-extrabold text-lg sm:text-xl text-slate-900 break-words">{req.hospitalName}</h3>
                       <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-md ${
                         isCritical ? 'bg-rose-600 text-white animate-pulse' : 'bg-amber-100 text-amber-800'
                       }`}>
@@ -97,12 +97,16 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                       </span>
                     </div>
 
-                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider flex items-center gap-2 mt-1">
-                      <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      {req.area}, {req.district}
+                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        {req.area}, {req.district}
+                      </span>
                       <span className="text-slate-300">•</span>
-                      <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      Needed: <span className="text-rose-600 font-extrabold">{req.neededByTime}</span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        Needed: <span className="text-rose-600 font-extrabold">{req.neededByTime}</span>
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -121,7 +125,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex gap-2.5 w-full sm:w-auto">
+                  <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
                     {whatsappUrl ? (
                       <a
                         href={whatsappUrl}

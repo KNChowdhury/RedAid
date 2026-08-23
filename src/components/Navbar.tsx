@@ -188,7 +188,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Avatar name={currentUser.name} src={currentUser.avatar} className="w-10 h-10" textClassName="text-xs" />
                 <div>
                   <p className="text-xs font-bold text-slate-900">{currentUser.name}</p>
-                  <p className="text-[10px] text-rose-600 font-semibold">{currentUser.bloodGroup} • {currentUser.district}</p>
+                  <p className="text-[10px] text-rose-600 font-semibold">{currentUser.bloodGroup} • {currentUser.area}, {currentUser.district}</p>
                 </div>
               </div>
               <button

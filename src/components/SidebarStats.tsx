@@ -37,7 +37,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
     filters.nonSmokerOnly;
 
   return (
-    <aside className="lg:border-r border-slate-200/80 p-6 lg:p-8 flex flex-col gap-8 bg-slate-50/70 lg:overflow-y-auto min-w-0">
+    <aside className="lg:border-r border-slate-200/80 p-6 lg:p-8 flex flex-col gap-8 bg-slate-50/70 min-w-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto custom-scroll">
       {/* Impact Score Section */}
       <section>
         <div className="flex items-center justify-between mb-3">

@@ -125,88 +125,98 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
-                    {whatsappUrl ? (
+                  <div className="flex flex-col gap-2.5 w-full sm:flex-row sm:flex-wrap sm:items-center sm:w-auto">
+                    {/* Primary actions get an even 2-up row on mobile instead of
+                        wrapping ad hoc with the secondary chips below — that mix
+                        of one full-width button and several small pills was the
+                        "hijibiji" look on narrow screens. sm:contents drops this
+                        wrapper from layout at sm+, rejoining the single row. */}
+                    <div className="grid grid-cols-2 gap-2.5 sm:contents">
+                      {whatsappUrl ? (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-5 py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-600 transition-colors text-center shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <span className="px-5 py-3 bg-slate-100 text-slate-400 rounded-xl text-[11px] font-black uppercase tracking-widest text-center flex items-center justify-center">
+                          WhatsApp unavailable
+                        </span>
+                      )}
+
                       <a
-                        href={whatsappUrl}
+                        href={`tel:${req.contactPhone}`}
+                        className="px-5 py-3 border-2 border-slate-200 text-slate-800 rounded-xl text-[11px] font-black uppercase tracking-widest hover:border-slate-900 hover:bg-slate-50 transition-all flex items-center justify-center gap-1"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        Call
+                      </a>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5 sm:contents">
+                      {/* Anyone can forward a request to their own groups. This is
+                          how blood actually gets found here, so it stays available
+                          to guests and signed-in users alike. */}
+                      <a
+                        href={buildWhatsAppShareUrl(buildRequestShareText(req))}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 sm:flex-initial px-5 py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-600 transition-colors text-center shadow-sm flex items-center justify-center gap-1.5"
+                        className="px-4 py-3 bg-[#25D366] hover:bg-[#1da851] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors text-center"
+                        title="Forward this request on WhatsApp"
                       >
-                        WhatsApp
+                        Share
                       </a>
-                    ) : (
-                      <span className="flex-1 sm:flex-initial px-5 py-3 bg-slate-100 text-slate-400 rounded-xl text-[11px] font-black uppercase tracking-widest text-center">
-                        WhatsApp unavailable
-                      </span>
-                    )}
 
-                    <a
-                      href={`tel:${req.contactPhone}`}
-                      className="px-5 py-3 border-2 border-slate-200 text-slate-800 rounded-xl text-[11px] font-black uppercase tracking-widest hover:border-slate-900 hover:bg-slate-50 transition-all flex items-center justify-center gap-1"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      Call
-                    </a>
+                      {/* Donor side: offer to help. Hidden on your own request. */}
+                      {onOfferToDonate && currentDonorId && req.requesterId !== currentDonorId && req.status !== 'Fulfilled' && (
+                        offeredRequestIds.includes(req.id) ? (
+                          <span className="px-4 py-3 bg-emerald-50 text-emerald-700 rounded-xl text-[11px] font-black uppercase tracking-wider text-center flex items-center justify-center">
+                            ✓ You offered
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => onOfferToDonate(req)}
+                            className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
+                            title="Let the requester know you can donate"
+                          >
+                            I can donate
+                          </button>
+                        )
+                      )}
 
-                    {/* Anyone can forward a request to their own groups. This is
-                        how blood actually gets found here, so it stays available
-                        to guests and signed-in users alike. */}
-                    <a
-                      href={buildWhatsAppShareUrl(buildRequestShareText(req))}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-3 bg-[#25D366] hover:bg-[#1da851] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                      title="Forward this request on WhatsApp"
-                    >
-                      Share
-                    </a>
-
-                    {/* Donor side: offer to help. Hidden on your own request. */}
-                    {onOfferToDonate && currentDonorId && req.requesterId !== currentDonorId && req.status !== 'Fulfilled' && (
-                      offeredRequestIds.includes(req.id) ? (
-                        <span className="px-4 py-3 bg-emerald-50 text-emerald-700 rounded-xl text-[11px] font-black uppercase tracking-wider">
-                          ✓ You offered
-                        </span>
-                      ) : (
+                      {/* Requester side: close the loop once blood was received. */}
+                      {onMarkDonated && currentDonorId && req.requesterId === currentDonorId && req.status !== 'Fulfilled' && (
                         <button
-                          onClick={() => onOfferToDonate(req)}
+                          onClick={() => onMarkDonated(req)}
                           className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                          title="Let the requester know you can donate"
+                          title="Record who donated"
                         >
-                          I can donate
+                          Got blood
                         </button>
-                      )
-                    )}
+                      )}
 
-                    {/* Requester side: close the loop once blood was received. */}
-                    {onMarkDonated && currentDonorId && req.requesterId === currentDonorId && req.status !== 'Fulfilled' && (
+                      {onEditRequest && currentDonorId && req.requesterId === currentDonorId && (
+                        <button
+                          onClick={() => onEditRequest(req)}
+                          className="px-4 py-3 bg-slate-900 text-white hover:bg-slate-700 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
+                          title="Edit your request"
+                        >
+                          Edit
+                        </button>
+                      )}
+
                       <button
-                        onClick={() => onMarkDonated(req)}
-                        className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                        title="Record who donated"
+                        onClick={() => onSelectRequest(req)}
+                        className="px-4 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5"
+                        title="View Details / Share"
                       >
-                        Got blood
+                        <Share2 className="w-4 h-4" />
+                        <span className="sm:hidden">Details</span>
                       </button>
-                    )}
-
-                    {onEditRequest && currentDonorId && req.requesterId === currentDonorId && (
-                      <button
-                        onClick={() => onEditRequest(req)}
-                        className="px-4 py-3 bg-slate-900 text-white hover:bg-slate-700 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                        title="Edit your request"
-                      >
-                        Edit
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => onSelectRequest(req)}
-                      className="px-4 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                      title="View Details / Share"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -450,7 +450,12 @@ export function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] overflow-x-hidden flex flex-col bg-slate-100/60 font-sans text-slate-900 selection:bg-rose-500 selection:text-white antialiased">
+    // overflow-x-clip, not overflow-x-hidden: setting only one axis to
+    // "hidden" makes browsers force the other axis to "auto", which turns
+    // this div into position:sticky's scrolling container instead of the
+    // window — breaking sticky descendants like SidebarStats. clip avoids
+    // that forced computation while still preventing horizontal overflow.
+    <div className="min-h-[100dvh] overflow-x-clip flex flex-col bg-slate-100/60 font-sans text-slate-900 selection:bg-rose-500 selection:text-white antialiased">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}

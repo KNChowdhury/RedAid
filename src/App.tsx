@@ -15,36 +15,34 @@ import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 
 export function App() {
   const [state, setState] = useState(getAppState);
-  // Tab lives in the URL hash so the browser/Android back button moves between
-  // sections instead of leaving the app on the first tap.
-  const readTabFromHash = () => {
-    const t = window.location.hash.replace('#', '');
-    const valid = ['network', 'requests', 'success', 'map', 'rewards', 'admin'];
+  // Tab lives in the URL path (e.g. /success) so links are shareable and
+  // the browser/Android back button moves between sections instead of
+  // leaving the app on the first tap. The hash is left alone — Supabase's
+  // auth redirects (magic link, password recovery) put their own params
+  // there, unrelated to tab routing.
+  const readTabFromPath = () => {
+    const t = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    const valid = ['requests', 'success', 'map', 'rewards', 'admin'];
     return valid.includes(t) ? t : 'network';
   };
 
-  const [activeTab, setActiveTabState] = useState(readTabFromHash);
+  const [activeTab, setActiveTabState] = useState(readTabFromPath);
   const recoveryModeRef = useRef(
     window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery')
   );
 
   const setActiveTab = React.useCallback((tab: string) => {
     setActiveTabState(tab);
-    if (tab === 'network') {
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    } else if (window.location.hash.replace('#', '') !== tab) {
-      window.history.pushState(null, '', `#${tab}`);
+    const path = tab === 'network' ? '/' : `/${tab}`;
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, '', path + window.location.search);
     }
   }, []);
 
   useEffect(() => {
-    const onHashChange = () => setActiveTabState(readTabFromHash());
-    window.addEventListener('popstate', onHashChange);
-    window.addEventListener('hashchange', onHashChange);
-    return () => {
-      window.removeEventListener('popstate', onHashChange);
-      window.removeEventListener('hashchange', onHashChange);
-    };
+    const onNavigate = () => setActiveTabState(readTabFromPath());
+    window.addEventListener('popstate', onNavigate);
+    return () => window.removeEventListener('popstate', onNavigate);
   }, []);
 
   // Search Filter State
@@ -100,7 +98,9 @@ export function App() {
   const isLoggedIn = !!state.currentUser;
   const knownRequestIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedOnceRef = useRef(false);
-  const { permission: notifyPermission, requestPermission: askNotifyPermission, notify } = useBrowserNotifications();
+  const { permission: notifyPermission, requestPermission: askNotifyPermission, notify } = useBrowserNotifications(
+    () => setActiveTab('requests')
+  );
 
   // Pulls the current truth from Supabase and replaces local state with it.
   // Real data always wins — we never fall back to stale/local/demo data just

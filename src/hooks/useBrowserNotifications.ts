@@ -19,7 +19,7 @@ function currentPermission(): NotifyPermission {
   return Notification.permission as NotifyPermission;
 }
 
-export function useBrowserNotifications() {
+export function useBrowserNotifications(onNotificationClick?: () => void) {
   const [permission, setPermission] = useState<NotifyPermission>(currentPermission);
 
   useEffect(() => {
@@ -56,14 +56,14 @@ export function useBrowserNotifications() {
         });
         n.onclick = () => {
           window.focus();
-          window.location.hash = 'requests';
+          onNotificationClick?.();
           n.close();
         };
       } catch (err) {
         console.error('Notification failed:', err);
       }
     },
-    []
+    [onNotificationClick]
   );
 
   return { permission, requestPermission, notify };

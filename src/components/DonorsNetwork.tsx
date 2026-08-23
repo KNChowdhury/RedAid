@@ -121,10 +121,16 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                         </p>
 
                         {donor.lastDonationDate && (
-                          <p className="text-[11px] text-slate-400 mt-0.5">Last donated: {donor.lastDonationDate}</p>
+                          <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            Last donated <span className="font-bold text-slate-700">{donor.lastDonationDate}</span>
+                          </p>
                         )}
                         {!donor.availableNow && donor.nextEligibleDate && (
-                          <p className="text-[11px] text-slate-400 mt-0.5">Available from: {donor.nextEligibleDate}</p>
+                          <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1.5 mt-1.5 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1 w-fit">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            Available from <span className="font-black">{donor.nextEligibleDate}</span>
+                          </p>
                         )}
                       </div>
                     </div>

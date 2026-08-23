@@ -497,7 +497,7 @@ export function App() {
               onOfferToDonate={handleOfferToDonate}
               onMarkDonated={req => setMarkDonatedRequest(req)}
               onEditRequest={req => { setEditingRequest(req); setIsRequestModalOpen(true); }}
-              onSelectRequest={() => setActiveTab('requests')}
+              onSelectRequest={req => setJustPostedRequest(req)}
               onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
             />
             </>

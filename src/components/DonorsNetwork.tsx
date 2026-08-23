@@ -119,6 +119,13 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                             ? ` · donated ${donor.donationCount}\u00d7`
                             : ' · first-time donor'}
                         </p>
+
+                        {donor.lastDonationDate && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">Last donated: {donor.lastDonationDate}</p>
+                        )}
+                        {!donor.availableNow && donor.nextEligibleDate && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">Available from: {donor.nextEligibleDate}</p>
+                        )}
                       </div>
                     </div>
 

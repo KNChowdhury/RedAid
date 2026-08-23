@@ -316,6 +316,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (view !== 'new-password' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setErrorMsg('Please enter a valid email address, for example: name@example.com.');
+      return;
+    }
+
     setLoading(true);
 
     if (view === 'new-password') {
@@ -336,20 +343,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     }
 
     if (view === 'reset') {
-      const { error } = await sendPasswordResetEmail(email);
+      const { error } = await sendPasswordResetEmail(normalizedEmail);
       setLoading(false);
       if (error) {
         setErrorMsg(error);
         return;
       }
-      setSuccessMsg('Password reset email sent. Please check your inbox.');
+      setSuccessMsg('If this email is registered, a reset link has been sent. Check your inbox and spam folder, and confirm the spelling.');
       return;
     }
 
     if (view === 'register') {
       const { user, error } = await signUpDonor({
         name: name || 'New Donor',
-        email,
+        email: normalizedEmail,
         password,
         phone: toBdDialing(phone),
         bloodGroup,
@@ -371,7 +378,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       return;
     }
 
-    const { user, error } = await signInDonor(email, password);
+    const { user, error } = await signInDonor(normalizedEmail, password);
     setLoading(false);
     if (error || !user) {
       setErrorMsg(error || 'Invalid email or password.');
@@ -445,7 +452,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 setErrorMsg('');
                 setSuccessMsg('');
                 setLoading(true);
-                const { error } = await sendMagicLink(email);
+                const normalizedEmail = email.trim().toLowerCase();
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+                  setLoading(false);
+                  setErrorMsg('Please enter a valid email address before requesting a magic link.');
+                  return;
+                }
+                const { error } = await sendMagicLink(normalizedEmail);
                 setLoading(false);
                 if (error) {
                   setErrorMsg(error);

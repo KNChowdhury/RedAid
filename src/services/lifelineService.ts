@@ -1003,6 +1003,7 @@ export async function sendMagicLink(email: string): Promise<{ error: string | nu
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
+      shouldCreateUser: false,
       emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
     }
   });
@@ -1252,7 +1253,28 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
 
   if (donorRes.error || !donorRes.data) {
     if (donorRes.error) console.error('Supabase donor restore error:', donorRes.error.message);
-    return null;
+    if (donorRes.error) return null;
+
+    // Auth users created through the dashboard, magic-link flow, or an older
+    // signup path may not have a donor row yet. Create a safe incomplete
+    // profile so login and profile editing can recover the account.
+    const fallbackPayload = buildDonorInsertPayload(user);
+    const inserted = await supabase
+      .from('donors')
+      .insert(fallbackPayload)
+      .select()
+      .single();
+
+    if (inserted.error?.code === '23505') {
+      donorRes = await supabase.from('donors').select('*').eq('auth_user_id', user.id).maybeSingle();
+    } else {
+      donorRes = inserted as typeof donorRes;
+    }
+
+    if (donorRes.error || !donorRes.data) {
+      if (donorRes.error) console.error('Supabase donor fallback restore error:', donorRes.error.message);
+      return null;
+    }
   }
 
   const restored = mapDbDonorToProfile(donorRes.data);

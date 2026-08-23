@@ -92,6 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Notification Bell */}
         <button
           onClick={onOpenNotifications}
+          aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
           className="relative p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
           title="Notifications"
         >
@@ -127,6 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={onLogout}
+              aria-label="Sign out"
               className="p-2 text-slate-400 hover:text-rose-600 transition-colors hidden sm:block"
               title="Sign Out"
             >
@@ -145,6 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Hamburger Menu Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           className="xl:hidden p-2.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

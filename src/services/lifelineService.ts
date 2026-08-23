@@ -2,10 +2,7 @@ import { supabase } from './supabaseClient';
 import type { Session, RealtimeChannel } from '@supabase/supabase-js';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBadge, SearchFilters } from '../types';
 
-// V3: bumped on purpose. Earlier versions of this app seeded localStorage with
-// demo/sample donors, requests and notifications. Changing this key forces
-// every existing browser to drop that cached demo data on next load instead
-// of showing it forever alongside real Supabase data.
+// Retained only as a migration key so old browser snapshots can be removed.
 const STORAGE_KEY = 'LIFELINE_BD_STATE_V3';
 
 export interface AppState {
@@ -38,14 +35,12 @@ export function calculateAge(birthYear: number | null | undefined): number | nul
 
 // Load or initialize state
 export function getAppState(): AppState {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      return parsed;
-    } catch {
-      // Fallback if corrupt
-    }
+  // Donor and request data must come from Supabase, not a readable browser
+  // cache. Remove snapshots written by older versions during startup.
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable in privacy-restricted browsers.
   }
 
   // Fresh state: everything starts empty and is filled in from Supabase.
@@ -60,20 +55,16 @@ export function getAppState(): AppState {
     token: null
   };
 
-  saveAppState(newState);
   return newState;
 }
 
-export function saveAppState(state: AppState) {
-  const safeState = {
-    donors: state.donors.map(({ email, phone, whatsapp, healthInfo, ...donor }) => donor),
-    requests: state.requests.map(({ contactPhone, contactWhatsapp, ...request }) => request),
-    badges: state.badges,
-    currentUser: null,
-    notifications: [],
-    token: null
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(safeState));
+export function saveAppState(_state: AppState) {
+  // Deliberately do not persist donor, request, location, or health data.
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable in privacy-restricted browsers.
+  }
 }
 
 export function normalizeWhatsAppNumber(value: string | null | undefined): string | null {
@@ -668,18 +659,30 @@ export async function fetchSharedData(
   }
 
   const donorsQuery = isLoggedIn
-    ? supabase.from('v_donors_directory').select('*')
-    : supabase.from('v_public_donors').select('*');
+    ? supabase
+        .from('v_donors_directory')
+        .select('id,name,avatar,role,blood_group,birth_year,district,area,lat,lng,last_donation_date,next_eligible_date,is_smoker,is_regular,is_verified,available_now,impact_score,lives_saved')
+    : supabase
+        .from('v_public_donors')
+        .select('id,name,avatar,role,blood_group,birth_year,district,area,lat,lng,last_donation_date,next_eligible_date,is_smoker,is_regular,is_verified,available_now,impact_score,lives_saved');
 
   const [donorsRes, requestsRes, badgesRes] = await Promise.all([
     donorsQuery,
-    supabase.from('requests').select('*').order('created_at', { ascending: false }),
-    supabase.from('badges').select('*')
+    supabase
+      .from('requests')
+      .select('id,patient_name,age,blood_group,hospital_name,district,area,required_bags,needed_by_time,urgency,contact_phone,contact_whatsapp,reason,status,created_at,requester_id,matched_donors_count')
+      .order('created_at', { ascending: false }),
+    supabase.from('badges').select('id,name,icon,description,points_required,category')
   ]);
 
   if (donorsRes.error) console.error('Supabase donors fetch error:', donorsRes.error);
   if (requestsRes.error) console.error('Supabase requests fetch error:', requestsRes.error);
   if (badgesRes.error) console.error('Supabase badges fetch error:', badgesRes.error);
+
+  const queryError = donorsRes.error || requestsRes.error || badgesRes.error;
+  if (queryError) {
+    throw new Error(`Shared data fetch failed: ${queryError.message}`);
+  }
 
   return {
     donors: (donorsRes.data || []).map(mapDbDonorToProfile),
@@ -1260,6 +1263,7 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
 export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => void, onPasswordRecovery?: () => void): () => void {
   if (!supabase) return () => {};
 
+  const pendingRestoreTimers = new Set<number>();
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
       onPasswordRecovery?.();
@@ -1271,12 +1275,18 @@ export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => v
     }
 
     // Let Supabase finish its internal token storage before querying donor data.
-    window.setTimeout(async () => {
+    const timer = window.setTimeout(async () => {
+      pendingRestoreTimers.delete(timer);
       onChange(await getCurrentDonorFromSession());
     }, 0);
+    pendingRestoreTimers.add(timer);
   });
 
-  return () => data.subscription.unsubscribe();
+  return () => {
+    data.subscription.unsubscribe();
+    pendingRestoreTimers.forEach(timer => window.clearTimeout(timer));
+    pendingRestoreTimers.clear();
+  };
 }
 
 export async function updatePassword(password: string): Promise<string | null> {

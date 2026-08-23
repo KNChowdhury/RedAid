@@ -20,6 +20,8 @@ const DIVISION_CENTERS: Record<string, { lat: number; lng: number }> = {
   Mymensingh: { lat: 24.7471, lng: 90.4203 }
 };
 
+let districtsLoad: Promise<DistrictOption[] | null> | null = null;
+
 /**
  * Real districts and areas, fetched from the database instead of a hardcoded
  * list of 8 items that were actually Bangladesh's 8 divisions mislabeled as
@@ -37,38 +39,36 @@ export function useDistricts(): DistrictOption[] {
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
-      if (!supabase) return;
+    if (supabase) {
+      districtsLoad ||= (async () => {
+        const { data, error } = await supabase
+          .from('locations')
+          .select('district, area, division')
+          .order('district')
+          .order('area');
 
-      const { data, error } = await supabase
-        .from('locations')
-        .select('district, area, division')
-        .order('district')
-        .order('area');
+        if (error || !data || data.length === 0) {
+          if (error) console.error('Failed to load locations:', error.message);
+          return null; // keep the fallback list
+        }
 
-      if (error || !data || data.length === 0) {
-        if (error) console.error('Failed to load locations:', error.message);
-        return; // keep the fallback list
-      }
+        const byDistrict = new Map<string, { areas: string[]; division: string }>();
+        for (const row of data as { district: string; area: string; division: string }[]) {
+          const entry = byDistrict.get(row.district) || { areas: [], division: row.division };
+          entry.areas.push(row.area);
+          byDistrict.set(row.district, entry);
+        }
 
-      const byDistrict = new Map<string, { areas: string[]; division: string }>();
-      for (const row of data as { district: string; area: string; division: string }[]) {
-        const entry = byDistrict.get(row.district) || { areas: [], division: row.division };
-        entry.areas.push(row.area);
-        byDistrict.set(row.district, entry);
-      }
-
-      const shaped: DistrictOption[] = Array.from(byDistrict.entries()).map(
-        ([name, { areas, division }]) => {
+        return Array.from(byDistrict.entries()).map(([name, { areas, division }]) => {
           const center = DIVISION_CENTERS[division] || DIVISION_CENTERS.Dhaka;
           return { name, areas, lat: center.lat, lng: center.lng };
-        }
-      );
+        });
+      })();
 
-      if (!cancelled && shaped.length > 0) {
-        setDistricts(shaped);
-      }
-    })();
+      districtsLoad.then(shaped => {
+        if (!cancelled && shaped && shaped.length > 0) setDistricts(shaped);
+      });
+    }
 
     return () => {
       cancelled = true;

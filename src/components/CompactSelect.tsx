@@ -6,9 +6,10 @@ interface CompactSelectProps {
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
   className?: string;
+  id?: string;
 }
 
-export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, onChange, className = '' }) => {
+export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, onChange, className = '', id }) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
@@ -24,6 +25,7 @@ export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, on
   return (
     <div ref={containerRef} className="relative">
       <button
+        id={id}
         type="button"
         onClick={() => setOpen(current => !current)}
         className={`w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-800 outline-hidden focus:border-rose-500 transition-colors cursor-pointer flex items-center justify-between gap-3 ${className}`}

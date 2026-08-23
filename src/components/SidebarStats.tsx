@@ -89,7 +89,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
               so it gets tappable chips rather than a dropdown you have to open
               and hunt through. One tap, and you can see all options at once. */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-2">Blood group</label>
+            <p className="block text-xs font-semibold text-slate-500 mb-2">Blood group</p>
             <div className="grid grid-cols-3 gap-2">
               {['ALL', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => (
                 <button
@@ -108,8 +108,9 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-2">District</label>
+            <label htmlFor="filter-district" className="block text-xs font-semibold text-slate-500 mb-2">District</label>
             <CompactSelect
+              id="filter-district"
               value={filters.district}
               onChange={district => setFilters(prev => ({ ...prev, district, area: 'ALL' }))}
               options={[{ value: 'ALL', label: 'All districts' }, ...districts.map(dist => ({ value: dist.name, label: dist.name }))]}
@@ -118,8 +119,9 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
 
           {filters.district !== 'ALL' && areasList.length > 0 && (
             <div className="animate-in fade-in duration-200">
-              <label className="block text-xs font-semibold text-slate-500 mb-2">Area</label>
+              <label htmlFor="filter-area" className="block text-xs font-semibold text-slate-500 mb-2">Area</label>
               <CompactSelect
+                id="filter-area"
                 value={filters.area}
                 onChange={area => setFilters(prev => ({ ...prev, area }))}
                 options={[{ value: 'ALL', label: 'All areas' }, ...areasList.map(area => ({ value: area, label: area }))]}

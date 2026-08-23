@@ -45,6 +45,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
 
   useEffect(() => {
     if (!isOpen || !request) return;
+    let cancelled = false;
     setError('');
     setSelectedId('');
     setSearch('');
@@ -53,9 +54,12 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
 
     (async () => {
       const list = await fetchRequestResponders(request.id);
+      if (cancelled) return;
       setResponders(list);
       setLoading(false);
     })();
+
+    return () => { cancelled = true; };
   }, [isOpen, request?.id]);
 
   if (!isOpen || !request) return null;
@@ -122,7 +126,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
               For {request.patientName} • {request.bloodGroup} • {request.hospitalName}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">
+          <button onClick={onClose} aria-label="Close donation dialog" className="p-2 hover:bg-slate-100 rounded-full">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
@@ -156,6 +160,8 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
                 {responders.length ? 'Or search any donor' : 'Search for the donor'}
               </p>
               <input
+                id="donation-search"
+                name="donorSearch"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Name or phone number"
@@ -172,8 +178,10 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Bags donated</label>
+              <label htmlFor="donation-units" className="block text-xs font-bold uppercase text-slate-700 mb-1">Bags donated</label>
               <input
+                id="donation-units"
+                name="units"
                 type="number"
                 min="1"
                 value={units}
@@ -293,8 +301,15 @@ export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
   onClose
 }) => {
   const [copied, setCopied] = useState(false);
+  const copiedResetTimer = React.useRef<number | null>(null);
 
   useDismissable(isOpen && !!request, onClose);
+
+  useEffect(() => () => {
+    if (copiedResetTimer.current !== null) {
+      window.clearTimeout(copiedResetTimer.current);
+    }
+  }, []);
 
   if (!isOpen || !request) return null;
 
@@ -304,7 +319,13 @@ export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copiedResetTimer.current !== null) {
+        window.clearTimeout(copiedResetTimer.current);
+      }
+      copiedResetTimer.current = window.setTimeout(() => {
+        copiedResetTimer.current = null;
+        setCopied(false);
+      }, 2000);
     } catch {
       setCopied(false);
     }
@@ -323,7 +344,7 @@ export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
               Now spread it — this is what finds blood fastest
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">
+          <button onClick={onClose} aria-label="Close share dialog" className="p-2 hover:bg-slate-100 rounded-full">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>

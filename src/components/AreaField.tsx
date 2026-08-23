@@ -7,9 +7,11 @@ interface AreaFieldProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  id?: string;
+  name?: string;
 }
 
-export const AreaField: React.FC<AreaFieldProps> = ({ areas, value, onChange, className }) => {
+export const AreaField: React.FC<AreaFieldProps> = ({ areas, value, onChange, className, id, name }) => {
   const knownValue = areas.includes(value);
   const [customMode, setCustomMode] = useState(!knownValue && !!value);
 
@@ -21,6 +23,8 @@ export const AreaField: React.FC<AreaFieldProps> = ({ areas, value, onChange, cl
     return (
       <div className="flex gap-2">
         <input
+          id={id}
+          name={name}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder="Type your area / mohalla name"
@@ -43,6 +47,8 @@ export const AreaField: React.FC<AreaFieldProps> = ({ areas, value, onChange, cl
 
   return (
     <select
+      id={id}
+      name={name}
       value={knownValue ? value : ''}
       onChange={e => {
         if (e.target.value === OTHER) {

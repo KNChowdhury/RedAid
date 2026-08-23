@@ -130,7 +130,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 lg:p-10 max-w-2xl w-full border border-slate-200 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scroll my-auto">
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
+        <button onClick={onClose} aria-label="Close request dialog" className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-5 h-5" />
         </button>
 
@@ -152,17 +152,17 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Patient Full Name <span className="text-rose-600">*</span></label>
-              <input required value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="e.g. Mrs. Rahima Begum" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <label htmlFor="request-patient-name" className="block text-xs font-bold uppercase text-slate-700 mb-1">Patient Full Name <span className="text-rose-600">*</span></label>
+              <input id="request-patient-name" name="patientName" required value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="e.g. Mrs. Rahima Begum" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Age <span className="text-rose-600">*</span></label>
-                <input required type="number" value={age} onChange={e => setAge(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+                <label htmlFor="request-age" className="block text-xs font-bold uppercase text-slate-700 mb-1">Age <span className="text-rose-600">*</span></label>
+                <input id="request-age" name="age" required type="number" value={age} onChange={e => setAge(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
-                <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-rose-600 font-mono">
+                <label htmlFor="request-blood-group" className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
+                <select id="request-blood-group" name="bloodGroup" value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-rose-600 font-mono">
                   {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                 </select>
               </div>
@@ -171,38 +171,39 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Hospital / Clinic Name <span className="text-rose-600">*</span></label>
-              <input required value={hospitalName} onChange={e => setHospitalName(e.target.value)} placeholder="e.g. Dhaka Medical College Hospital" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <label htmlFor="request-hospital" className="block text-xs font-bold uppercase text-slate-700 mb-1">Hospital / Clinic Name <span className="text-rose-600">*</span></label>
+              <input id="request-hospital" name="hospitalName" required value={hospitalName} onChange={e => setHospitalName(e.target.value)} placeholder="e.g. Dhaka Medical College Hospital" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
+                <label htmlFor="request-district" className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
                 <CompactSelect
                   value={district}
                   onChange={value => { setDistrict(value); setArea(districts.find(d => d.name === value)?.areas[0] || ''); }}
                   options={districts.map(d => ({ value: d.name, label: d.name }))}
+                  id="request-district"
                   className="text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
-                <AreaField areas={areasList} value={area} onChange={setArea} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+                <label htmlFor="request-area" className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
+                <AreaField id="request-area" name="area" areas={areasList} value={area} onChange={setArea} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Required Bags <span className="text-rose-600">*</span></label>
-              <input type="number" min="1" max="10" value={bags} onChange={e => setBags(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900" />
+              <label htmlFor="request-bags" className="block text-xs font-bold uppercase text-slate-700 mb-1">Required Bags <span className="text-rose-600">*</span></label>
+              <input id="request-bags" name="requiredBags" type="number" min="1" max="10" value={bags} onChange={e => setBags(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Needed By Time <span className="text-rose-600">*</span></label>
-              <input value={neededBy} onChange={e => setNeededBy(e.target.value)} placeholder="e.g. Today, 5 PM" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <label htmlFor="request-needed-by" className="block text-xs font-bold uppercase text-slate-700 mb-1">Needed By Time <span className="text-rose-600">*</span></label>
+              <input id="request-needed-by" name="neededBy" value={neededBy} onChange={e => setNeededBy(e.target.value)} placeholder="e.g. Today, 5 PM" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Urgency Priority <span className="text-rose-600">*</span></label>
-              <select value={urgency} onChange={e => setUrgency(e.target.value as any)} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900">
+              <label htmlFor="request-urgency" className="block text-xs font-bold uppercase text-slate-700 mb-1">Urgency Priority <span className="text-rose-600">*</span></label>
+              <select id="request-urgency" name="urgency" value={urgency} onChange={e => setUrgency(e.target.value as any)} className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900">
                 <option value="Critical">🚨 Critical</option>
                 <option value="High">⚠️ High</option>
                 <option value="Medium">ℹ️ Medium</option>
@@ -212,9 +213,11 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Contact Phone Number <span className="text-rose-600">*</span></label>
+              <label htmlFor="request-phone" className="block text-xs font-bold uppercase text-slate-700 mb-1">Contact Phone Number <span className="text-rose-600">*</span></label>
               <input
                 required
+                id="request-phone"
+                name="phone"
                 type="tel"
                 inputMode="numeric"
                 value={phone}
@@ -225,9 +228,11 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
               <p className="mt-1 text-[11px] text-slate-500">আপনার নম্বর যেভাবে লেখেন সেভাবেই দিন — ০ দিয়ে শুরু।</p>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+              <label htmlFor="request-whatsapp" className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
               <input
                 value={whatsappSameAsPhone ? phone : whatsapp}
+                id="request-whatsapp"
+                name="whatsapp"
                 onChange={e => setWhatsapp(e.target.value)}
                 disabled={whatsappSameAsPhone}
                 inputMode="numeric"
@@ -247,8 +252,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Reason / Clinical Notes <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
-            <textarea rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Emergency C-Section bleeding surgery scheduled at ICU." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900" />
+            <label htmlFor="request-reason" className="block text-xs font-bold uppercase text-slate-700 mb-1">Reason / Clinical Notes <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+            <textarea id="request-reason" name="reason" rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Emergency C-Section bleeding surgery scheduled at ICU." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900" />
           </div>
 
           <button type="submit" disabled={submitting} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-2 disabled:cursor-wait disabled:opacity-60">
@@ -379,7 +384,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900">
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
+        <button onClick={onClose} aria-label="Close authentication dialog" className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-5 h-5" />
         </button>
 
@@ -409,21 +414,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {view === 'register' && (
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
-              <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Doe" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+              <label htmlFor="auth-full-name" className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
+              <input id="auth-full-name" name="name" required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Doe" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
             </div>
           )}
 
           {view !== 'new-password' && <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Email <span className="text-rose-600">*</span></label>
-            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+            <label htmlFor="auth-email" className="block text-xs font-bold uppercase text-slate-700 mb-1">Email <span className="text-rose-600">*</span></label>
+            <input id="auth-email" required type="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
           </div>}
 
           {view !== 'reset' && (
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Password <span className="text-rose-600">*</span></label>
+              <label htmlFor="auth-password" className="block text-xs font-bold uppercase text-slate-700 mb-1">Password <span className="text-rose-600">*</span></label>
               <div className="relative">
-                <input required type={showPassword ? 'text' : 'password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+                <input id="auth-password" required type={showPassword ? 'text' : 'password'} name="password" autoComplete={view === 'login' ? 'current-password' : 'new-password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
                 <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700" aria-label={showPassword ? 'Hide password' : 'Show password'} tabIndex={-1}>
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -614,7 +619,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[3rem] p-8 lg:p-10 max-w-xl w-full border border-slate-200 shadow-2xl relative text-slate-900 max-h-[90vh] overflow-y-auto custom-scroll">
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
+        <button onClick={onClose} aria-label="Close profile dialog" className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-5 h-5" />
         </button>
 
@@ -961,7 +966,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-6 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
+        <button onClick={onClose} aria-label="Close profile edit dialog" className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
           <X className="w-4 h-4" />
         </button>
 
@@ -1086,7 +1091,7 @@ export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose,
             <button onClick={onMarkAllRead} className="text-[10px] font-bold uppercase text-rose-600 hover:underline">
               Mark all read
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
+            <button onClick={onClose} aria-label="Close notifications dialog" className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
               <X className="w-4 h-4" />
             </button>
           </div>

@@ -96,8 +96,16 @@ export function App() {
   }, [activeTab, state.currentUser, setActiveTab]);
 
   const isLoggedIn = !!state.currentUser;
+  const isMountedRef = useRef(true);
+  const currentUserRef = useRef(state.currentUser);
+  currentUserRef.current = state.currentUser;
   const knownRequestIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedOnceRef = useRef(false);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const lastRefreshKeyRef = useRef<string | null>(null);
+  const lastRefreshAtRef = useRef(0);
+  const liveRefreshTimerRef = useRef<number | null>(null);
+  const loopRefreshVersionRef = useRef(0);
   const openRequestsTab = React.useCallback(() => setActiveTab('requests'), [setActiveTab]);
   const { permission: notifyPermission, requestPermission: askNotifyPermission, notify } = useBrowserNotifications(
     openRequestsTab
@@ -107,53 +115,75 @@ export function App() {
   // Real data always wins — we never fall back to stale/local/demo data just
   // because a fresh fetch came back empty (an empty table means empty, not
   // "keep showing whatever was there before").
-  const refreshSharedData = React.useCallback(async (loggedIn: boolean, userPoints: number | null) => {
-    try {
-      const shared = await fetchSharedData(loggedIn, userPoints);
-
-      // Work out which requests are genuinely new since the last load, so a
-      // donor with the tab in the background still gets alerted.
-      const seen = knownRequestIdsRef.current;
-      const isFirstLoad = !hasLoadedOnceRef.current;
-      const newlySeen = isFirstLoad ? [] : shared.requests.filter(r => !seen.has(r.id));
-
-      knownRequestIdsRef.current = new Set(shared.requests.map(r => r.id));
-      hasLoadedOnceRef.current = true;
-
-      newlySeen.forEach(r => {
-        notify(
-          `${r.bloodGroup} blood needed${r.urgency === 'Critical' ? ' — urgent' : ''}`,
-          `${r.patientName} at ${r.hospitalName}. ${r.requiredBags} bag(s) needed.`,
-          `request-${r.id}`
-        );
-      });
-
-      setState(prev => ({
-        ...prev,
-        donors: shared.donors,
-        requests: shared.requests,
-        badges: shared.badges
-      }));
-    } catch (error) {
-      console.error('Failed to fetch shared Supabase data:', error);
+  const refreshSharedData = React.useCallback((loggedIn: boolean, userPoints: number | null) => {
+    if (refreshInFlightRef.current) return refreshInFlightRef.current;
+    const refreshKey = `${loggedIn}:${userPoints ?? 'null'}`;
+    if (lastRefreshKeyRef.current === refreshKey && Date.now() - lastRefreshAtRef.current < 500) {
+      return Promise.resolve();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    const refresh = (async () => {
+      try {
+        const shared = await fetchSharedData(loggedIn, userPoints);
+
+        // Work out which requests are genuinely new since the last load, so a
+        // donor with the tab in the background still gets alerted.
+        const seen = knownRequestIdsRef.current;
+        const isFirstLoad = !hasLoadedOnceRef.current;
+        const newlySeen = isFirstLoad ? [] : shared.requests.filter(r => !seen.has(r.id));
+
+        knownRequestIdsRef.current = new Set(shared.requests.map(r => r.id));
+        hasLoadedOnceRef.current = true;
+
+        newlySeen.forEach(r => {
+          notify(
+            `${r.bloodGroup} blood needed${r.urgency === 'Critical' ? ' — urgent' : ''}`,
+            `${r.patientName} at ${r.hospitalName}. ${r.requiredBags} bag(s) needed.`,
+            `request-${r.id}`
+          );
+        });
+
+        if (!isMountedRef.current) return;
+        setState(prev => ({
+          ...prev,
+          donors: shared.donors,
+          requests: shared.requests,
+          badges: shared.badges
+        }));
+        lastRefreshKeyRef.current = refreshKey;
+        lastRefreshAtRef.current = Date.now();
+      } catch (error) {
+        console.error('Failed to fetch shared Supabase data:', error);
+      }
+    })();
+
+    refreshInFlightRef.current = refresh;
+    refresh.finally(() => {
+      if (refreshInFlightRef.current === refresh) refreshInFlightRef.current = null;
+    });
+    return refresh;
   }, [notify]);
 
   // Restore Supabase auth session on startup, then load real data for that
   // login state (logged-in donors see full profiles; guests see the public view).
   useEffect(() => {
+    isMountedRef.current = true;
     async function restoreSessionAndLoad() {
       const donor = await getCurrentDonorFromSession();
+      if (!isMountedRef.current) return;
       const activeDonor = recoveryModeRef.current ? null : donor;
       setState(prev => ({ ...prev, currentUser: activeDonor }));
       await refreshSharedData(!!activeDonor, activeDonor?.impactScore ?? null);
     }
     restoreSessionAndLoad();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [refreshSharedData]);
 
   useEffect(() => subscribeToAuthState(
     donor => {
+      if (!isMountedRef.current) return;
       // A password-reset link also creates a temporary session. Ignore the
       // generic sign-in callback while the recovery form is active.
       const activeDonor = recoveryModeRef.current ? null : donor;
@@ -161,6 +191,7 @@ export function App() {
       refreshSharedData(!!activeDonor, activeDonor?.impactScore ?? null);
     },
     () => {
+      if (!isMountedRef.current) return;
       recoveryModeRef.current = true;
       setState(prev => ({ ...prev, currentUser: null }));
       refreshSharedData(false, null);
@@ -180,10 +211,12 @@ export function App() {
       setPendingConfirmations([]);
       return;
     }
+    const refreshVersion = ++loopRefreshVersionRef.current;
     const [offered, pending] = await Promise.all([
       fetchMyOfferedRequestIds(donorId),
       fetchMyPendingConfirmations(donorId)
     ]);
+    if (!isMountedRef.current || refreshVersion !== loopRefreshVersionRef.current) return;
     setOfferedRequestIds(offered);
     setPendingConfirmations(pending);
   }, []);
@@ -206,27 +239,45 @@ export function App() {
   // actually changes. Re-subscribes whenever login state changes so guests
   // read from the public view and signed-in donors read the full table.
   useEffect(() => {
+    const scheduleRefresh = () => {
+      if (liveRefreshTimerRef.current !== null) return;
+      liveRefreshTimerRef.current = window.setTimeout(() => {
+        liveRefreshTimerRef.current = null;
+        const currentUser = currentUserRef.current;
+        refreshSharedData(!!currentUser, currentUser?.impactScore ?? null);
+      }, 150);
+    };
+
     const unsubscribe = subscribeToLiveUpdates({
-      onRequestsChange: () => refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null),
-      onDonorsChange: () => refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null),
-      onResponsesChange: () => refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null)
+      onRequestsChange: scheduleRefresh,
+      onDonorsChange: scheduleRefresh,
+      onResponsesChange: scheduleRefresh
     });
-    return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    return () => {
+      unsubscribe();
+      if (liveRefreshTimerRef.current !== null) {
+        window.clearTimeout(liveRefreshTimerRef.current);
+        liveRefreshTimerRef.current = null;
+      }
+    };
   }, [isLoggedIn, state.currentUser?.id]);
 
   useEffect(() => {
     const donorId = state.currentUser?.id;
+    let cancelled = false;
     if (!donorId) {
       setState(prev => ({ ...prev, notifications: [] }));
-      return;
+      return () => { cancelled = true; };
     }
 
     fetchMyNotifications(donorId).then(notifications => {
+      if (cancelled || !isMountedRef.current) return;
       setState(prev => ({ ...prev, notifications }));
     });
 
     return subscribeToNotifications(donorId, row => {
+      if (cancelled || !isMountedRef.current) return;
       const notification = mapDbNotificationToNotification(row);
       setState(prev => ({ ...prev, notifications: [notification, ...prev.notifications] }));
     });
@@ -399,7 +450,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden flex flex-col bg-slate-100/60 font-sans text-slate-900 selection:bg-rose-500 selection:text-white antialiased">
+    <div className="min-h-[100dvh] overflow-x-hidden flex flex-col bg-slate-100/60 font-sans text-slate-900 selection:bg-rose-500 selection:text-white antialiased">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -444,7 +495,7 @@ export function App() {
       </div>
 
       {/* Main Structural Frame */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-[360px_1fr] lg:min-h-[calc(100vh-5rem)]">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-[360px_1fr] lg:min-h-[calc(100dvh-5rem)]">
         {/* Left Smart Filter & Impact Sidebar */}
         <SidebarStats
           currentUser={state.currentUser}

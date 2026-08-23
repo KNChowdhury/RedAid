@@ -36,6 +36,7 @@ drop policy if exists "donation_records_select_own" on public.donation_records;
 -- cover every command for their respective actor — a true 1:1 merge.
 drop policy if exists "donor_health_admin" on public.donor_health;
 drop policy if exists "donor_health_own" on public.donor_health;
+drop policy if exists "donor_health_own_or_admin" on public.donor_health;
 create policy "donor_health_own_or_admin" on public.donor_health
   for all to authenticated
   using ((donor_id = (select public.current_donor_id())) or (select public.is_admin()))

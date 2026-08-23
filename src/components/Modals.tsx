@@ -638,12 +638,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
         <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
           <Avatar name={donor.name} src={donor.avatar} className="w-20 h-20" textClassName="text-2xl" />
-          <div className="flex-1">
+          {/* pr-10 keeps a long name from wrapping under the close button,
+              which floats absolute over this row rather than sharing its
+              flex layout. */}
+          <div className="flex-1 min-w-0 pr-10">
             {isEditing ? (
               <input value={name} onChange={e => setName(e.target.value)} className="font-black text-xl border border-slate-200 rounded-lg px-3 py-1.5 w-full mb-1" />
             ) : (
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-2xl">{donor.name}</h3>
+                <h3 className="font-black text-2xl break-words">{donor.name}</h3>
               </div>
             )}
             <p className="text-xs font-bold text-slate-500 flex items-center gap-1 mt-1">

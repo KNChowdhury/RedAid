@@ -30,6 +30,12 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
   return Math.round(R * c * 10) / 10;
 }
 
+// Age is derived, never stored raw, so it never goes stale year over year.
+export function calculateAge(birthYear: number | null | undefined): number | null {
+  if (!birthYear) return null;
+  return new Date().getFullYear() - birthYear;
+}
+
 // Load or initialize state
 export function getAppState(): AppState {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -293,6 +299,7 @@ function mapDbDonorToProfile(row: any): DonorProfile {
     avatar: row.avatar || '',
     role: row.role,
     bloodGroup: row.blood_group,
+    birthYear: row.birth_year ?? null,
     district: row.district || '',
     area: row.area || '',
     lat: row.lat || 0,
@@ -339,6 +346,7 @@ export async function updateDonorProfile(
     phone: string;
     whatsapp: string;
     bloodGroup: BloodGroup;
+    birthYear: number | null;
     avatar: string;
     district: string;
     area: string;
@@ -370,6 +378,7 @@ export async function updateDonorProfile(
   if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
   if (updates.whatsapp !== undefined) dbUpdates.whatsapp = updates.whatsapp;
   if (updates.bloodGroup !== undefined) dbUpdates.blood_group = updates.bloodGroup;
+  if (updates.birthYear !== undefined) dbUpdates.birth_year = updates.birthYear;
   if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
   if (updates.district !== undefined) dbUpdates.district = updates.district;
   if (updates.area !== undefined) dbUpdates.area = updates.area;
@@ -874,6 +883,47 @@ export async function fetchRequestResponders(requestId: string): Promise<
   }));
 }
 
+export interface CompletedDonation {
+  donationId: string;
+  requestId: string;
+  patientName: string;
+  hospitalName: string;
+  units: number;
+  donatedDate: string;
+  donorName: string;
+  bloodGroup: string;
+  district: string;
+  area: string;
+}
+
+/** Public "success stories" feed — who donated for whom, once confirmed. */
+export async function fetchCompletedDonations(): Promise<CompletedDonation[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('v_completed_donations')
+    .select('*')
+    .order('donated_date', { ascending: false });
+
+  if (error) {
+    console.error('Fetch completed donations error:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    donationId: row.donation_id,
+    requestId: row.request_id,
+    patientName: row.patient_name || 'a patient',
+    hospitalName: row.hospital_name || '',
+    units: row.units ?? 1,
+    donatedDate: row.donated_date || '',
+    donorName: row.donor_name || 'A donor',
+    bloodGroup: row.blood_group || '',
+    district: row.district || '',
+    area: row.area || ''
+  }));
+}
+
 // ============ SUPABASE: Realtime ============
 // Subscribes to live changes on the tables that power the emergency feed and
 // donor network, so the UI updates the instant someone else posts a request,
@@ -964,6 +1014,7 @@ export async function signUpDonor(profile: {
   password: string;
   phone: string;
   bloodGroup: string;
+  birthYear?: number | null;
   district: string;
   area: string;
   isSmoker: boolean;
@@ -1045,6 +1096,7 @@ export async function signUpDonor(profile: {
     whatsapp: profile.phone,
     role: 'donor',
     blood_group: profile.bloodGroup,
+    birth_year: profile.birthYear ?? null,
     district: profile.district,
     area: profile.area,
     is_smoker: profile.isSmoker

@@ -4,6 +4,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { Footer } from './components/Footer';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
+import { SuccessStories } from './components/SuccessStories';
 import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
@@ -18,7 +19,7 @@ export function App() {
   // sections instead of leaving the app on the first tap.
   const readTabFromHash = () => {
     const t = window.location.hash.replace('#', '');
-    const valid = ['network', 'requests', 'map', 'rewards', 'admin'];
+    const valid = ['network', 'requests', 'success', 'map', 'rewards', 'admin'];
     return valid.includes(t) ? t : 'network';
   };
 
@@ -490,7 +491,7 @@ export function App() {
               />
             </div>
             <EmergencyFeed
-              requests={state.requests}
+              requests={state.requests.filter(r => r.status !== 'Fulfilled')}
               currentDonorId={state.currentUser?.id || null}
               offeredRequestIds={offeredRequestIds}
               onOfferToDonate={handleOfferToDonate}
@@ -501,6 +502,8 @@ export function App() {
             />
             </>
           )}
+
+          {activeTab === 'success' && <SuccessStories />}
 
           {activeTab === 'map' && (
             <DonorsNetwork

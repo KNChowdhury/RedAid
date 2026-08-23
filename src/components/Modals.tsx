@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, 
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { calculateAge, getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
@@ -279,6 +279,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
   const [bloodGroup, setBloodGroup] = useState<string>('');
+  const [birthYear, setBirthYear] = useState('');
   const [district, setDistrict] = useState('Dhaka');
   const [area, setArea] = useState('Banani');
   const [isSmoker, setIsSmoker] = useState(false);
@@ -347,6 +348,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         password,
         phone: toBdDialing(phone),
         bloodGroup,
+        birthYear: birthYear ? Number(birthYear) : null,
         district,
         area,
         isSmoker
@@ -408,7 +410,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           {view === 'register' && (
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
-              <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Kawsar Ahmed" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+              <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Doe" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
             </div>
           )}
 
@@ -479,6 +481,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1900}
+                  max={new Date().getFullYear()}
+                  value={birthYear}
+                  onChange={e => setBirthYear(e.target.value)}
+                  placeholder="e.g. 1995"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                />
+              </div>
+
               <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
                 <input type="checkbox" checked={isSmoker} onChange={e => setIsSmoker(e.target.checked)} className="accent-rose-600 w-4 h-4" />
                 <span className="text-xs font-bold text-slate-700">I am a smoker (health note)</span>
@@ -531,6 +547,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('O+');
+  const [birthYear, setBirthYear] = useState('');
   const [district, setDistrict] = useState('');
   const [area, setArea] = useState('');
   const [hbsagStatus, setHbsagStatus] = useState('Not Tested');
@@ -551,6 +568,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       setPhone(donor.phone);
       setWhatsapp(donor.whatsapp);
       setBloodGroup(donor.bloodGroup);
+      setBirthYear(donor.birthYear ? String(donor.birthYear) : '');
       setDistrict(donor.district);
       setArea(donor.area);
       setHbsagStatus(donor.healthInfo?.hbsagStatus || 'Not Tested');
@@ -574,6 +592,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       phone: toBdDialing(phone),
       whatsapp: toBdWhatsapp(whatsapp),
       bloodGroup,
+      birthYear: birthYear ? Number(birthYear) : null,
       district,
       area,
       hbsagStatus,
@@ -614,6 +633,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             </p>
             <span className="mt-2 inline-block px-3 py-1 bg-rose-600 text-white font-mono text-sm font-black rounded-lg shadow-sm">
               Blood Group: {donor.bloodGroup}
+              {calculateAge(donor.birthYear) !== null && ` · ${calculateAge(donor.birthYear)}y`}
             </span>
           </div>
         </div>
@@ -717,11 +737,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp Number <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
               <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
-              <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
-                {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
+                <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
+                  {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1900}
+                  max={new Date().getFullYear()}
+                  value={birthYear}
+                  onChange={e => setBirthYear(e.target.value)}
+                  placeholder="e.g. 1995"
+                  className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -838,6 +873,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
   const [phone, setPhone] = useState(donor?.phone || '');
   const [whatsapp, setWhatsapp] = useState(donor?.whatsapp || '');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>(donor?.bloodGroup || 'O+');
+  const [birthYear, setBirthYear] = useState(donor?.birthYear ? String(donor.birthYear) : '');
   const [district, setDistrict] = useState(donor?.district || 'Dhaka');
   const [area, setArea] = useState(donor?.area || (districts.find(d => d.name === district)?.areas[0] || ''));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -857,6 +893,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
     setPhone(donor?.phone || '');
     setWhatsapp(donor?.whatsapp || '');
     setBloodGroup(donor?.bloodGroup || 'O+');
+    setBirthYear(donor?.birthYear ? String(donor.birthYear) : '');
     setDistrict(donor?.district || 'Dhaka');
     setArea(donor?.area || districts.find(d => d.name === district)?.areas[0] || '');
     setLastDonationDate(donor?.lastDonationDate || '');
@@ -891,6 +928,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
         phone: toBdDialing(phone),
         whatsapp: toBdWhatsapp(whatsapp),
         bloodGroup,
+        birthYear: birthYear ? Number(birthYear) : null,
         district,
         area,
         avatar: avatarUrl,
@@ -954,16 +992,31 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpe
               </select>
             </div>
             <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1900}
+                max={new Date().getFullYear()}
+                value={birthYear}
+                onChange={e => setBirthYear(e.target.value)}
+                placeholder="e.g. 1995"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
               <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
                 {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
               </select>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
-            <AreaField areas={areasList} value={area} onChange={setArea} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl" />
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
+              <AreaField areas={areasList} value={area} onChange={setArea} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl" />
+            </div>
           </div>
 
           <div>

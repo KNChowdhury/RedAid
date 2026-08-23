@@ -1,6 +1,6 @@
 import { Award, Calendar, Heart, MapPin, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import { calculateDistanceKm, lookupCoordinates } from '../services/lifelineService';
+import { calculateAge, calculateDistanceKm, lookupCoordinates } from '../services/lifelineService';
 import { DonorProfile, SearchFilters } from '../types';
 import { Avatar } from './Avatar';
 
@@ -95,6 +95,9 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                         <span className="font-mono text-xl font-black text-rose-600 leading-none">
                           {donor.bloodGroup}
                         </span>
+                        {calculateAge(donor.birthYear) !== null && (
+                          <span className="font-mono text-[9px] font-bold text-rose-400 mt-0.5">{calculateAge(donor.birthYear)}y</span>
+                        )}
                       </div>
 
                       <div className="min-w-0 flex-1">

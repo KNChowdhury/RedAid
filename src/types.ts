@@ -41,6 +41,8 @@ export interface DonorProfile {
   avatar: string;
   role: UserRole;
   bloodGroup: BloodGroup;
+  /** Optional — age is computed client-side from this instead of being stored raw. */
+  birthYear?: number | null;
   district: string;
   area: string;
   lat: number;

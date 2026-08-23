@@ -98,8 +98,9 @@ export function App() {
   const isLoggedIn = !!state.currentUser;
   const knownRequestIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedOnceRef = useRef(false);
+  const openRequestsTab = React.useCallback(() => setActiveTab('requests'), [setActiveTab]);
   const { permission: notifyPermission, requestPermission: askNotifyPermission, notify } = useBrowserNotifications(
-    () => setActiveTab('requests')
+    openRequestsTab
   );
 
   // Pulls the current truth from Supabase and replaces local state with it.

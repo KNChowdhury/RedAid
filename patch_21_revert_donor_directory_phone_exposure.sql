@@ -1,0 +1,60 @@
+-- LifelineBD PATCH 21: Revert an accidental anon phone/whatsapp exposure.
+-- ----------------------------------------------------------------------------
+-- HISTORY: a request came in to fix a long-standing gap where an available
+-- donor's phone number never actually showed to other users — ProfileModal
+-- and the donor card have always gated a "Call"/"WhatsApp" reveal on
+-- `donor.availableNow`, but `v_donors_directory` / `v_public_donors` (per
+-- patch_03 and patch_20) never select phone or whatsapp at all, so those
+-- branches were dead code going all the way back to patch_03. That part is
+-- real and still unfixed by this patch (see the follow-up RPC discussed
+-- below).
+--
+-- THE MISTAKE: in a separate session, `phone` and `whatsapp` columns were
+-- added directly to `public.donor_directory_public` (untracked, no patch
+-- file), with `sync_donor_directory_public()` (patch_20) updated to populate
+-- them from `donors` whenever `available_now = true`, NULL otherwise. This
+-- was proposed and applied without checking that `donor_directory_public` is
+-- the SAME table `v_public_donors` reads from (patch_20) — its RLS policy
+-- (`donor_directory_public_select`, for select to anon, authenticated, using
+-- (true)) does not distinguish anon from authenticated. The result: any
+-- available donor's real phone/whatsapp number became readable by
+-- anonymous, logged-out visitors via `v_public_donors` — not just signed-in
+-- users, which was never the intent.
+--
+-- CONFIRMED LIVE (2026-08-24) via read-only audit:
+--   select column_name from information_schema.columns
+--   where table_schema = 'public' and table_name = 'donor_directory_public';
+--   -> returned `phone`, `whatsapp` among the columns.
+--   select grantee, privilege_type from information_schema.role_table_grants
+--   where table_schema = 'public' and table_name = 'donor_directory_public'
+--   and privilege_type = 'SELECT';
+--   -> `anon` held SELECT on the table.
+--
+-- FIX ALREADY APPLIED LIVE (2026-08-24, direct SQL Editor, not through this
+-- repo): both columns were dropped from `donor_directory_public` immediately
+-- on confirmation. This patch exists so that history + the drop statement
+-- are on record, and so running the repo's patches back-to-back can't
+-- reintroduce this by re-applying an untracked change from memory.
+--
+-- This patch is a no-op today (the columns are already gone) — safe to run
+-- repeatedly. It does NOT touch `sync_donor_directory_public()`'s trigger
+-- registration (patch_20's `donors_sync_public_directory` trigger itself was
+-- never the problem; only the two columns and what the function wrote into
+-- them were). If the function body still references NEW.phone/NEW.whatsapp
+-- from the untracked edit, drop those two columns here will make future
+-- inserts/updates on donors fail loudly (undefined column on
+-- donor_directory_public) rather than silently re-populating them — check
+-- the live function body before assuming this alone is sufficient.
+--
+-- NEXT STEP (not in this patch): the actual "reveal an available donor's
+-- number to someone who needs it" feature should be a `security definer`
+-- RPC, callable by `authenticated` only, checked per call, backed by no
+-- table any guest-facing view also reads from — and ideally scoped to an
+-- existing request/response relationship rather than an open directory
+-- lookup, to avoid any authenticated account being able to script through
+-- every donor id and harvest every available number.
+-- ============================================================================
+
+alter table public.donor_directory_public
+  drop column if exists phone,
+  drop column if exists whatsapp;

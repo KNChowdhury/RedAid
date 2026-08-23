@@ -1,17 +1,19 @@
-import { AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Phone, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {
   buildRequestShareText,
   buildWhatsAppShareUrl,
   confirmMyDonation,
   fetchRequestResponders,
+  fetchResponderContact,
   recordDonation,
   PendingConfirmation
 } from '../services/lifelineService';
 import { DonorProfile, EmergencyRequest } from '../types';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
 
-type Responder = { donorId: string; donorName: string; bloodGroup: string };
+type Responder = { responseId: string; donorId: string; donorName: string; bloodGroup: string };
+type ContactState = { phone: string; whatsapp: string } | 'none' | 'loading';
 
 /* ============================================================
  * 1. "Got blood" — the requester records who actually donated
@@ -40,6 +42,9 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  // Contact is revealed per response, not fetched up front — each entry
+  // costs an RPC call, and most requesters only need to check one or two.
+  const [contacts, setContacts] = useState<Record<string, ContactState>>({});
 
   useDismissable(isOpen && !!request, onClose);
 
@@ -51,6 +56,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
     setSearch('');
     setUnits(String(request.requiredBags || 1));
     setLoading(true);
+    setContacts({});
 
     (async () => {
       const list = await fetchRequestResponders(request.id);
@@ -61,6 +67,12 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
 
     return () => { cancelled = true; };
   }, [isOpen, request?.id]);
+
+  const handleRevealContact = async (responseId: string) => {
+    setContacts(prev => ({ ...prev, [responseId]: 'loading' }));
+    const contact = await fetchResponderContact(responseId);
+    setContacts(prev => ({ ...prev, [responseId]: contact || 'none' }));
+  };
 
   if (!isOpen || !request) return null;
 
@@ -94,24 +106,60 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
     onClose();
   };
 
-  const DonorRow = ({ id, name, group }: { id: string; name: string; group: string }) => (
-    <label
-      key={id}
-      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-        selectedId === id ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-white hover:bg-slate-50'
-      }`}
-    >
-      <input
-        type="radio"
-        name="donor"
-        checked={selectedId === id}
-        onChange={() => setSelectedId(id)}
-        className="accent-rose-600"
-      />
-      <span className="text-sm font-bold text-slate-800 flex-1">{name}</span>
-      {group && <span className="font-mono font-black text-rose-600 text-sm">{group}</span>}
-    </label>
-  );
+  const DonorRow = ({ id, name, group, responseId }: { id: string; name: string; group: string; responseId?: string }) => {
+    const contact = responseId ? contacts[responseId] : undefined;
+    return (
+      <div
+        key={id}
+        className={`rounded-xl border transition-colors ${
+          selectedId === id ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+        }`}
+      >
+        <label className="flex items-center gap-3 p-3 cursor-pointer">
+          <input
+            type="radio"
+            name="donor"
+            checked={selectedId === id}
+            onChange={() => setSelectedId(id)}
+            className="accent-rose-600"
+          />
+          <span className="text-sm font-bold text-slate-800 flex-1">{name}</span>
+          {group && <span className="font-mono font-black text-rose-600 text-sm">{group}</span>}
+        </label>
+
+        {/* Contact only reveals for donors who actually responded to THIS
+            request (patch_22's get_responder_contact) — never from browsing
+            the directory, and never for the "search any donor" fallback list
+            below, which has no response_id to check against. */}
+        {responseId && (
+          <div className="px-3 pb-3 -mt-1">
+            {!contact && (
+              <button
+                type="button"
+                onClick={() => handleRevealContact(responseId)}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1.5"
+              >
+                <Phone className="w-3.5 h-3.5" /> Show number
+              </button>
+            )}
+            {contact === 'loading' && (
+              <p className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking…
+              </p>
+            )}
+            {contact === 'none' && (
+              <p className="text-xs font-semibold text-slate-400">No number available right now.</p>
+            )}
+            {contact && contact !== 'loading' && contact !== 'none' && (
+              <a href={`tel:${contact.phone || contact.whatsapp}`} className="text-xs font-bold text-emerald-700">
+                {contact.phone || contact.whatsapp}
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -149,7 +197,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
                 </p>
                 <div className="space-y-2">
                   {responders.map(r => (
-                    <DonorRow key={r.donorId} id={r.donorId} name={r.donorName} group={r.bloodGroup} />
+                    <DonorRow key={r.donorId} id={r.donorId} name={r.donorName} group={r.bloodGroup} responseId={r.responseId} />
                   ))}
                 </div>
               </div>

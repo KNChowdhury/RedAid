@@ -43,20 +43,22 @@ export const Navbar: React.FC<NavbarProps> = ({
   const visibleNavItems = navItems;
 
   return (
-    <header className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
+    <header className="h-20 flex items-center justify-between px-4 sm:px-6 lg:px-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
       {/* Brand Logo */}
-      <div 
-        className="flex items-center gap-2.5 cursor-pointer group"
+      <div
+        className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group min-w-0"
         onClick={() => setActiveTab('network')}
       >
-        <div className="w-10 h-10 blood-gradient rounded-xl flex items-center justify-center shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform">
-          <Heart className="w-5 h-5 text-white fill-white animate-pulse" />
+        <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 blood-gradient rounded-xl flex items-center justify-center shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform">
+          <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white animate-pulse" />
         </div>
-        <div className="flex flex-col">
-          <span className="text-2xl font-black tracking-tighter uppercase text-slate-900 leading-none">
+        <div className="flex flex-col min-w-0">
+          <span className="text-lg sm:text-2xl font-black tracking-tighter uppercase text-slate-900 leading-none whitespace-nowrap">
             Lifeline<span className="text-rose-600">BD</span>
           </span>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Every Drop Saves a Life</span>
+          {/* Wraps to a second line and looks cramped below ~400px, so it's
+              desktop/tablet-only; the wordmark alone reads fine on its own. */}
+          <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Every Drop Saves a Life</span>
         </div>
       </div>
 
@@ -138,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         ) : (
           <button
             onClick={onOpenAuth}
-            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors"
+            className="px-3.5 sm:px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors"
           >
             Sign In
           </button>

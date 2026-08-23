@@ -1112,48 +1112,80 @@ export async function signUpDonor(profile: {
       return supabase!.from('donors').update(donorPayload).eq('id', existing.data.id).select().single();
     }
 
-    const inserted = await supabase!
-      .from('donors')
-      .insert({
-        auth_user_id: userId,
-        ...donorPayload,
-        lat: 23.8103,
-        lng: 90.4125,
-        last_donation_date: null,
-        next_eligible_date: null,
-        is_regular: false,
-        is_verified: false,
-        available_now: true,
-        weight_kg: 0,
-        blood_pressure: '',
-        hemoglobin: 0,
-        has_chronic_disease: false,
-        recent_medication: '',
-        impact_score: 0,
-        lives_saved: 0
-      })
-      .select()
-      .single();
+    // Retry logic with exponential backoff for transient network failures on mobile.
+    // On slow iPhone connections, requests may timeout and need a second attempt.
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const insertPromise = supabase!
+          .from('donors')
+          .insert({
+            auth_user_id: userId,
+            ...donorPayload,
+            lat: 23.8103,
+            lng: 90.4125,
+            last_donation_date: null,
+            next_eligible_date: null,
+            is_regular: false,
+            is_verified: false,
+            available_now: true,
+            weight_kg: 0,
+            blood_pressure: '',
+            hemoglobin: 0,
+            has_chronic_disease: false,
+            recent_medication: '',
+            impact_score: 0,
+            lives_saved: 0
+          })
+          .select()
+          .single();
 
-    if (inserted.error?.code === '23505') {
-      // Lost the race between our check and our insert — fetch the row the
-      // listener created and fill in the profile the donor just submitted.
-      const retry = await supabase!.from('donors').select('*').eq('auth_user_id', userId).maybeSingle();
-      if (retry.data) {
-        return supabase!.from('donors').update(donorPayload).eq('id', retry.data.id).select().single();
+        // Add timeout for slow mobile networks (10s per attempt)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Profile creation timeout (network too slow). Please check your connection and try signing in again.')), 10000)
+        );
+
+        const inserted = await Promise.race([insertPromise, timeoutPromise]) as any;
+
+        if (inserted.error?.code === '23505') {
+          // Lost the race between our check and our insert — fetch the row the
+          // listener created and fill in the profile the donor just submitted.
+          const retry = await supabase!.from('donors').select('*').eq('auth_user_id', userId).maybeSingle();
+          if (retry.data) {
+            return supabase!.from('donors').update(donorPayload).eq('id', retry.data.id).select().single();
+          }
+        }
+        return inserted;
+      } catch (err: any) {
+        lastError = err;
+        if (attempt === 1) {
+          // Wait briefly before retry on timeout or network errors
+          await new Promise(r => setTimeout(r, 500));
+        }
       }
     }
-    return inserted;
+
+    return { data: null, error: lastError };
   }
 
   const { data: donorData, error: donorError } = await upsertDonorRow();
 
   if (donorError || !donorData) {
     console.error('Supabase donor profile create error:', donorError);
-    const rlsMessage = donorError?.message?.toLowerCase().includes('row-level security')
-      ? 'Donor profile creation blocked by row-level security. Ensure your Supabase donors policy allows inserts for authenticated users with auth.uid() = id.'
-      : donorError?.message || 'Donor profile creation failed.';
-    return { user: null, error: rlsMessage };
+    const errorMsg = donorError?.message || '';
+    let friendlyMsg = 'Donor profile creation failed.';
+
+    if (errorMsg.includes('timeout') || errorMsg.includes('slow')) {
+      friendlyMsg = 'Connection too slow. Please improve your network and try again (WiFi recommended).';
+    } else if (errorMsg.toLowerCase().includes('row-level security')) {
+      friendlyMsg = 'Donor profile creation blocked by row-level security. Ensure your Supabase donors policy allows inserts for authenticated users with auth.uid() = id.';
+    } else if (errorMsg.toLowerCase().includes('network') || errorMsg.toLowerCase().includes('failed to fetch')) {
+      friendlyMsg = 'Network error. Please check your internet connection and try again.';
+    } else if (errorMsg) {
+      friendlyMsg = errorMsg;
+    }
+
+    return { user: null, error: friendlyMsg };
   }
 
   const signedUpProfile = mapDbDonorToProfile(donorData);

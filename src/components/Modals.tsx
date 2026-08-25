@@ -575,6 +575,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [malariaStatus, setMalariaStatus] = useState('Not Tested');
   const [revealedContact, setRevealedContact] = useState<{ phone: string | null; whatsapp: string | null } | null>(null);
   const [revealingContact, setRevealingContact] = useState(false);
+  const isMountedRef = React.useRef(true);
+
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     // Reset to view mode every time this opens for a donor — otherwise
@@ -631,9 +639,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   };
 
   const handleRevealContact = async () => {
-    if (revealingContact || !donor.availableNow) return;
+    if (revealingContact || !donor.availableNow || !isMountedRef.current) return;
     setRevealingContact(true);
-    setRevealedContact(await getDonorContact(donor.id));
+    const contact = await getDonorContact(donor.id);
+    if (!isMountedRef.current) return;
+    setRevealedContact(contact);
     setRevealingContact(false);
   };
 

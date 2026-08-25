@@ -1,6 +1,6 @@
-import { Award, Calendar, Heart, MapPin, Sparkles } from 'lucide-react';
-import React, { useState } from 'react';
-import { calculateAge, calculateDistanceKm, getDonorContact, lookupCoordinates } from '../services/lifelineService';
+import { Award, Calendar, Heart, MapPin, MessageCircle, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { calculateAge, calculateDistanceKm, getDonorContact, getWhatsAppUrl, lookupCoordinates } from '../services/lifelineService';
 import { DonorProfile, SearchFilters } from '../types';
 import { Avatar } from './Avatar';
 
@@ -23,6 +23,13 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   const [selectedMapPin, setSelectedMapPin] = useState<DonorProfile | null>(null);
   const [revealedContacts, setRevealedContacts] = useState<Record<string, { phone: string | null; whatsapp: string | null }>>({});
   const [revealingDonorId, setRevealingDonorId] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Default map center
   const mapCenter = filters.district !== 'ALL' 
@@ -30,9 +37,10 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
     : { lat: 23.7937, lng: 90.4066 };
 
   const revealContact = async (donorId: string) => {
-    if (revealingDonorId) return;
+    if (revealingDonorId || !isMountedRef.current) return;
     setRevealingDonorId(donorId);
     const contact = await getDonorContact(donorId);
+    if (!isMountedRef.current) return;
     setRevealedContacts(prev => ({ ...prev, [donorId]: contact || { phone: null, whatsapp: null } }));
     setRevealingDonorId(null);
   };
@@ -152,9 +160,22 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                     <div className="mt-4 flex items-center gap-2">
                       {donor.availableNow ? (
                         revealedContacts[donor.id]?.phone ? (
-                          <a href={`tel:${revealedContacts[donor.id].phone}`} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors">
-                            {revealedContacts[donor.id].phone}
-                          </a>
+                          <div className="flex-1 flex items-center gap-2">
+                            <a href={`tel:${revealedContacts[donor.id].phone}`} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors">
+                              {revealedContacts[donor.id].phone}
+                            </a>
+                            {revealedContacts[donor.id]?.whatsapp && getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on LifelineBD. Can you help?') && (
+                              <a
+                                href={getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on LifelineBD. Can you help?') || undefined}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={`Message ${donor.name} on WhatsApp`}
+                                className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
                         ) : revealedContacts[donor.id] ? (
                           <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">Not available right now</span>
                         ) : (

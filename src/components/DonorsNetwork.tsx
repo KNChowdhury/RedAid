@@ -7,6 +7,7 @@ import { Avatar } from './Avatar';
 interface DonorsNetworkProps {
   donors: DonorProfile[];
   filters: SearchFilters;
+  currentUserId: string | null;
   onSelectDonor: (donor: DonorProfile) => void;
   onRequestBlood: () => void;
   initialViewMode?: 'grid' | 'map';
@@ -15,6 +16,7 @@ interface DonorsNetworkProps {
 export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   donors,
   filters,
+  currentUserId,
   onSelectDonor,
   onRequestBlood,
   initialViewMode = 'grid'
@@ -24,12 +26,19 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   const [revealedContacts, setRevealedContacts] = useState<Record<string, { phone: string | null; whatsapp: string | null }>>({});
   const [revealingDonorId, setRevealingDonorId] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const revealRequestVersionRef = useRef(0);
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    revealRequestVersionRef.current += 1;
+    setRevealedContacts({});
+    setRevealingDonorId(null);
+  }, [currentUserId]);
 
   // Default map center
   const mapCenter = filters.district !== 'ALL' 
@@ -38,9 +47,10 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 
   const revealContact = async (donorId: string) => {
     if (revealingDonorId || !isMountedRef.current) return;
+    const requestVersion = revealRequestVersionRef.current;
     setRevealingDonorId(donorId);
     const contact = await getDonorContact(donorId);
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || requestVersion !== revealRequestVersionRef.current) return;
     setRevealedContacts(prev => ({ ...prev, [donorId]: contact || { phone: null, whatsapp: null } }));
     setRevealingDonorId(null);
   };

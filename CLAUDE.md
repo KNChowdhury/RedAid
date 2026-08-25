@@ -55,3 +55,61 @@ principles on every task, not just when explicitly asked:
   without flagging a better alternative if one exists.
 - If something in the existing code looks wrong while you're working nearby,
   mention it, don't silently leave it.
+
+## Staff-engineer practices (Google-caliber)
+
+### Small, reversible changes
+- Prefer several small, independently-revertable patches over one large
+  patch that does five things — if something breaks, you want to know
+  which one line caused it, not re-audit 200 lines. Today's patch_20
+  (projection tables) and patch_21/22 (revert + redesign) are a good
+  example of scope done right; a patch that touched RLS, a new table, AND
+  a UI feature in one file would not be.
+- Every patch file should be re-runnable without side effects (idempotent)
+  — this repo already mostly does this well (`drop policy if exists`,
+  `create or replace function`); keep doing it for every new one.
+
+### Blameless incident write-ups
+- When something breaks in production (even briefly, even if caught within
+  the same session), write a short note in the patch file or commit message:
+  what broke, why, how it was caught, how it's prevented from recurring.
+  Today's patch_21 (documenting the accidental phone-column exposure) and
+  patch_11 (documenting the trigger race condition) are the right model —
+  keep doing this for every real incident, not just the big ones.
+- Never quietly fix something and move on without a record — a future
+  session (human or AI) needs to be able to answer "did this actually
+  happen, and is it actually fixed" from the repo alone, not from a chat
+  transcript that isn't loaded into their context.
+
+### Defense in depth, not defense in one place
+- A security property (e.g. "off-duty donors' numbers are private") should
+  ideally hold even if one layer fails — e.g., enforced at the RPC logic
+  AND the RLS policy AND the column design, not relying on a single
+  correct check somewhere. If you can only implement one layer, say so
+  explicitly rather than presenting single-layer protection as complete.
+
+### Read the blast radius before changing shared code
+- Before changing a function/table/view that's read from multiple places
+  (grep for every caller first), especially anything named `_public`,
+  `shared`, or referenced by more than one view — changes here have a
+  wide blast radius. This is exactly what went wrong with the phone-column
+  incident: donor_directory_public was assumed to be single-purpose when
+  it was actually shared infrastructure for both authenticated and guest
+  feeds.
+
+### Boring technology, explicit over clever
+- Prefer the obvious, slightly verbose solution over a clever one-liner,
+  especially in RLS policies and financial/crediting logic — the person
+  debugging this at 2am (or the next AI session with a cold context) should
+  be able to read it once and know what it does.
+
+### Monitoring the thing you just shipped
+- After a schema or RLS change, don't just check `pg_get_viewdef`/policy
+  text — run a real query as the actual role (anon vs authenticated) and
+  look at real returned data, not just permissions metadata. Today's
+  incidents were caught by testing actual behavior in Incognito/logged-in,
+  not by reading grants alone — keep doing this as the final check on any
+  security-relevant change.
+
+These apply on top of, not instead of, the engineering-correctness and
+product-judgment sections already in this file.

@@ -1,6 +1,6 @@
 import { Award, Calendar, Heart, MapPin, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import { calculateAge, calculateDistanceKm, lookupCoordinates } from '../services/lifelineService';
+import { calculateAge, calculateDistanceKm, getDonorContact, lookupCoordinates } from '../services/lifelineService';
 import { DonorProfile, SearchFilters } from '../types';
 import { Avatar } from './Avatar';
 
@@ -21,11 +21,21 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>(initialViewMode);
   const [selectedMapPin, setSelectedMapPin] = useState<DonorProfile | null>(null);
+  const [revealedContacts, setRevealedContacts] = useState<Record<string, { phone: string | null; whatsapp: string | null }>>({});
+  const [revealingDonorId, setRevealingDonorId] = useState<string | null>(null);
 
   // Default map center
   const mapCenter = filters.district !== 'ALL' 
     ? lookupCoordinates(filters.district, filters.area !== 'ALL' ? filters.area : 'Banani') 
     : { lat: 23.7937, lng: 90.4066 };
+
+  const revealContact = async (donorId: string) => {
+    if (revealingDonorId) return;
+    setRevealingDonorId(donorId);
+    const contact = await getDonorContact(donorId);
+    setRevealedContacts(prev => ({ ...prev, [donorId]: contact || { phone: null, whatsapp: null } }));
+    setRevealingDonorId(null);
+  };
 
   return (
     <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white min-w-0">
@@ -83,6 +93,9 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {donors.map(donor => {
                 const distKm = calculateDistanceKm(mapCenter.lat, mapCenter.lng, donor.lat, donor.lng);
+                if (donor.name === 'MIlad' || donor.name === 'Milad') {
+                  console.log('MIlad data:', { availableNow: donor.availableNow, name: donor.name, id: donor.id });
+                }
                 return (
                   <div
                     key={donor.id}
@@ -137,17 +150,20 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 
                     {/* One action, and it does the actual job. */}
                     <div className="mt-4 flex items-center gap-2">
-                      {donor.availableNow && donor.phone ? (
-                        <a
-                          href={`tel:${donor.phone}`}
-                          className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors"
-                        >
-                          Call
-                        </a>
+                      {donor.availableNow ? (
+                        revealedContacts[donor.id]?.phone ? (
+                          <a href={`tel:${revealedContacts[donor.id].phone}`} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors">
+                            {revealedContacts[donor.id].phone}
+                          </a>
+                        ) : revealedContacts[donor.id] ? (
+                          <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">Not available right now</span>
+                        ) : (
+                          <button onClick={() => revealContact(donor.id)} disabled={revealingDonorId !== null} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors disabled:opacity-60">
+                            {revealingDonorId === donor.id ? 'Checking...' : 'Show number'}
+                          </button>
+                        )
                       ) : (
-                        <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">
-                          {donor.availableNow ? 'No number' : 'Off duty'}
-                        </span>
+                        <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">Not available right now</span>
                       )}
 
                       <button

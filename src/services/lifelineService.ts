@@ -458,6 +458,29 @@ export async function updateDonorAvailability(donorId: string, availableNow: boo
   return true;
 }
 
+export interface DonorContact {
+  phone: string | null;
+  whatsapp: string | null;
+}
+
+export async function getDonorContact(donorId: string): Promise<DonorContact | null> {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.rpc('get_donor_contact', {
+    p_donor_id: donorId
+  });
+  if (error) {
+    console.error('Get donor contact error:', error.message);
+    return null;
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  return {
+    phone: typeof data.phone === 'string' ? data.phone : null,
+    whatsapp: typeof data.whatsapp === 'string' ? data.whatsapp : null
+  };
+}
+
 export async function toggleDonorVerification(donorId: string, isVerified: boolean): Promise<boolean> {
   if (!supabase) {
     console.error('Supabase client not configured.');

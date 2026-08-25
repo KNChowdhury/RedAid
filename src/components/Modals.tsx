@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, 
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { calculateAge, getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { calculateAge, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
@@ -573,6 +573,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [hivStatus, setHivStatus] = useState('Not Tested');
   const [syphilisStatus, setSyphilisStatus] = useState('Not Tested');
   const [malariaStatus, setMalariaStatus] = useState('Not Tested');
+  const [revealedContact, setRevealedContact] = useState<{ phone: string | null; whatsapp: string | null } | null>(null);
+  const [revealingContact, setRevealingContact] = useState(false);
 
   React.useEffect(() => {
     // Reset to view mode every time this opens for a donor — otherwise
@@ -581,6 +583,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     // reopening jumps straight back into the edit form instead of the
     // normal read-only view.
     setIsEditing(false);
+    setRevealedContact(null);
+    setRevealingContact(false);
     if (donor) {
       setName(donor.name);
       setPhone(donor.phone);
@@ -626,6 +630,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     setIsEditing(false);
   };
 
+  const handleRevealContact = async () => {
+    if (revealingContact || !donor.availableNow) return;
+    setRevealingContact(true);
+    setRevealedContact(await getDonorContact(donor.id));
+    setRevealingContact(false);
+  };
+
   const statusOptions = ['Not Tested', 'Negative', 'Positive'];
   const statusColor = (s: string) => s === 'Positive' ? 'text-rose-600' : s === 'Negative' ? 'text-emerald-600' : 'text-slate-400';
 
@@ -664,13 +675,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             <div className="my-6 grid grid-cols-2 gap-3 text-xs font-bold">
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <span className="text-[10px] text-slate-400 block">PHONE</span>
-                <span className="text-slate-900">{(isOwnProfile || donor.availableNow) ? (donor.phone || 'Not provided') : 'Hidden while off-duty'}</span>
+                <span className="text-slate-900">{isOwnProfile ? (donor.phone || 'Not provided') : revealedContact?.phone || (revealedContact ? 'Not available right now' : 'Hidden until revealed')}</span>
               </div>
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <span className="text-[10px] text-slate-400 block">WHATSAPP</span>
-                <span className="text-slate-900">{(isOwnProfile || donor.availableNow) ? (donor.whatsapp || donor.phone || 'Not provided') : 'Hidden while off-duty'}</span>
+                <span className="text-slate-900">{isOwnProfile ? (donor.whatsapp || donor.phone || 'Not provided') : revealedContact?.whatsapp || (revealedContact ? 'Not available right now' : 'Hidden until revealed')}</span>
               </div>
             </div>
+
+            {!isOwnProfile && (
+              <button
+                onClick={handleRevealContact}
+                disabled={!donor.availableNow || revealingContact || !!revealedContact}
+                className="w-full mb-4 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {!donor.availableNow ? 'Not available right now' : revealedContact ? 'Contact checked' : revealingContact ? 'Checking availability...' : 'Show number'}
+              </button>
+            )}
 
             {isOwnProfile ? <div className="my-6 space-y-4">
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">DGHS Health Telemetry</h4>
@@ -847,9 +868,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
         {!isEditing && (
           <div className="flex gap-3">
-            {(isOwnProfile || donor.availableNow) && getWhatsAppUrl(donor.whatsapp) ? (
+            {(isOwnProfile || revealedContact?.whatsapp) && getWhatsAppUrl(isOwnProfile ? donor.whatsapp : revealedContact?.whatsapp) ? (
               <a
-                href={getWhatsAppUrl(donor.whatsapp) || undefined}
+                href={getWhatsAppUrl(isOwnProfile ? donor.whatsapp : revealedContact?.whatsapp) || undefined}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-4 bg-slate-900 hover:bg-rose-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest text-center transition-colors shadow-lg"
@@ -858,19 +879,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </a>
             ) : (
               <span className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
-                {donor.availableNow ? 'WhatsApp unavailable' : 'Donor is off-duty'}
+                {!donor.availableNow ? 'Not available right now' : 'Show number first'}
               </span>
             )}
-            {(isOwnProfile || (donor.availableNow && donor.phone)) ? (
+            {(isOwnProfile || revealedContact?.phone) ? (
               <a
-                href={`tel:${donor.phone}`}
+                href={`tel:${isOwnProfile ? donor.phone : revealedContact?.phone}`}
                 className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors"
               >
                 Call
               </a>
             ) : (
               <span className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center text-slate-400">
-                {donor.availableNow ? 'No number' : 'Off-duty'}
+                {!donor.availableNow ? 'Not available right now' : 'Show number first'}
               </span>
             )}
           </div>

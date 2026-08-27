@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, 
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { calculateAge, getCurrentDonorFromSession, getWhatsAppUrl, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { calculateAge, getCurrentDonorFromSession, getWhatsAppUrl, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
@@ -333,6 +333,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       return;
     }
 
+    if (view === 'register' && !isValidDonorName(name)) {
+      setErrorMsg('Please enter your name (not just symbols).');
+      return;
+    }
+
     setLoading(true);
 
     if (view === 'new-password') {
@@ -571,6 +576,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const districts = useDistricts();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -591,6 +597,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     // reopening jumps straight back into the edit form instead of the
     // normal read-only view.
     setIsEditing(false);
+    setSaveErrorMsg('');
     if (donor) {
       setName(donor.name);
       setPhone(donor.phone);
@@ -614,6 +621,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const districtObj = districts.find(d => d.name === district);
 
   const handleSave = async () => {
+    setSaveErrorMsg('');
+
+    if (!isValidDonorName(name)) {
+      setSaveErrorMsg('Please enter your name (not just symbols).');
+      return;
+    }
+
     setSaving(true);
     const updated = await updateDonorProfile(donor.id, {
       name,
@@ -630,7 +644,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       malariaStatus
     });
     setSaving(false);
-    if (updated && onProfileUpdated) {
+
+    if (!updated) {
+      setSaveErrorMsg('Failed to update profile. Please try again.');
+      return;
+    }
+
+    if (onProfileUpdated) {
       onProfileUpdated(updated);
     }
     setIsEditing(false);
@@ -820,6 +840,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               ))}
             </div>
 
+            {saveErrorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
+                {saveErrorMsg}
+              </div>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleSave}
@@ -829,7 +855,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button
-                onClick={() => setIsEditing(false)}
+                onClick={() => { setSaveErrorMsg(''); setIsEditing(false); }}
                 className="px-6 py-3.5 border-2 border-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest"
               >
                 Cancel
@@ -889,206 +915,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     </div>
   );
 };
-
-/* ================= 5. PROFILE EDIT MODAL ================= */
-interface ProfileEditModalProps {
-  donor: DonorProfile | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (updated: DonorProfile) => void;
-}
-
-export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ donor, isOpen, onClose, onSave }) => {
-  const districts = useDistricts();
-  const [name, setName] = useState(donor?.name || '');
-  const [phone, setPhone] = useState(donor?.phone || '');
-  const [whatsapp, setWhatsapp] = useState(donor?.whatsapp || '');
-  const [bloodGroup, setBloodGroup] = useState<BloodGroup>(donor?.bloodGroup || 'O+');
-  const [birthYear, setBirthYear] = useState(donor?.birthYear ? String(donor.birthYear) : '');
-  const [district, setDistrict] = useState(donor?.district || 'Dhaka');
-  const [area, setArea] = useState(donor?.area || (districts.find(d => d.name === district)?.areas[0] || ''));
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [lastDonationDate, setLastDonationDate] = useState(donor?.lastDonationDate || '');
-  const [isSmoker, setIsSmoker] = useState(!!donor?.isSmoker);
-  const [hbsag, setHbsag] = useState<string>(donor?.healthInfo?.hbsagStatus || 'Not Tested');
-  const [antiHcv, setAntiHcv] = useState<string>(donor?.healthInfo?.hcvStatus || 'Not Tested');
-  const [antiHiv, setAntiHiv] = useState<string>(donor?.healthInfo?.hivStatus || 'Not Tested');
-  const [vdrl, setVdrl] = useState<string>(donor?.healthInfo?.syphilisStatus || 'Not Tested');
-  const [mp, setMp] = useState<string>(donor?.healthInfo?.malariaStatus || 'Not Tested');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  React.useEffect(() => {
-    if (!isOpen) return;
-    setName(donor?.name || '');
-    setPhone(donor?.phone || '');
-    setWhatsapp(donor?.whatsapp || '');
-    setBloodGroup(donor?.bloodGroup || 'O+');
-    setBirthYear(donor?.birthYear ? String(donor.birthYear) : '');
-    setDistrict(donor?.district || 'Dhaka');
-    setArea(donor?.area || districts.find(d => d.name === district)?.areas[0] || '');
-    setLastDonationDate(donor?.lastDonationDate || '');
-    setIsSmoker(!!donor?.isSmoker);
-    setHbsag(donor?.healthInfo?.hbsagStatus || 'Not Tested');
-    setAntiHcv(donor?.healthInfo?.hcvStatus || 'Not Tested');
-    setAntiHiv(donor?.healthInfo?.hivStatus || 'Not Tested');
-    setVdrl(donor?.healthInfo?.syphilisStatus || 'Not Tested');
-    setMp(donor?.healthInfo?.malariaStatus || 'Not Tested');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [donor, isOpen]);
-
-  useDismissable(isOpen && !!donor, onClose);
-
-  if (!isOpen || !donor) return null;
-
-  const areasList = districts.find(d => d.name === district)?.areas || [];
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setLoading(true);
-    try {
-      let avatarUrl = donor.avatar;
-      if (avatarFile) {
-        const uploaded = await uploadAvatar(avatarFile, donor.id);
-        if (uploaded) avatarUrl = uploaded;
-      }
-
-      const updates: Record<string, any> = {
-        name,
-        phone: toBdDialing(phone),
-        whatsapp: toBdWhatsapp(whatsapp),
-        bloodGroup,
-        birthYear: birthYear ? Number(birthYear) : null,
-        district,
-        area,
-        avatar: avatarUrl,
-        lastDonationDate,
-        isSmoker,
-        hbsagStatus: hbsag,
-        antiHcvStatus: antiHcv,
-        antiHivStatus: antiHiv,
-        vdrlStatus: vdrl,
-        mpStatus: mp
-      };
-
-      const updated = await updateDonorProfile(donor.id, updates);
-      if (!updated) {
-        setErrorMsg('Failed to update profile. Try again later.');
-        setLoading(false);
-        return;
-      }
-
-      onSave(updated);
-      onClose();
-    } catch (err) {
-      console.error('Profile save error', err);
-      setErrorMsg('Unexpected error updating profile.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] p-6 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900">
-        <button onClick={onClose} aria-label="Close profile edit dialog" className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600">
-          <X className="w-4 h-4" />
-        </button>
-
-        <h3 className="editorial-title text-2xl font-black mb-2">Edit Profile</h3>
-        {errorMsg && <div className="mb-3 p-2 bg-rose-50 border border-rose-200 text-rose-600 rounded">{errorMsg}</div>}
-
-        <form onSubmit={handleSave} className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
-            <input value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone <span className="text-rose-600">*</span></label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">WhatsApp <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
-            <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
-              <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as any)} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1900}
-                max={new Date().getFullYear()}
-                value={birthYear}
-                onChange={e => setBirthYear(e.target.value)}
-                placeholder="e.g. 1995"
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
-              <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d=>d.name===e.target.value)?.areas[0] || ''); }} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
-              <AreaField areas={areasList} value={area} onChange={setArea} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Last Donation Date <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
-            <input
-              type="date"
-              value={lastDonationDate}
-              max={new Date().toISOString().split('T')[0]}
-              onChange={e => setLastDonationDate(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-            />
-            <p className="mt-1 text-[11px] text-slate-500">
-              শেষ কবে রক্ত দিয়েছেন? খালি রাখলে "First time" দেখাবে। পরবর্তী তারিখ ১২০ দিন পর নিজে থেকেই হিসাব হবে।
-            </p>
-          </div>
-
-          <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isSmoker}
-              onChange={e => setIsSmoker(e.target.checked)}
-              className="accent-rose-600"
-            />
-            <span className="text-xs font-bold text-slate-700">আমি ধূমপান করি</span>
-          </label>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Profile Photo <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
-            <input type="file" accept="image/*" onChange={e => setAvatarFile(e.target.files?.[0] || null)} />
-          </div>
-
-          <div className="flex gap-2">
-            <button type="submit" disabled={loading} className="px-6 py-2 bg-rose-600 text-white rounded-xl font-bold">{loading ? 'Saving...' : 'Save Changes'}</button>
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
 
 /* ================= 4. NOTIFICATIONS MODAL ================= */
 interface NotifModalProps {

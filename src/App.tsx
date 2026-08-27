@@ -5,7 +5,7 @@ import { Footer } from './components/Footer';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
 import { SuccessStories } from './components/SuccessStories';
-import { AuthModal, NotificationsModal, ProfileModal, ProfileEditModal, RequestBloodModal } from './components/Modals';
+import { AuthModal, NotificationsModal, ProfileModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
 import { ConfirmDonationBanner, MarkDonatedModal, ShareRequestModal } from './components/DonationLoop';
@@ -74,7 +74,6 @@ export function App() {
     }
     setSelectedProfileDonor(donor);
   };
-  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<EmergencyRequest | null>(null);
   const [markDonatedRequest, setMarkDonatedRequest] = useState<EmergencyRequest | null>(null);
   const [justPostedRequest, setJustPostedRequest] = useState<EmergencyRequest | null>(null);
@@ -380,36 +379,6 @@ export function App() {
     });
   };
 
-  const handleOpenProfileEdit = () => {
-    setIsProfileEditOpen(true);
-  };
-
-  const handleSaveProfile = (updated: DonorProfile) => {
-    setState(prev => ({
-      ...prev,
-      currentUser: updated,
-      donors: prev.donors.map(d => d.id === updated.id ? updated : d)
-    }));
-    if (selectedProfileDonor && selectedProfileDonor.id === updated.id) {
-      setSelectedProfileDonor(updated);
-    }
-    // Add a temporary in-app notification so user sees a confirmation
-    setState(prev => ({
-      ...prev,
-      notifications: [
-        {
-          id: `notif-save-${Date.now()}`,
-          title: 'Profile updated',
-          message: 'Your profile changes have been saved successfully.',
-          type: 'system',
-          time: 'Just now',
-          read: false
-        },
-        ...prev.notifications
-      ]
-    }));
-  };
-
   const handleDeleteRequest = async (reqId: string) => {
     const deleted = await deleteRequestFromDb(reqId);
     if (!deleted) return;
@@ -642,13 +611,6 @@ export function App() {
           }));
           setSelectedProfileDonor(updated);
         } : undefined}
-      />
-
-      <ProfileEditModal
-        donor={state.currentUser}
-        isOpen={isProfileEditOpen}
-        onClose={() => setIsProfileEditOpen(false)}
-        onSave={handleSaveProfile}
       />
 
       <NotificationsModal

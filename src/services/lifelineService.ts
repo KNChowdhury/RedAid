@@ -33,6 +33,13 @@ export function calculateAge(birthYear: number | null | undefined): number | nul
   return new Date().getFullYear() - birthYear;
 }
 
+// A name must contain at least one real letter (any script) -- rejects
+// empty strings, whitespace, and symbol-only junk like "?" or "...", while
+// still allowing Bengali and other non-Latin names.
+export function isValidDonorName(name: string): boolean {
+  return /\p{L}/u.test(name);
+}
+
 // Load or initialize state
 export function getAppState(): AppState {
   // Donor and request data must come from Supabase, not a readable browser
@@ -357,6 +364,11 @@ export async function updateDonorProfile(
   const supabaseClient = supabase;
   if (!supabaseClient) {
     console.error('Supabase client not configured.');
+    return null;
+  }
+
+  if (updates.name !== undefined && !isValidDonorName(updates.name)) {
+    console.error('Update donor error: name must contain at least one real letter.');
     return null;
   }
 
@@ -1049,6 +1061,10 @@ export async function signUpDonor(profile: {
 }): Promise<{ user: DonorProfile | null; error: string | null }> {
   if (!supabase) {
     return { user: null, error: 'Supabase client not configured.' };
+  }
+
+  if (!isValidDonorName(profile.name)) {
+    return { user: null, error: 'Please enter your name (not just symbols).' };
   }
 
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({

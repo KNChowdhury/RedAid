@@ -470,6 +470,29 @@ export async function updateDonorAvailability(donorId: string, availableNow: boo
   return true;
 }
 
+export interface DonorContact {
+  phone: string | null;
+  whatsapp: string | null;
+}
+
+export async function getDonorContact(donorId: string): Promise<DonorContact | null> {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.rpc('get_donor_contact', {
+    p_donor_id: donorId
+  });
+  if (error) {
+    console.error('Get donor contact error:', error.message);
+    return null;
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  return {
+    phone: typeof data.phone === 'string' ? data.phone : null,
+    whatsapp: typeof data.whatsapp === 'string' ? data.whatsapp : null
+  };
+}
+
 export async function toggleDonorVerification(donorId: string, isVerified: boolean): Promise<boolean> {
   if (!supabase) {
     console.error('Supabase client not configured.');
@@ -877,13 +900,13 @@ export async function verifyDonation(
 
 /** Donors who responded to a request — the real "checked in" list. */
 export async function fetchRequestResponders(requestId: string): Promise<
-  { responseId: string; donorId: string; donorName: string; bloodGroup: string }[]
+  { donorId: string; donorName: string; bloodGroup: string }[]
 > {
   if (!supabase) return [];
 
   const { data, error } = await supabase
     .from('request_responses')
-    .select('id, donor_id, donors(name, blood_group)')
+    .select('donor_id, donors(name, blood_group)')
     .eq('request_id', requestId);
 
   if (error) {
@@ -892,34 +915,10 @@ export async function fetchRequestResponders(requestId: string): Promise<
   }
 
   return (data || []).map((row: any) => ({
-    responseId: row.id,
     donorId: row.donor_id,
     donorName: row.donors?.name || 'Donor',
     bloodGroup: row.donors?.blood_group || ''
   }));
-}
-
-/**
- * A responder's phone/whatsapp, revealed only because they answered this
- * requester's specific request (patch_22's get_responder_contact RPC) — the
- * directory itself never carries contact info. Returns null if the RPC's
- * checks don't all pass (not the requester, donor went off-duty since they
- * responded, etc.) or if neither field came back.
- */
-export async function fetchResponderContact(responseId: string): Promise<{ phone: string; whatsapp: string } | null> {
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .rpc('get_responder_contact', { p_response_id: responseId })
-    .maybeSingle<{ phone: string | null; whatsapp: string | null }>();
-
-  if (error) {
-    console.error('Fetch responder contact error:', error.message);
-    return null;
-  }
-  if (!data || (!data.phone && !data.whatsapp)) return null;
-
-  return { phone: data.phone || '', whatsapp: data.whatsapp || '' };
 }
 
 export interface CompletedDonation {

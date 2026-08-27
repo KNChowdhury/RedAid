@@ -1,12 +1,13 @@
-import { Award, Calendar, Heart, MapPin, Sparkles } from 'lucide-react';
-import React, { useState } from 'react';
-import { calculateAge, calculateDistanceKm, lookupCoordinates } from '../services/lifelineService';
+import { Award, Calendar, Heart, MapPin, MessageCircle, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { calculateAge, calculateDistanceKm, getDonorContact, getWhatsAppUrl, lookupCoordinates } from '../services/lifelineService';
 import { DonorProfile, SearchFilters } from '../types';
 import { Avatar } from './Avatar';
 
 interface DonorsNetworkProps {
   donors: DonorProfile[];
   filters: SearchFilters;
+  currentUserId: string | null;
   onSelectDonor: (donor: DonorProfile) => void;
   onRequestBlood: () => void;
   initialViewMode?: 'grid' | 'map';
@@ -15,17 +16,44 @@ interface DonorsNetworkProps {
 export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   donors,
   filters,
+  currentUserId,
   onSelectDonor,
   onRequestBlood,
   initialViewMode = 'grid'
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>(initialViewMode);
   const [selectedMapPin, setSelectedMapPin] = useState<DonorProfile | null>(null);
+  const [revealedContacts, setRevealedContacts] = useState<Record<string, { phone: string | null; whatsapp: string | null }>>({});
+  const [revealingDonorId, setRevealingDonorId] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+  const revealRequestVersionRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    revealRequestVersionRef.current += 1;
+    setRevealedContacts({});
+    setRevealingDonorId(null);
+  }, [currentUserId]);
 
   // Default map center
   const mapCenter = filters.district !== 'ALL' 
     ? lookupCoordinates(filters.district, filters.area !== 'ALL' ? filters.area : 'Banani') 
     : { lat: 23.7937, lng: 90.4066 };
+
+  const revealContact = async (donorId: string) => {
+    if (revealingDonorId || !isMountedRef.current) return;
+    const requestVersion = revealRequestVersionRef.current;
+    setRevealingDonorId(donorId);
+    const contact = await getDonorContact(donorId);
+    if (!isMountedRef.current || requestVersion !== revealRequestVersionRef.current) return;
+    setRevealedContacts(prev => ({ ...prev, [donorId]: contact || { phone: null, whatsapp: null } }));
+    setRevealingDonorId(null);
+  };
 
   return (
     <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white min-w-0">
@@ -137,17 +165,33 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 
                     {/* One action, and it does the actual job. */}
                     <div className="mt-4 flex items-center gap-2">
-                      {donor.availableNow && donor.phone ? (
-                        <a
-                          href={`tel:${donor.phone}`}
-                          className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors"
-                        >
-                          Call
-                        </a>
+                      {donor.availableNow ? (
+                        revealedContacts[donor.id]?.phone ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <a href={`tel:${revealedContacts[donor.id].phone}`} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors">
+                              {revealedContacts[donor.id].phone}
+                            </a>
+                            {revealedContacts[donor.id]?.whatsapp && getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on LifelineBD. Can you help?') && (
+                              <a
+                                href={getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on LifelineBD. Can you help?') || undefined}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={`Message ${donor.name} on WhatsApp`}
+                                className="w-11 h-11 inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        ) : revealedContacts[donor.id] ? (
+                          <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">Not available right now</span>
+                        ) : (
+                          <button onClick={() => revealContact(donor.id)} disabled={revealingDonorId !== null} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors disabled:opacity-60">
+                            {revealingDonorId === donor.id ? 'Checking...' : 'Show number'}
+                          </button>
+                        )
                       ) : (
-                        <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">
-                          {donor.availableNow ? 'No number' : 'Off duty'}
-                        </span>
+                        <span className="flex-1 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-sm font-semibold text-center">Not available right now</span>
                       )}
 
                       <button

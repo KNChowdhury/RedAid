@@ -485,6 +485,7 @@ export function App() {
             <DonorsNetwork
               donors={filteredDonorsList}
               filters={filters}
+              currentUserId={state.currentUser?.id ?? null}
               onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
             />
@@ -535,6 +536,7 @@ export function App() {
             <DonorsNetwork
               donors={filteredDonorsList}
               filters={filters}
+              currentUserId={state.currentUser?.id ?? null}
               onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
               initialViewMode="map"

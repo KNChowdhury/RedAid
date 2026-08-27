@@ -183,6 +183,18 @@ export function App() {
   useEffect(() => subscribeToAuthState(
     donor => {
       if (!isMountedRef.current) return;
+      // This listener and AuthModal's own onLoginSuccess (handleLoginSuccess
+      // below) both resolve independently off the same sign-in event, racing
+      // to set currentUser with no ordering guarantee. If this side resolves
+      // to a donor object missing its id -- seen in practice right after
+      // signup, before the donor row is reliably visible to this query --
+      // committing it would corrupt every id-keyed call downstream (profile
+      // save, health info) with a literal null. Drop it instead of letting a
+      // bad resolution silently overwrite a good one.
+      if (donor && !donor.id) {
+        console.error('Auth state listener resolved a donor with no id; ignoring.');
+        return;
+      }
       // A password-reset link also creates a temporary session. Ignore the
       // generic sign-in callback while the recovery form is active.
       const activeDonor = recoveryModeRef.current ? null : donor;
@@ -342,6 +354,13 @@ export function App() {
   };
 
   const handleLoginSuccess = (user: DonorProfile) => {
+    // Same race as subscribeToAuthState's listener above -- both resolve off
+    // the same sign-in event with no ordering guarantee. Refuse to commit a
+    // donor with no id rather than corrupting currentUser.
+    if (!user.id) {
+      console.error('handleLoginSuccess called with a donor with no id; ignoring.');
+      return;
+    }
     setState(prev => ({ ...prev, currentUser: user }));
     refreshSharedData(true, user.impactScore ?? null);
   };

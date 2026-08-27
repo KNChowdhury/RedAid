@@ -641,6 +641,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const handleSave = async () => {
     setSaveErrorMsg('');
 
+    if (!donor.id) {
+      // Should no longer be reachable now that App.tsx refuses to commit a
+      // currentUser/donor with no id -- kept as a clear, specific message
+      // rather than letting a stale/invalid id reach Postgres as a bad
+      // request instead.
+      setSaveErrorMsg('Your session needs a refresh. Please reload the page and try again.');
+      return;
+    }
+
     if (!isValidDonorName(name)) {
       setSaveErrorMsg('Please enter your name (not just symbols).');
       return;

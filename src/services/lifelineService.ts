@@ -367,6 +367,15 @@ export async function updateDonorProfile(
     return null;
   }
 
+  if (!donorId) {
+    // A caller passed a falsy id -- most likely state.currentUser/donor was
+    // caught mid-resolution by the auth-state race (see subscribeToAuthState
+    // vs. signInDonor/signUpDonor's own resolution in App.tsx). Fail loudly
+    // here rather than letting Postgres reject it as a malformed uuid.
+    console.error('Update donor error: called with no donor id.');
+    return null;
+  }
+
   if (updates.name !== undefined && !isValidDonorName(updates.name)) {
     console.error('Update donor error: name must contain at least one real letter.');
     return null;
@@ -433,7 +442,7 @@ export async function updateDonorProfile(
 }
 
 export async function fetchMyHealthInfo(donorId: string): Promise<Record<string, any>> {
-  if (!supabase) return {};
+  if (!supabase || !donorId) return {};
 
   const { data, error } = await supabase
     .from('donor_health')

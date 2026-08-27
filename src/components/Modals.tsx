@@ -323,6 +323,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       return;
     }
 
+    if ((view === 'register' || view === 'new-password') && password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (view === 'register' && !bloodGroup) {
+      setErrorMsg('Please select your blood group.');
+      return;
+    }
+
     setLoading(true);
 
     if (view === 'new-password') {
@@ -418,7 +428,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
           {view === 'register' && (
             <div>
               <label htmlFor="auth-full-name" className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
@@ -480,9 +490,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
-                  <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
-                    <option value="">Select blood group (optional)</option>
+                  <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
+                  <select required value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
+                    <option value="" disabled>Select blood group</option>
                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
                 </div>

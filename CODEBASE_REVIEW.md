@@ -1,5 +1,158 @@
 # LifelineBD Codebase Review
 
+## Known issue, not urgent — null `donor_id` race during signup (2026-08-25)
+
+Found while UI-testing the signup flow (blood-group-required fix + donor-write
+trigger fix, both confirmed working). Not a regression from either of those
+fixes — a pre-existing race, observed but not investigated further, and not
+blocking anything: the signed-up user still ends up correctly authenticated.
+
+**Symptom:** one console error during a successful signup:
+```
+Fetch health info error: invalid input syntax for type uuid: "null"
+GET .../rest/v1/donor_health?select=*&donor_id=eq.null
+```
+
+**Likely mechanism:** `signUpDonor()` (`src/services/lifelineService.ts`)
+inserts the donor row and then calls `fetchMyHealthInfo(signedUpProfile.id)`,
+while `subscribeToAuthState`'s `onAuthStateChange` listener independently
+calls `getCurrentDonorFromSession()` in parallel (see the comment at
+`lifelineService.ts` around line 1116). Both race to create/resolve the same
+donor row. Evidence from the network log: three initial `donors?...
+auth_user_id=eq...` lookups, a `link_or_get_my_donor` RPC call, the
+insert, and then `donor_health?...donor_id=eq.null` — one side of the race
+called `fetchMyHealthInfo` with `null`/undefined before its own donor id had
+resolved; the other side (the listener) resolved a real id and won, and the
+user ended up correctly signed in.
+
+**Fix, not done, not urgent:** trace both call sites' timing precisely and
+either await a single source of truth for the donor id before calling
+`fetchMyHealthInfo`, or guard `fetchMyHealthInfo` against a null/undefined id
+and no-op instead of firing the request.
+
+## Update 2026-08-25 — Live donor-contact-reveal vulnerability (Critical, confirmed deployed)
+
+Since the 2026-08-23 review below, local `main` and `origin/main` diverged from
+common ancestor `c53c76b`. Local-only commit `9d99c90` added a *relationship-
+scoped* contact-reveal RPC (`get_responder_contact` — only reveals a donor's
+number to the requester whose request that donor answered). A separate,
+unmerged line of commits on `origin/main` (`733d6af`, `b0f265f`, `b32784b`)
+independently added a *second*, open-directory RPC (`get_donor_contact`) with
+no relationship check at all — gated only on "authenticated, donor
+available_now, not yourself, under 50 calls/hour."
+
+**Confirmed via `curl` against the production Vercel bundle
+(`https://lifelinebd.vercel.app/assets/index-*.js`):** the deployed site
+contains `get_donor_contact` and does **not** contain `get_responder_contact`
+anywhere in the bundle. The vulnerable, unmerged `origin/main` branch — not
+local `main` — is what real users are getting today.
+
+**Confirmed via anon-key PostgREST probes against the live Supabase project:**
+both `get_donor_contact` and its audit table exist live (`42501` permission
+denied for anon = deployed and correctly anon-gated, but callable by any
+`authenticated` account). Donor `id`s needed to call it are already public via
+`v_public_donors`/`v_donors_directory`.
+
+### Critical
+
+- **C1 — `get_donor_contact` (patch_23) lets any signed-up account harvest any
+  available donor's phone/WhatsApp.** No check ties the caller to the donor —
+  only availability + self-exclusion + a 50/hour rate limit gate it. Since
+  donor IDs are public, this is a directory-scraping vector: sign up once,
+  script through `v_public_donors`, call `get_donor_contact` on every
+  `available_now` donor, repeat hourly or with more accounts. This is the
+  exact scenario patch_21's own incident writeup warned against, just moved
+  from "anon" to "any free signup." **Live and exploitable right now.**
+  Fix: either add a request/response relationship check to `get_donor_contact`
+  itself, or retire it and route `DonorsNetwork.tsx`/`Modals.tsx`'s "Show
+  number" through the existing `get_responder_contact` model. Two RPCs
+  solving "reveal a donor's contact" with different trust models is itself
+  the defect — keep one.
+- **C2 — Wrong branch is in production.** Vercel is building from
+  `origin/main` (the vulnerable branch), not local `main` (the fixed one).
+  Before any other fix: confirm in the Vercel dashboard which commit is live,
+  then reconcile the two histories deliberately (do not force-push either
+  direction — that silently discards one side's work).
+
+### High
+
+- **H1 — `ProfileModal.handleRevealContact` (`src/components/Modals.tsx`,
+  `origin/main`) has a stale-closure bug.** `ProfileModal` is a single
+  persistent instance (no `key`) reused across different donors. Its reveal
+  handler closes over `donor.id` with only an `isMountedRef` guard — which
+  stays `true` across a donor switch, so it doesn't catch the case. Opening
+  donor A, clicking "Show number," then switching to donor B before A's
+  request resolves shows **A's phone number labeled as B's**. `DonorsNetwork.
+  tsx` already has the correct fix for this exact class of bug
+  (`revealRequestVersionRef`, added in `b32784b`) — it was never applied to
+  `ProfileModal`. Fix: add the same generation-ref pattern, keyed to
+  `donor.id`.
+- **H2 — Leftover hardcoded debug branch targeting a real user.**
+  `src/components/DonorsNetwork.tsx`: `if (donor.name === 'MIlad' ||
+  donor.name === 'Milad') { console.log('MIlad data:', {...}) }` — present
+  in the live production bundle. Delete it; no shipped code should branch on
+  a literal developer's name.
+- **H3 — Governance file edited alongside the vulnerable commit.** `733d6af`
+  (the same commit introducing `get_donor_contact`) also appended a "Staff-
+  engineer practices" section to `CLAUDE.md`. Content itself is benign
+  generic engineering advice, not present on local `main`, and did not affect
+  this review — flagged only as a process concern: a commit that touches
+  engineering-instruction files bundled with a security-sensitive RPC change
+  deserves its own review pass.
+
+### Medium
+
+- **M1 — `MarkDonatedModal.handleRevealContact` (`DonationLoop.tsx`) has no
+  mount/cancellation guard**, unlike the rest of that file. Lower severity
+  than H1 — `responseId` keys are unique per request, so no cross-request
+  misattribution, just a possible post-unmount `setState` warning.
+- **M2 — `v_donors_directory` is reachable by `anon`** despite patch_17/20
+  documenting it as authenticated-only (confirmed via live probe: 200 with
+  data, not 401/42501). In practice it exposes nothing `v_public_donors`
+  doesn't already expose to anon, but the intended guest/authenticated
+  separation isn't actually enforced at the grant layer — same class of
+  drift as the patch_21 phone-column incident. Either revoke anon select or
+  update the docs to say it's intentionally shared.
+
+### Patch live-state audit (03–23)
+
+Confirmed live and correct via anon-key probes: patch_03/17/20 (no phone/
+whatsapp columns), patch_04/05 (notification outbox blocked for anon),
+patch_18/20 (completed-donation feed clean), patch_19 (anon execute revoked
+on `record_donation`/`confirm_my_donation`/`is_admin`/`current_donor_id`/
+`link_or_get_my_donor`), patch_21 (columns dropped), patch_22
+(`get_responder_contact` deployed, anon-denied — note it takes
+`p_response_id`, not `p_donor_id`), patch_23 (`get_donor_contact` deployed —
+see C1, this is a "deployed and vulnerable" confirmation, not "deployed and
+safe"). No patch found to be silently un-applied beyond what's stated above.
+
+Cannot confirm without a service-role key (open, not guessed): patch_05/09/
+11/12/13/15's exact live RLS policy text (anon-role *behavior* is consistent
+with them being applied, but that's not proof of the exact policy shape),
+and patch_06/07/10's donation double-credit guard internals (the RPC exists
+and anon is denied; the idempotency logic itself isn't observable via anon
+probing).
+
+### Not regressed since 2026-08-23 review (re-checked on local `main` HEAD)
+
+Request-storm mitigation (single-flight + debounce), stale-result guards,
+realtime channel cleanup, and the donation double-crediting guard
+(`confirm_my_donation`'s `credited` check + client-side `busyId` disable) all
+still hold on local `main`. No raw PII found in any `console.*` call on local
+`main` — the only PII-adjacent debug log found anywhere is H2 above, which is
+`origin/main`-only.
+
+### Fix order
+
+1. C2 — confirm and fix what Vercel is actually serving.
+2. C1 — close the relationship-check gap in `get_donor_contact` (or retire it).
+3. H1 — generation guard in `ProfileModal`.
+4. H2 — delete the debug branch.
+5. M2 — decide the `v_donors_directory` anon-grant question.
+6. H3, M1 — process/hygiene, no urgency.
+
+---
+
 Review date: 2026-08-23
 
 ## Scope

@@ -1205,6 +1205,16 @@ export async function signUpDonor(profile: {
       friendlyMsg = 'Donor profile creation blocked by row-level security. Ensure your Supabase donors policy allows inserts for authenticated users with auth.uid() = id.';
     } else if (errorMsg.toLowerCase().includes('network') || errorMsg.toLowerCase().includes('failed to fetch')) {
       friendlyMsg = 'Network error. Please check your internet connection and try again.';
+    } else if (donorError?.code === '23502' || errorMsg.toLowerCase().includes('violates not-null constraint')) {
+      // A required profile field (e.g. blood group) was missing. The signup
+      // form is expected to catch this before submitting; this is the
+      // server-side backstop in case it doesn't (or a required column is
+      // added later without a matching form check).
+      friendlyMsg = 'Your account was created, but your profile is missing a required field. Please sign in and complete your profile, or try signing up again.';
+    } else if (donorError?.code || (errorMsg && /relation|column|constraint|syntax error at/i.test(errorMsg))) {
+      // Any other raw database error (undefined column/table, check
+      // violation, etc.) — never show internal schema details to the user.
+      friendlyMsg = 'Your account was created, but we could not finish setting up your donor profile. Please try signing in — if that does not work, try signing up again in a few minutes.';
     } else if (errorMsg) {
       friendlyMsg = errorMsg;
     }

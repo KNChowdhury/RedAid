@@ -622,6 +622,7 @@ export function App() {
       <ProfileModal
         donor={selectedProfileDonor}
         isOwnProfile={selectedProfileDonor?.id === state.currentUser?.id}
+        currentUserId={state.currentUser?.id ?? null}
         onClose={() => setSelectedProfileDonor(null)}
         onToggleAvailability={selectedProfileDonor?.id === state.currentUser?.id ? handleToggleCurrentUserAvailability : undefined}
         onProfileUpdated={selectedProfileDonor?.id === state.currentUser?.id ? (updated) => {

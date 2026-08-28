@@ -1,5 +1,137 @@
 # LifelineBD Codebase Review
 
+## Update 2026-08-29 (2) — Critical: revealed donor contact stays visible after logout — confirmed stale UI state, not an RPC hole; fixed
+
+**Reported:** sometimes, after signing out, a donor's revealed phone number is still visible on screen. Two possible causes were flagged: (1) client-side state not cleared on sign-out (real bug, not a live security hole — the data was legitimately fetched while authenticated), or (2) the RPC/a cached response still serving contact data to an unauthenticated session (critical — would mean anon can actually get contact data).
+
+**Verdict: scenario 1.** Confirmed via code and live testing, in that order.
+
+**RPC lockdown confirmed live, directly, before touching any code:**
+```
+POST /rest/v1/rpc/get_donor_contact  (apikey + Authorization: anon key only, no user JWT)
+→ HTTP 401 — {"code":"42501","message":"permission denied for function get_donor_contact"}
+```
+Rejected at the Postgres GRANT layer (`patch_23_donor_contact_reveal_rpc.sql` revokes execute from `public, anon, authenticated`, grants back only to `authenticated`) before the function body's own `auth.uid() is null` check even runs — both layers of the defense-in-depth hold. Scenario 2 is ruled out with direct evidence, not assumption.
+
+**Root cause, scenario 1:**
+- `App.tsx` `handleLogout` (`src/App.tsx:368-373`) clears `currentUser` but never touches `selectedProfileDonor` — if `ProfileModal` is open, it stays open showing the same donor.
+- `ProfileModal`'s reveal-state reset effect (`src/components/Modals.tsx`, originally lines 608-633) only depended on `[donor]` — it fires on a donor switch, never on an auth-identity change, so a modal left open across sign-out never reset `revealedContact`.
+- Same bug class already fixed once: `DonorsNetwork.tsx`'s parallel `revealedContacts` map (the grid-card reveal) already resets correctly via a dedicated `useEffect(..., [currentUserId])` (added in `b32784b`/`4edc395`). That fix was never applied to `ProfileModal`'s separate, independent reveal state — two systems solving the same problem, one patched, one not.
+
+**Fix applied:** `ProfileModal` now takes a `currentUserId: string | null` prop (`App.tsx` passes `state.currentUser?.id ?? null`, same as `DonorsNetwork` already does) and has a new effect, keyed separately from the existing `[donor]` effect, that resets `revealedContact`/`revealingContact` (and bumps `revealVersionRef` to invalidate any in-flight reveal call) whenever `currentUserId` changes — matching `DonorsNetwork.tsx`'s existing pattern exactly instead of diverging again. `npm run lint` and `npm run build` both pass unchanged.
+
+**Live verification, real reproduction, not assumed:**
+- The literal reported steps ("open profile, reveal number, click Sign Out, check if still visible," all in one tab) turned out to be physically **impossible to trigger via a real click**: Playwright confirmed the modal's `fixed inset-0 z-50` backdrop intercepts pointer events at the Navbar's Sign Out button location — a real user cannot click Sign Out while any modal is open in this app. Retrying it live, unmodified, produces Playwright's own actionability timeout, not a click.
+- Tested the realistic equivalent instead — a real, live, two-tab session (same browser context/localStorage, disposable test accounts signed up through the real signup flow against production): Tab A opens a donor's profile and reveals their number; Tab B signs out. Supabase's cross-tab auth sync correctly nulls `currentUser` in Tab A with no click on Tab A at all.
+  - **Pre-fix (production, current deploy):** modal ended up closed, no number left visible.
+  - **Post-fix (local dev server, patched code):** same outcome.
+  - Both look safe — but the pre-fix result is **not** because of any deliberate protection; see the side-finding below. That's exactly why the deliberate fix still matters: the pre-fix safety was accidental and not something to rely on.
+
+**Side finding — real, separate bug, not fixed in this patch:** `useDismissable(!!donor, onClose)` in `ProfileModal` is called with an **inline arrow function** (`onClose={() => setSelectedProfileDonor(null)}`), and `onClose` sits in `useDismissable`'s own effect dependency array (`src/hooks/useDismissable.ts:51`). Since that inline callback is a new reference on every `App` render, the effect tears down and re-runs — pushing and popping a browser history entry — on **every single re-render while any dismissable overlay is open**, not just on open/close transitions. Confirmed live: 4 distinct `framenavigated` events fired in Tab A during the burst of re-renders the cross-tab logout triggered. This churn is what actually closed the modal pre-fix, via a `history.back()` → `popstate` → `onClose()` cascade — not a deliberate reset. It happens to be safe here, but it's fragile (depends on enough re-renders happening in the right order) and is exactly the "unstable inline callback in an effect dependency array" pattern this file's own engineering guidelines call out to check for. Not fixed here to keep this patch scoped to the one reported issue — worth a follow-up (memoize the `onClose` passed to `useDismissable`, or drop `onClose` from that effect's deps since it's only used inside event handlers, not reactively).
+
+**Also found, unrelated, not fixed here:** `donors.phone` has a unique constraint (`donors_phone_uniq`). `signUpDonor()`'s `23505`-conflict recovery (`src/services/lifelineService.ts` `upsertDonorRow`) re-selects the existing row by `auth_user_id` to merge in the submitted profile — but on a **phone** collision (a different account already holds that phone), that re-select naturally finds nothing (wrong `auth_user_id`), falls through, and returns the original constraint-violation error. The user sees "your account was created, but we could not finish setting up your donor profile" instead of a clear "phone number already registered" message, and is left with a confirmed `auth.users` row and no `donors` row at all. Found while creating disposable test accounts for this audit and accidentally reusing the same placeholder phone number across two of them.
+
+**Test accounts created against production for this investigation — need deletion (auth.users + public.donors rows) from Supabase:**
+- `zzz.delete.me.leakaudit@example.com`, `...2@`, `...5@`, `...6@`, `...7@example.com` — real accounts, some with a real `donors` row.
+- `zzz.delete.me.leakaudit3@example.com`, `...4@example.com` — auth-only, no `donors` row (hit the phone-collision bug above).
+- `zzz.delete.me.leakaudit-probe@example.com` — auth + manually-inserted donor row, used only to isolate the phone-collision bug via direct REST calls.
+
+## Update 2026-08-29 — Memory-leak audit of the 2026-08-27 commits (no leak found in code; live reproduction confirms no leak on idle load)
+
+**Trigger:** live-site report that the page gets noticeably heavier/laggier after
+being open 3-4 minutes — a classic leak symptom. Asked to audit every
+`useEffect`/`useCallback`/timer/subscription touched in the most recent day of
+work (all four commits dated 2026-08-27: `ea738cc`, `4edc395`, `2309bdd`,
+`e52fda2`), the same way the earlier 56,844-request infinite-loop bug was
+tracked down.
+
+**Reviewed diff-by-diff, not just grepped:**
+
+- `App.tsx` `subscribeToAuthState` listener + `handleLoginSuccess` (`ea738cc`):
+  the commit only added `if (!donor.id) return` guards *inside* the existing
+  callback bodies. The effect's own shape —
+  `useEffect(() => subscribeToAuthState(...), [refreshSharedData])` — was
+  untouched. `subscribeToAuthState` (`lifelineService.ts:1375`) returns a
+  correct cleanup (`data.subscription.unsubscribe()` plus clearing any pending
+  restore `setTimeout`s), and `refreshSharedData` is a stable `useCallback`
+  (deps: `notify`, itself stable through `openRequestsTab` → `setActiveTab`,
+  both memoized with fixed dep arrays). No duplicate-listener registration, no
+  missing cleanup.
+- `DonorsNetwork.tsx` reveal-contact state (`4edc395`): new `isMountedRef` and
+  `revealRequestVersionRef` effects (lines 31-41) fire once (`[]`) and on
+  `currentUserId` change respectively, both with correct cleanup/guards.
+  `revealContact()` is a single one-shot async RPC call — no timer, interval,
+  or subscription left running after use.
+- `Modals.tsx` `ProfileModal.handleRevealContact` / `getDonorContact`
+  (`b0f265f`, `4edc395`): single RPC call (`lifelineService.ts:487`), guarded
+  by `isMountedRef` + `revealVersionRef`. Confirmed nothing keeps running after
+  the modal closes.
+- `Modals.tsx` / `lifelineService.ts` validation wiring (`2309bdd`, `e52fda2`
+  — `isValidDonorName`, required blood group, password length, save-error
+  surfacing): plain `useState` and validation-branch additions. No new
+  effects, no dependency-array changes anywhere in these two commits.
+
+**Conclusion on the code:** no interval, timeout, listener, or subscription
+was added or left uncleaned in any of the four commits from that session.
+Every effect touched either had no dependency-array change, or was already
+correctly guarded before these diffs landed (verified against the
+pre-existing lines around each hunk, not just the added lines).
+
+**Live reproduction — real measurement, not a guess.** Installed `playwright`
+as a devDependency (confirmed it does not affect the production
+build/bundle: `npm run lint` and `npm run build` both pass unchanged after
+install, output chunk sizes match the pre-existing baseline in L1 below), and
+drove headless Chromium against `https://lifelinebd.vercel.app/` (the site's
+default "Donors Network" landing tab, guest/logged-out) for 5 minutes idle —
+no clicks, no interaction, matching the reported "gets heavier after 3-4
+minutes" scenario. Sampled via the CDP `Performance`/`HeapProfiler` domains
+every 30s, forcing a real GC (`HeapProfiler.collectGarbage`) immediately
+before each read so the numbers reflect retained memory, not memory merely
+eligible for collection:
+
+| t (s) | heap used (MB) | heap total (MB) | DOM nodes | JS listeners | documents |
+|-------|----------------|------------------|-----------|---------------|-----------|
+| 0     | 2.72 | 3.25 | 846 | 231 | 1 |
+| 30    | 2.74 | 3.25 | 846 | 231 | 1 |
+| 60    | 2.75 | 3.25 | 846 | 231 | 1 |
+| 90    | 2.75 | 3.25 | 846 | 231 | 1 |
+| 120   | 2.76 | 3.25 | 846 | 231 | 1 |
+| 150   | 2.77 | 3.25 | 846 | 231 | 1 |
+| 180   | 2.78 | 3.25 | 846 | 231 | 1 |
+| 210   | 2.78 | 3.25 | 846 | 231 | 1 |
+| 240   | 2.78 | 3.25 | 846 | 231 | 1 |
+| 270   | 2.78 | 3.25 | 846 | 231 | 1 |
+| 300   | 2.78 | 3.25 | 846 | 231 | 1 |
+
+**Verdict: no leak on this path.** DOM node count and JS event listener count
+are bit-for-bit flat for the entire 5 minutes (846 / 231, never once
+changing) — the strongest possible signal against an accumulating
+listener/subscription/DOM-node leak. Post-GC heap rises a total of 0.06 MB
+(60 KB) over 300 seconds, front-loaded in the first 3 minutes and dead flat
+for the last 2 (180s-300s all read 2.78 MB) — a one-time settling
+(lazy-initialized module state, e.g. Supabase client internals), not
+unbounded growth. This is not even a sawtooth; there was nothing to collect.
+No console errors were observed during the window either.
+
+**Scope limit — this covers idle-on-landing-page as a guest, nothing else.**
+Headless Chromium has no session, so this run never exercised a logged-in
+donor, opening/closing `ProfileModal` or the contact-reveal flow repeatedly,
+switching tabs, or a long-lived authenticated session — none of which are
+ruled out by this result. If the reported heaviness only shows up signed in,
+or only after specific interactions (reveal contact, tab switching, opening
+modals repeatedly), that needs a follow-up run exercising those actions
+specifically — happy to script that next if useful, given a test account.
+`playwright` is left installed as a devDependency for that or any future
+browser smoke test (ties into M1 below, which flags the lack of one) —
+say the word if you'd rather I revert the install instead.
+
+**Where to look next if the symptom persists and isn't in this session's
+diff:** `subscribeToLiveUpdates` / `subscribeToNotifications` channel
+lifecycle (`lifelineService.ts:979-1023`, unchanged in this session), and any
+component not touched on 2026-08-27 — `SidebarStats.tsx`, `RewardsHub.tsx`,
+`HospitalPortal.tsx`, `SuccessStories.tsx` — none of which were in scope for
+this pass.
+
 ## Known issue, not urgent — null `donor_id` race during signup (2026-08-25)
 
 Found while UI-testing the signup flow (blood-group-required fix + donor-write

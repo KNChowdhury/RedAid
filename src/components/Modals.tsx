@@ -567,12 +567,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 interface ProfileModalProps {
   donor: DonorProfile | null;
   isOwnProfile: boolean;
+  currentUserId: string | null;
   onClose: () => void;
   onToggleAvailability?: () => void;
   onProfileUpdated?: (updated: DonorProfile) => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, onClose, onToggleAvailability, onProfileUpdated }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, currentUserId, onClose, onToggleAvailability, onProfileUpdated }) => {
   const districts = useDistricts();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -604,6 +605,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       isMountedRef.current = false;
     };
   }, []);
+
+  // Same reset DonorsNetwork.tsx's revealedContacts already does on
+  // currentUserId change -- ProfileModal is a single persistent instance that
+  // doesn't remount or change its `donor` prop on sign-out, so without this,
+  // a contact revealed before logout stays rendered after it. Keyed
+  // separately from the [donor] effect below so it also fires when the same
+  // donor's modal is left open across a login/logout transition.
+  React.useEffect(() => {
+    revealVersionRef.current += 1;
+    setRevealedContact(null);
+    setRevealingContact(false);
+  }, [currentUserId]);
 
   React.useEffect(() => {
     // Reset to view mode every time this opens for a donor — otherwise

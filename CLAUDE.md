@@ -81,6 +81,31 @@ principles on every task, not just when explicitly asked:
   happen, and is it actually fixed" from the repo alone, not from a chat
   transcript that isn't loaded into their context.
 
+### Manual data fixes must mirror the full atomic change, not just the visible symptom
+- When correcting donor/donation stats by hand (points, lives saved, dates,
+  availability, etc.), first identify every column the equivalent code path
+  sets together as one atomic change (e.g. `confirm_my_donation()` /
+  `verify_donation()` / `record_donation()` all set `impact_score`,
+  `lives_saved`, `last_donation_date`, AND `available_now = false` in the
+  same transaction) — then make the manual `UPDATE` set all of them, not
+  just the one column that was visibly wrong. A manual fix that only
+  touches the symptom column leaves the row in a state no real code path
+  would ever produce, which surfaces later as an unexplained inconsistency
+  somewhere downstream (UI, another query, another donor's comparison).
+- Precedent: 2026-08-29's double-crediting fix for `beyourbestbd` corrected
+  `impact_score` (1000→600) and `lives_saved` (12→4) but left
+  `available_now = true` (the old buggy trigger's leftover value) untouched
+  — a real donation should always flip it to `false`. Result: `donors.tsx`
+  showed this donor as available with a `last_donation_date` already set,
+  while another donor who donated the same day correctly showed
+  unavailable — a visible, unexplained UI inconsistency
+  (`DonorsNetwork.tsx` only renders the "Available from [date]" countdown
+  when `!donor.availableNow && donor.nextEligibleDate`). Fixed with a
+  follow-up `UPDATE ... SET available_now = false`; verified via query.
+  This was the second fix in one day that only touched the symptom column
+  instead of the full atomic set — treat it as a pattern to actively guard
+  against, not a one-off.
+
 ### Defense in depth, not defense in one place
 - A security property (e.g. "off-duty donors' numbers are private") should
   ideally hold even if one layer fails — e.g., enforced at the RPC logic

@@ -43,6 +43,27 @@ interface RequestModalProps {
   editingRequest?: EmergencyRequest | null;
 }
 
+function getDefaultNeededByTime(): string {
+  const date = new Date();
+  date.setMinutes(0, 0, 0);
+  date.setHours(date.getHours() + 2);
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 16);
+}
+
+function formatNeededByTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function toDateTimeLocal(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return getDefaultNeededByTime();
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 16);
+}
+
 export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, editingRequest = null }) => {
   const districts = useDistricts();
   const [patientName, setPatientName] = useState('');
@@ -52,7 +73,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const [area, setArea] = useState('Banani');
   const [hospitalName, setHospitalName] = useState('');
   const [bags, setBags] = useState('2');
-  const [neededBy, setNeededBy] = useState('Today, 6:00 PM');
+  const [neededBy, setNeededBy] = useState(getDefaultNeededByTime);
   const [urgency, setUrgency] = useState<'Critical' | 'High' | 'Medium'>('Critical');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -76,7 +97,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
       setArea(editingRequest.area || '');
       setHospitalName(editingRequest.hospitalName || '');
       setBags(String(editingRequest.requiredBags ?? 1));
-      setNeededBy(editingRequest.neededByTime || '');
+      setNeededBy(toDateTimeLocal(editingRequest.neededByTime || ''));
       setUrgency(editingRequest.urgency);
       setPhone(editingRequest.contactPhone || '');
       setWhatsapp(editingRequest.contactWhatsapp || '');
@@ -109,7 +130,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         district,
         area,
         requiredBags: Number(bags) || 1,
-        neededByTime: neededBy,
+        neededByTime: formatNeededByTime(neededBy),
         urgency,
         contactPhone: toBdDialing(phone),
         contactWhatsapp: toBdWhatsapp(whatsappSameAsPhone ? phone : whatsapp),
@@ -199,7 +220,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             </div>
             <div>
               <label htmlFor="request-needed-by" className="block text-xs font-bold uppercase text-slate-700 mb-1">Needed By Time <span className="text-rose-600">*</span></label>
-              <input id="request-needed-by" name="neededBy" value={neededBy} onChange={e => setNeededBy(e.target.value)} placeholder="e.g. Today, 5 PM" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <input id="request-needed-by" name="neededBy" required type="datetime-local" value={neededBy} onChange={e => setNeededBy(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div>
               <label htmlFor="request-urgency" className="block text-xs font-bold uppercase text-slate-700 mb-1">Urgency Priority <span className="text-rose-600">*</span></label>

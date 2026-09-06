@@ -1,5 +1,6 @@
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, FileText, Shield, Trash2, UserCheck, Users } from 'lucide-react';
 import React, { useState } from 'react';
+import { formatRequestDeadline } from '../services/lifelineService';
 import { DonorProfile, EmergencyRequest } from '../types';
 import { Avatar } from './Avatar';
 
@@ -183,7 +184,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-sm text-slate-900 truncate">{req.hospitalName} ({req.patientName})</p>
-                  <p className="text-xs text-slate-500 truncate">{req.area}, {req.district} • Needed: {req.neededByTime}</p>
+                  <p className="text-xs text-slate-500 truncate">{req.area}, {req.district} • Needed: {formatRequestDeadline(req.neededByTime, req.createdAt)}</p>
                 </div>
               </div>
 

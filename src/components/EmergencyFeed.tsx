@@ -1,6 +1,6 @@
 import { AlertCircle, Clock, MapPin, Phone, Share2, ShieldCheck, Users } from 'lucide-react';
 import React from 'react';
-import { buildRequestShareText, buildWhatsAppShareUrl, getWhatsAppUrl } from '../services/lifelineService';
+import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline, getWhatsAppUrl } from '../services/lifelineService';
 import { EmergencyRequest } from '../types';
 
 interface EmergencyFeedProps {
@@ -105,7 +105,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                       <span className="text-slate-300">•</span>
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        Needed: <span className="text-rose-600 font-extrabold">{req.neededByTime}</span>
+                        Needed: <span className="text-rose-600 font-extrabold">{formatRequestDeadline(req.neededByTime, req.createdAt)}</span>
                       </span>
                     </p>
                   </div>

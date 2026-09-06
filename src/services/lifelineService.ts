@@ -5,6 +5,19 @@ import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBad
 // Retained only as a migration key so old browser snapshots can be removed.
 const STORAGE_KEY = 'LIFELINE_BD_STATE_V3';
 
+export function formatRequestDeadline(value: string, createdAt: string): string {
+  const match = value.match(/^(Today|Tomorrow|Tonight),\s*(.+)$/i);
+  if (!match) return value;
+
+  const baseDate = new Date(createdAt);
+  if (Number.isNaN(baseDate.getTime())) return value;
+  if (match[1].toLowerCase() === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
+
+  const deadline = new Date(`${baseDate.toDateString()} ${match[2]}`);
+  if (Number.isNaN(deadline.getTime())) return value;
+  return deadline.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
 export interface AppState {
   donors: DonorProfile[];
   requests: EmergencyRequest[];
@@ -589,7 +602,7 @@ function mapDbRequestToRequest(row: any): EmergencyRequest {
     district: row.district || '',
     area: row.area || '',
     requiredBags: row.required_bags,
-    neededByTime: row.needed_by_time || '',
+    neededByTime: formatRequestDeadline(row.needed_by_time || '', row.created_at || ''),
     urgency: row.urgency,
     contactPhone: row.contact_phone,
     contactWhatsapp: row.contact_whatsapp || '',

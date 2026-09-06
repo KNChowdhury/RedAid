@@ -6,17 +6,23 @@ import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBad
 const STORAGE_KEY = 'LIFELINE_BD_STATE_V3';
 
 export function formatRequestDeadline(value: string, createdAt: string): string {
-  const match = value.match(/^(Today|Tomorrow|Tonight),\s*(.+)$/i);
+  const match = value.match(/^(Today|Tomorrow|Tonight)(?:,\s*(.*))?$/i);
   if (!match) return value;
 
   const baseDate = new Date(createdAt);
   if (Number.isNaN(baseDate.getTime())) return value;
   if (match[1].toLowerCase() === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
 
-  const compactTime = match[2].trim().match(/^(\d{1,2})(\d{2})\s*(am|pm)$/i);
+  const timeText = (match[2] || '').trim();
+  if (!timeText) {
+    return baseDate.toLocaleDateString([], { dateStyle: 'medium' });
+  }
+
+  const normalizedTimeText = timeText.replace(/(\d)\.(\d{2})/g, '$1:$2');
+  const compactTime = normalizedTimeText.match(/^(\d{1,2})(\d{2})\s*(am|pm)$/i);
   const normalizedTime = compactTime
     ? `${Number(compactTime[1])}:${compactTime[2]} ${compactTime[3].toUpperCase()}`
-    : match[2];
+    : normalizedTimeText;
   const deadline = new Date(`${baseDate.toDateString()} ${normalizedTime}`);
   if (Number.isNaN(deadline.getTime())) return value;
   return deadline.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });

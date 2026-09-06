@@ -18,11 +18,20 @@ export function formatRequestDeadline(value: string, createdAt: string): string 
     return baseDate.toLocaleDateString([], { dateStyle: 'medium' });
   }
 
-  const normalizedTimeText = timeText.replace(/(\d)\.(\d{2})/g, '$1:$2');
-  const compactTime = normalizedTimeText.match(/^(\d{1,2})(\d{2})\s*(am|pm)$/i);
-  const normalizedTime = compactTime
-    ? `${Number(compactTime[1])}:${compactTime[2]} ${compactTime[3].toUpperCase()}`
-    : normalizedTimeText;
+  const timeMatch = timeText.match(/^(\d{1,2})(?:[:.]?(\d{2}))\s*(am|pm)$/i);
+  if (timeMatch) {
+    let hours = Number(timeMatch[1]);
+    const minutes = Number(timeMatch[2]);
+    const meridiem = timeMatch[3].toLowerCase();
+    if (meridiem === 'pm' && hours < 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+    if (hours <= 23 && minutes <= 59) {
+      baseDate.setHours(hours, minutes, 0, 0);
+      return baseDate.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  }
+
+  const normalizedTime = timeText.replace(/\./g, ':');
   const deadline = new Date(`${baseDate.toDateString()} ${normalizedTime}`);
   if (Number.isNaN(deadline.getTime())) return value;
   return deadline.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });

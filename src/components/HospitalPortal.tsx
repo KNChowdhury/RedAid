@@ -50,11 +50,16 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
 
   // Load who actually responded, instead of showing an invented count.
   useEffect(() => {
+    let cancelled = false;
     hospitalRequests.forEach(async req => {
       if (responders[req.id]) return;
       const list = await fetchRequestResponders(req.id);
+      if (cancelled) return;
       setResponders(prev => ({ ...prev, [req.id]: list }));
     });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hospitalRequests.map(r => r.id).join(',')]);
 

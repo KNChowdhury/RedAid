@@ -429,6 +429,63 @@ No persistent event-listener or realtime-channel leak was confirmed in the inspe
 5. Add browser and database regression tests.
 6. Address bundle splitting and storage hardening.
 
+---
+
+## Update 2026-09-06 — Current lifecycle review
+
+### Confirmed findings
+
+- **High — stale donation-loop results after logout:** `src/App.tsx`, `refreshLoopData` clears donor-specific state without invalidating an already-running request. A response that started before logout can repopulate the cleared arrays.
+- **High — stale notifications after donor change:** the notification effect guards its fetch with `cancelled`, but the donor-present cleanup currently returns only the realtime unsubscribe function and never flips that flag.
+- **High — auth-view refresh coalescing:** `refreshSharedData` returns any existing in-flight promise without checking whether its `loggedIn`/points key matches the new caller. A guest refresh can satisfy an authenticated refresh, or the reverse.
+- **Medium — modal callback churn:** `useDismissable` depends on `onClose`, while modal callers pass inline callbacks. Parent rerenders can repeatedly create history entries and listener registrations while the overlay remains open.
+- **Medium — hospital responder requests:** `HospitalPortal` launches async responder fetches without cancellation/version guards.
+- **Low — signup timeout retention:** the profile insert timeout in `signUpDonor` is not cleared when the request wins the race.
+- **Low — auth lookup after unsubscribe:** an already-started donor lookup from `subscribeToAuthState` cannot be cancelled, although `App` prevents its result from committing after unmount.
+
+### Existing protections verified
+
+Realtime channels have one cleanup path, the live refresh timer is cleared on effect cleanup, and shared refreshes are already coalesced for matching requests. No `setInterval` or render-time channel creation was found. These are not findings.
+
+### Fix order
+
+1. Invalidate donor-specific and auth-scoped stale results.
+2. Stabilize modal listener/history ownership and hospital responder loading.
+3. Clear short-lived signup timers and guard post-unsubscribe auth callbacks.
+4. Run typecheck, production build, and delayed-response browser verification.
+
+Runtime Network/Performance verification remains necessary to confirm request counts under rapid auth transitions and realtime bursts.
+
+### Implementation status
+
+This pass implemented the six actionable lifecycle fixes:
+
+- auth-keyed shared refresh single-flight and stale-generation protection;
+- donation-loop invalidation on logout;
+- notification fetch cancellation on donor change/logout;
+- stable dismissable-overlay listener/history ownership;
+- hospital responder cancellation on request-set changes/unmount;
+- signup timeout cleanup and post-unsubscribe auth callback guarding.
+
+`npm run lint`, `npm run build`, and `git diff --check` pass. Browser-level delayed-response, auth-transition, and realtime burst verification remains open because it requires a running Supabase-backed browser session.
+
+## Update 2026-09-06 — Public data privacy hardening
+
+Added `patch_25_public_data_privacy.sql` and updated the client to consume its
+sanitized projections. The patch removes exact donor coordinates from public
+directory data, anonymizes patient names in the completed-donation feed, and
+creates public/authenticated request projections without phone, WhatsApp,
+clinical notes, or patient identity. Anonymous access to the `donors` and
+`requests` base tables is revoked; authenticated base-table request reads are
+limited to the request owner or admin. The frontend uses approximate district/
+area coordinates and the authenticated offer workflow instead of public request
+contact links. New requests persist `needed_by_at` as a real timestamp while
+retaining legacy text for migration compatibility.
+
+Static validation passed: `npm run lint`, `npm run build`, `git diff --check`,
+and workspace diagnostics. The SQL migration itself still requires execution in
+Supabase SQL Editor and post-migration anon/authenticated behavior checks.
+
 ## Verification Performed
 
 - Read the current `App.tsx`, `lifelineService.ts`, lifecycle hooks, and relevant components.

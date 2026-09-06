@@ -97,7 +97,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
       setArea(editingRequest.area || '');
       setHospitalName(editingRequest.hospitalName || '');
       setBags(String(editingRequest.requiredBags ?? 1));
-      setNeededBy(toDateTimeLocal(editingRequest.neededByTime || ''));
+      setNeededBy(toDateTimeLocal(editingRequest.neededByAt || editingRequest.neededByTime || ''));
       setUrgency(editingRequest.urgency);
       setPhone(editingRequest.contactPhone || '');
       setWhatsapp(editingRequest.contactWhatsapp || '');
@@ -131,6 +131,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         area,
         requiredBags: Number(bags) || 1,
         neededByTime: formatNeededByTime(neededBy),
+        neededByAt: new Date(neededBy).toISOString(),
         urgency,
         contactPhone: toBdDialing(phone),
         contactWhatsapp: toBdWhatsapp(whatsappSameAsPhone ? phone : whatsapp),

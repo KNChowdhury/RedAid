@@ -100,7 +100,8 @@ export function App() {
   currentUserRef.current = state.currentUser;
   const knownRequestIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedOnceRef = useRef(false);
-  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const refreshInFlightRef = useRef<{ key: string; promise: Promise<void> } | null>(null);
+  const refreshGenerationRef = useRef(0);
   const lastRefreshKeyRef = useRef<string | null>(null);
   const lastRefreshAtRef = useRef(0);
   const liveRefreshTimerRef = useRef<number | null>(null);
@@ -115,12 +116,13 @@ export function App() {
   // because a fresh fetch came back empty (an empty table means empty, not
   // "keep showing whatever was there before").
   const refreshSharedData = React.useCallback((loggedIn: boolean, userPoints: number | null) => {
-    if (refreshInFlightRef.current) return refreshInFlightRef.current;
     const refreshKey = `${loggedIn}:${userPoints ?? 'null'}`;
+    if (refreshInFlightRef.current?.key === refreshKey) return refreshInFlightRef.current.promise;
     if (lastRefreshKeyRef.current === refreshKey && Date.now() - lastRefreshAtRef.current < 500) {
       return Promise.resolve();
     }
 
+    const refreshGeneration = ++refreshGenerationRef.current;
     const refresh = (async () => {
       try {
         const shared = await fetchSharedData(loggedIn, userPoints);
@@ -142,7 +144,7 @@ export function App() {
           );
         });
 
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current || refreshGeneration !== refreshGenerationRef.current) return;
         setState(prev => ({
           ...prev,
           donors: shared.donors,
@@ -156,9 +158,9 @@ export function App() {
       }
     })();
 
-    refreshInFlightRef.current = refresh;
+    refreshInFlightRef.current = { key: refreshKey, promise: refresh };
     refresh.finally(() => {
-      if (refreshInFlightRef.current === refresh) refreshInFlightRef.current = null;
+      if (refreshInFlightRef.current?.promise === refresh) refreshInFlightRef.current = null;
     });
     return refresh;
   }, [notify]);
@@ -217,12 +219,12 @@ export function App() {
   // Donation-loop data: which requests I've offered on, and which donations are
   // waiting for my confirmation.
   const refreshLoopData = React.useCallback(async (donorId: string | null | undefined) => {
+    const refreshVersion = ++loopRefreshVersionRef.current;
     if (!donorId) {
       setOfferedRequestIds([]);
       setPendingConfirmations([]);
       return;
     }
-    const refreshVersion = ++loopRefreshVersionRef.current;
     const [offered, pending] = await Promise.all([
       fetchMyOfferedRequestIds(donorId),
       fetchMyPendingConfirmations(donorId)
@@ -287,11 +289,15 @@ export function App() {
       setState(prev => ({ ...prev, notifications }));
     });
 
-    return subscribeToNotifications(donorId, row => {
+    const unsubscribe = subscribeToNotifications(donorId, row => {
       if (cancelled || !isMountedRef.current) return;
       const notification = mapDbNotificationToNotification(row);
       setState(prev => ({ ...prev, notifications: [notification, ...prev.notifications] }));
     });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [state.currentUser?.id]);
 
   // Current User coordinates

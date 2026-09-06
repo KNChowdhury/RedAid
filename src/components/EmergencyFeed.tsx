@@ -1,6 +1,6 @@
-import { AlertCircle, Clock, MapPin, Phone, Share2, ShieldCheck, Users } from 'lucide-react';
+import { AlertCircle, Clock, MapPin, Share2, ShieldCheck, Users } from 'lucide-react';
 import React from 'react';
-import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline, getWhatsAppUrl } from '../services/lifelineService';
+import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline } from '../services/lifelineService';
 import { EmergencyRequest } from '../types';
 
 interface EmergencyFeedProps {
@@ -61,7 +61,6 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
         ) : (
           requests.map(req => {
             const isCritical = req.urgency === 'Critical';
-            const whatsappUrl = getWhatsAppUrl(req.contactWhatsapp, `Hi, I saw your urgent request on LifelineBD for ${req.requiredBags} bags of ${req.bloodGroup} blood for ${req.patientName} at ${req.hospitalName}. I am available to donate.`);
             return (
               <div
                 key={req.id}
@@ -112,7 +111,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                 </div>
 
                 <p className="text-sm sm:text-base text-slate-700 mb-6 font-semibold leading-relaxed">
-                  <span className="text-slate-900 font-bold">Patient: {req.patientName} ({req.age}y).</span> Requirement for{' '}
+                  <span className="text-slate-900 font-bold">Patient: {req.patientName}{req.age ? ` (${req.age}y)` : ''}.</span> Requirement for{' '}
                   <span className="text-rose-600 font-black underline decoration-rose-300 decoration-2">{req.requiredBags} Bags</span> of {req.bloodGroup} blood. {req.reason}
                 </p>
 
@@ -131,31 +130,6 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                         of one full-width button and several small pills was the
                         "hijibiji" look on narrow screens. sm:contents drops this
                         wrapper from layout at sm+, rejoining the single row. */}
-                    <div className="grid grid-cols-2 gap-2.5 sm:contents">
-                      {whatsappUrl ? (
-                        <a
-                          href={whatsappUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-5 py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-600 transition-colors text-center shadow-sm flex items-center justify-center gap-1.5"
-                        >
-                          WhatsApp
-                        </a>
-                      ) : (
-                        <span className="px-5 py-3 bg-slate-100 text-slate-400 rounded-xl text-[11px] font-black uppercase tracking-widest text-center flex items-center justify-center">
-                          WhatsApp unavailable
-                        </span>
-                      )}
-
-                      <a
-                        href={`tel:${req.contactPhone}`}
-                        className="px-5 py-3 border-2 border-slate-200 text-slate-800 rounded-xl text-[11px] font-black uppercase tracking-widest hover:border-slate-900 hover:bg-slate-50 transition-all flex items-center justify-center gap-1"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        Call
-                      </a>
-                    </div>
-
                     <div className="grid grid-cols-2 gap-2.5 sm:contents">
                       {/* Anyone can forward a request to their own groups. This is
                           how blood actually gets found here, so it stays available

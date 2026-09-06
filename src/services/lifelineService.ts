@@ -13,7 +13,11 @@ export function formatRequestDeadline(value: string, createdAt: string): string 
   if (Number.isNaN(baseDate.getTime())) return value;
   if (match[1].toLowerCase() === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
 
-  const deadline = new Date(`${baseDate.toDateString()} ${match[2]}`);
+  const compactTime = match[2].trim().match(/^(\d{1,2})(\d{2})\s*(am|pm)$/i);
+  const normalizedTime = compactTime
+    ? `${Number(compactTime[1])}:${compactTime[2]} ${compactTime[3].toUpperCase()}`
+    : match[2];
+  const deadline = new Date(`${baseDate.toDateString()} ${normalizedTime}`);
   if (Number.isNaN(deadline.getTime())) return value;
   return deadline.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
@@ -301,6 +305,7 @@ export function lookupCoordinates(district: string, area: string): { lat: number
 // ============ SUPABASE: Map database rows to app types ============
 
 function mapDbDonorToProfile(row: any): DonorProfile {
+  const approximateLocation = lookupCoordinates(row.district || '', row.area || '');
   return {
     id: row.id,
     name: row.name,
@@ -313,8 +318,8 @@ function mapDbDonorToProfile(row: any): DonorProfile {
     birthYear: row.birth_year ?? null,
     district: row.district || '',
     area: row.area || '',
-    lat: row.lat || 0,
-    lng: row.lng || 0,
+    lat: row.lat || approximateLocation.lat,
+    lng: row.lng || approximateLocation.lng,
     lastDonationDate: row.last_donation_date || '',
     nextEligibleDate: row.next_eligible_date || '',
     isSmoker: row.is_smoker,
@@ -552,6 +557,7 @@ export async function updateRequestInDb(
   if (updates.area !== undefined) dbUpdates.area = updates.area;
   if (updates.requiredBags !== undefined) dbUpdates.required_bags = updates.requiredBags;
   if (updates.neededByTime !== undefined) dbUpdates.needed_by_time = updates.neededByTime;
+  if (updates.neededByAt !== undefined) dbUpdates.needed_by_at = updates.neededByAt;
   if (updates.urgency !== undefined) dbUpdates.urgency = updates.urgency;
   if (updates.contactPhone !== undefined) dbUpdates.contact_phone = updates.contactPhone;
   if (updates.contactWhatsapp !== undefined) dbUpdates.contact_whatsapp = updates.contactWhatsapp;
@@ -593,6 +599,7 @@ export async function deleteRequestFromDb(requestId: string): Promise<boolean> {
 }
 
 function mapDbRequestToRequest(row: any): EmergencyRequest {
+  const neededByAt = row.needed_by_at || undefined;
   return {
     id: row.id,
     patientName: row.patient_name,
@@ -602,7 +609,10 @@ function mapDbRequestToRequest(row: any): EmergencyRequest {
     district: row.district || '',
     area: row.area || '',
     requiredBags: row.required_bags,
-    neededByTime: formatRequestDeadline(row.needed_by_time || '', row.created_at || ''),
+    neededByTime: neededByAt
+      ? new Date(neededByAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+      : formatRequestDeadline(row.needed_by_time || '', row.created_at || ''),
+    neededByAt,
     urgency: row.urgency,
     contactPhone: row.contact_phone,
     contactWhatsapp: row.contact_whatsapp || '',
@@ -715,19 +725,20 @@ export async function fetchSharedData(
     return { donors: [], requests: [], badges: [] };
   }
 
-  const donorsQuery = isLoggedIn
-    ? supabase
-        .from('v_donors_directory')
-        .select('id,name,avatar,role,blood_group,birth_year,district,area,lat,lng,last_donation_date,next_eligible_date,is_smoker,is_regular,is_verified,available_now,impact_score,lives_saved')
-    : supabase
-        .from('v_public_donors')
-        .select('id,name,avatar,role,blood_group,birth_year,district,area,lat,lng,last_donation_date,next_eligible_date,is_smoker,is_regular,is_verified,available_now,impact_score,lives_saved');
+  const donorsQuery = supabase
+    .from('v_public_donors')
+    .select('id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_smoker,is_regular,is_verified,available_now,impact_score,lives_saved');
+
+  const requestsView = isLoggedIn ? 'v_authenticated_requests' : 'v_public_requests';
+  const requestsColumns = isLoggedIn
+    ? 'id,patient_name,age,blood_group,hospital_name,district,area,required_bags,needed_by_time,needed_by_at,urgency,reason,status,requester_id,matched_donors_count,created_at'
+    : 'id,patient_name,age,blood_group,hospital_name,district,area,required_bags,needed_by_time,needed_by_at,urgency,reason,status,matched_donors_count,created_at';
 
   const [donorsRes, requestsRes, badgesRes] = await Promise.all([
     donorsQuery,
     supabase
-      .from('requests')
-      .select('id,patient_name,age,blood_group,hospital_name,district,area,required_bags,needed_by_time,urgency,contact_phone,contact_whatsapp,reason,status,created_at,requester_id,matched_donors_count')
+      .from(requestsView)
+      .select(requestsColumns)
       .order('created_at', { ascending: false }),
     supabase.from('badges').select('id,name,icon,description,points_required,category')
   ]);
@@ -1177,6 +1188,7 @@ export async function signUpDonor(profile: {
     // On slow iPhone connections, requests may timeout and need a second attempt.
     let lastError: any = null;
     for (let attempt = 1; attempt <= 2; attempt++) {
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       try {
         const insertPromise = supabase!
           .from('donors')
@@ -1203,10 +1215,11 @@ export async function signUpDonor(profile: {
 
         // Add timeout for slow mobile networks (10s per attempt)
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Profile creation timeout (network too slow). Please check your connection and try signing in again.')), 10000)
+          timeoutId = setTimeout(() => reject(new Error('Profile creation timeout (network too slow). Please check your connection and try signing in again.')), 10000)
         );
 
         const inserted = await Promise.race([insertPromise, timeoutPromise]) as any;
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
 
         if (inserted.error?.code === '23505') {
           // Lost the race between our check and our insert — fetch the row the
@@ -1218,6 +1231,7 @@ export async function signUpDonor(profile: {
         }
         return inserted;
       } catch (err: any) {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
         lastError = err;
         if (attempt === 1) {
           // Wait briefly before retry on timeout or network errors
@@ -1389,6 +1403,7 @@ export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => v
   if (!supabase) return () => {};
 
   const pendingRestoreTimers = new Set<number>();
+  let active = true;
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
       onPasswordRecovery?.();
@@ -1402,12 +1417,14 @@ export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => v
     // Let Supabase finish its internal token storage before querying donor data.
     const timer = window.setTimeout(async () => {
       pendingRestoreTimers.delete(timer);
-      onChange(await getCurrentDonorFromSession());
+      const donor = await getCurrentDonorFromSession();
+      if (active) onChange(donor);
     }, 0);
     pendingRestoreTimers.add(timer);
   });
 
   return () => {
+    active = false;
     data.subscription.unsubscribe();
     pendingRestoreTimers.forEach(timer => window.clearTimeout(timer));
     pendingRestoreTimers.clear();
@@ -1487,6 +1504,7 @@ export async function createRequestInDb(reqData: Partial<EmergencyRequest>): Pro
       area: reqData.area,
       required_bags: reqData.requiredBags,
       needed_by_time: reqData.neededByTime,
+      needed_by_at: reqData.neededByAt,
       urgency: reqData.urgency,
       contact_phone: reqData.contactPhone,
       contact_whatsapp: reqData.contactWhatsapp,

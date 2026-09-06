@@ -72,6 +72,7 @@ export interface EmergencyRequest {
   area: string;
   requiredBags: number;
   neededByTime: string; // e.g. "Today, 6:00 PM"
+  neededByAt?: string;
   urgency: 'Critical' | 'High' | 'Medium';
   contactPhone: string;
   contactWhatsapp: string;

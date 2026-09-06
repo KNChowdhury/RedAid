@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Makes an overlay behave the way people expect it to.
@@ -14,6 +14,9 @@ import { useEffect } from 'react';
  * overlay was dismissed.
  */
 export function useDismissable(isOpen: boolean, onClose: () => void) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -23,11 +26,11 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
 
     const onPopState = () => {
       closedByBack = true;
-      onClose();
+      onCloseRef.current();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
 
     const previousOverflow = document.body.style.overflow;
@@ -48,7 +51,7 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
         window.history.back();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 }
 
 /**

@@ -842,7 +842,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex justify-between font-bold">
-                <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600' : 'text-emerald-600'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
+                {donor.isSmoker !== null && (
+                  <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600' : 'text-emerald-600'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
+                )}
                 <span>Regular Donor: <strong className="text-rose-600">{donor.isRegular ? 'Yes (3+ times)' : 'New'}</strong></span>
               </div>
             </div> : (

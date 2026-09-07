@@ -178,10 +178,6 @@ export function filterDonors(donors: DonorProfile[], filters: SearchFilters, cur
     if (filters.verifiedOnly && !donor.isVerified) {
       return false;
     }
-    // Non smoker
-    if (filters.nonSmokerOnly && donor.isSmoker) {
-      return false;
-    }
     // Regular
     if (filters.regularOnly && !donor.isRegular) {
       return false;
@@ -337,7 +333,7 @@ function mapDbDonorToProfile(row: any): DonorProfile {
     lng: row.lng || approximateLocation.lng,
     lastDonationDate: row.last_donation_date || '',
     nextEligibleDate: row.next_eligible_date || '',
-    isSmoker: row.is_smoker,
+    isSmoker: row.is_smoker ?? null,
     isRegular: row.is_regular,
     isVerified: row.is_verified,
     availableNow: row.available_now,
@@ -742,7 +738,7 @@ export async function fetchSharedData(
 
   const donorsQuery = supabase
     .from('v_public_donors')
-    .select('id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_smoker,is_regular,is_verified,available_now,impact_score,lives_saved');
+    .select('id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_regular,is_verified,available_now,impact_score,lives_saved');
 
   const requestsView = isLoggedIn ? 'v_authenticated_requests' : 'v_public_requests';
   const requestsColumns = isLoggedIn

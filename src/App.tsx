@@ -51,7 +51,6 @@ export function App() {
     district: 'ALL',
     area: 'ALL',
     verifiedOnly: false,
-    nonSmokerOnly: false,
     regularOnly: false,
     availableNowOnly: false,
     maxDistanceKm: 0

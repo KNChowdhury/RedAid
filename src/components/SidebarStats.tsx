@@ -33,8 +33,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
     filters.district !== 'ALL' ||
     filters.area !== 'ALL' ||
     filters.availableNowOnly ||
-    filters.regularOnly ||
-    filters.nonSmokerOnly;
+    filters.regularOnly;
 
   return (
     <aside className="lg:border-r border-slate-200/80 p-6 lg:p-8 flex flex-col gap-8 bg-slate-50/70 min-w-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto custom-scroll">
@@ -162,15 +161,6 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
                   <span className="text-sm text-slate-700">Has donated before</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-rose-300 transition-colors select-none">
-                  <input
-                    type="checkbox"
-                    checked={filters.nonSmokerOnly}
-                    onChange={e => setFilters(prev => ({ ...prev, nonSmokerOnly: e.target.checked }))}
-                    className="accent-rose-600 w-4 h-4 cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-700">Non-smoker</span>
-                </label>
               </div>
             )}
           </div>
@@ -184,7 +174,6 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
                 district: 'ALL',
                 area: 'ALL',
                 verifiedOnly: false,
-                nonSmokerOnly: false,
                 regularOnly: false,
                 availableNowOnly: false,
                 maxDistanceKm: 0

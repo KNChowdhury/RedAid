@@ -47,7 +47,7 @@ npm run build
 Notes:
 
 - Ensure your Supabase project's authentication settings (redirect URLs, email templates) are configured if you use magic links or password reset emails.
-- The app reads initial mock data from `src/mockData.ts` if no Supabase data is available.
+- The app starts with an empty state when Supabase is unavailable or has no rows. `src/mockData.ts` is used only for local district and area fallback data, not for donor or request records.
 
 Contributing:
 

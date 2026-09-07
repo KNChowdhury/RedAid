@@ -143,7 +143,7 @@ export function buildRequestShareText(req: {
     req.contactPhone ? `যোগাযোগ: ${req.contactPhone}` : '',
     '',
     'আপনার পরিচিত কেউ দিতে পারলে দয়া করে জানান।',
-    'বিস্তারিত ও অন্যান্য অনুরোধ: https://roktobondhubangladesh.com'
+    'বিস্তারিত ও অন্যান্য অনুরোধ: https://lifelinebd.vercel.app'
   ];
   return lines.filter(l => l !== '').join('\n');
 }

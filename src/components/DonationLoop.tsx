@@ -258,7 +258,7 @@ export const ConfirmDonationBanner: React.FC<ConfirmDonationBannerProps> = ({
               {p.donatedAt ? ` • ${p.donatedAt}` : ''}
             </p>
             <p className="text-[11px] text-emerald-600 mt-1">
-              Confirm to receive 150 Lifeline points and update your donation record.
+              Confirm to receive 150 Roktobondhu points and update your donation record.
             </p>
           </div>
 
@@ -350,7 +350,7 @@ export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
         </div>
 
         <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-          Matching donors on LifelineBD have already been notified. Forwarding this to your own
+          Matching donors on Roktobondhu Bangladesh have already been notified. Forwarding this to your own
           WhatsApp groups reaches many more people.
         </p>
 

@@ -56,7 +56,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
             <p className="text-4xl font-black mb-1 tracking-tight font-mono">
               {(currentUser.impactScore ?? 0).toLocaleString()}
             </p>
-            <p className="text-sm opacity-90">Lifeline points</p>
+            <p className="text-sm opacity-90">Roktobondhu points</p>
 
             {/* One line of plain prose reads faster than a row of pills. */}
             <p className="mt-4 text-sm opacity-90 flex items-center gap-1.5">
@@ -206,7 +206,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
             </p>
             
             <p className="text-[11px] text-rose-800/80 mt-1.5 uppercase leading-snug font-medium">
-              You've saved {currentUser.livesSaved ?? 0} lives this year on LifelineBD.
+              You've saved {currentUser.livesSaved ?? 0} lives this year on Roktobondhu Bangladesh.
             </p>
           </motion.div>
         </section>

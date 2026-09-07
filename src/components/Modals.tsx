@@ -437,7 +437,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         </div>
 
         <h2 className="editorial-title text-3xl font-black">
-          {view === 'register' ? 'Join Lifeline Network' : view === 'reset' ? 'Reset Password' : view === 'new-password' ? 'Set New Password' : 'Welcome Back Hero'}
+          {view === 'register' ? 'Join Roktobondhu Bangladesh' : view === 'reset' ? 'Reset Password' : view === 'new-password' ? 'Set New Password' : 'Welcome Back Hero'}
         </h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
           {view === 'register'
@@ -445,8 +445,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             : view === 'reset'
             ? 'Enter your email to receive password reset instructions'
             : view === 'new-password'
-            ? 'Choose a new password for your LifelineBD account'
-            : 'Sign in to your LifelineBD account'}
+            ? 'Choose a new password for your Roktobondhu Bangladesh account'
+            : 'Sign in to your Roktobondhu Bangladesh account'}
         </p>
 
         {errorMsg && (

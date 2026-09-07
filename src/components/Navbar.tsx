@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
         <div className="flex flex-col min-w-0">
           <span className="text-lg sm:text-2xl font-black tracking-tighter uppercase text-slate-900 leading-none whitespace-nowrap">
-            Lifeline<span className="text-rose-600">BD</span>
+            Roktobondhu<span className="text-rose-600"> Bangladesh</span>
           </span>
           {/* Wraps to a second line and looks cramped below ~400px, so it's
               desktop/tablet-only; the wordmark alone reads fine on its own. */}

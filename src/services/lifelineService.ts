@@ -638,7 +638,7 @@ function mapDbRequestToRequest(row: any): EmergencyRequest {
 export function mapDbNotificationToNotification(row: any): NotificationItem {
   return {
     id: row.id,
-    title: row.title || 'LifelineBD notification',
+    title: row.title || 'Roktobondhu Bangladesh notification',
     message: row.message || '',
     type: row.type || 'system',
     time: row.created_at ? new Date(row.created_at).toLocaleString() : 'Just now',
@@ -679,7 +679,7 @@ export async function markMyNotificationsRead(donorId: string): Promise<boolean>
 
 function buildDonorInsertPayload(user: any): Record<string, any> {
   const nameFromMetadata = user?.user_metadata?.full_name || user?.user_metadata?.name;
-  const defaultName = nameFromMetadata || user?.email?.split('@')[0] || 'Lifeline Donor';
+  const defaultName = nameFromMetadata || user?.email?.split('@')[0] || 'Roktobondhu Donor';
   return {
     auth_user_id: user.id,
     name: defaultName,

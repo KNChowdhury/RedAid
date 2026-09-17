@@ -43,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const visibleNavItems = navItems;
 
   return (
-    <header className="h-20 flex items-center justify-between px-2 sm:px-6 lg:px-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
+    <header className="h-20 flex items-center justify-between gap-4 lg:gap-6 px-2 sm:px-6 lg:px-10 border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
       {/* Brand Logo */}
       <div
         className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 cursor-pointer group"

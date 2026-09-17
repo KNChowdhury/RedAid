@@ -75,7 +75,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       <img
         src={src}
         alt=""
-        className={`${className} rounded-xl object-cover bg-slate-100 shrink-0`}
+        className={`${className} rounded-xl object-cover bg-slate-100 dark:bg-slate-800 shrink-0`}
       />
     );
   }

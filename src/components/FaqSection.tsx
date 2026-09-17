@@ -124,11 +124,11 @@ export const FaqSection: React.FC = () => {
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   return (
-    <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white min-w-0">
+    <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
       <header className="mb-8">
-        <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 leading-none mb-3">
+        <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-none mb-3">
           কীভাবে<br />
-          <span className="text-rose-600">কাজ করে।</span>
+          <span className="text-rose-600 dark:text-rose-400">কাজ করে।</span>
         </h1>
         <p className="text-slate-400 font-bold max-w-lg uppercase text-[11px] tracking-widest">
           Roktobondhu Bangladesh সম্পর্কে সবচেয়ে বেশি জিজ্ঞাসিত প্রশ্ন
@@ -138,23 +138,23 @@ export const FaqSection: React.FC = () => {
       <div className="flex-1 overflow-y-auto pr-2 custom-scroll pb-12 space-y-8">
         {FAQ_GROUPS.map(group => (
           <div key={group.title}>
-            <h2 className="text-xs font-black uppercase tracking-widest text-rose-600 mb-3">{group.title}</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-3">{group.title}</h2>
             <div className="space-y-2.5">
               {group.items.map(item => {
                 const key = `${group.title}::${item.q}`;
                 const isOpen = openKey === key;
                 return (
-                  <div key={key} className="rounded-2xl border border-slate-100 bg-slate-50/70 overflow-hidden">
+                  <div key={key} className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 overflow-hidden">
                     <button
                       onClick={() => setOpenKey(isOpen ? null : key)}
                       className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left"
                       aria-expanded={isOpen}
                     >
-                      <span className="text-sm sm:text-base font-bold text-slate-800">{item.q}</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{item.q}</span>
                       <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isOpen && (
-                      <p className="px-5 pb-4 text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                      <p className="px-5 pb-4 text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">
                         {item.a}
                       </p>
                     )}
@@ -165,9 +165,9 @@ export const FaqSection: React.FC = () => {
           </div>
         ))}
 
-        <div className="rounded-2xl border border-rose-100 bg-rose-50/70 px-5 py-4 flex items-start gap-3">
-          <HelpCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-rose-900 leading-relaxed">
+        <div className="rounded-2xl border border-rose-100 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/20 px-5 py-4 flex items-start gap-3">
+          <HelpCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-rose-900 dark:text-rose-300 leading-relaxed">
             আপনার প্রশ্নের উত্তর এখানে না পেলে ফুটারে দেওয়া ইমেইলে যোগাযোগ করুন।
           </p>
         </div>

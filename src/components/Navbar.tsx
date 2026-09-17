@@ -109,13 +109,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* User Profile / Auth CTA */}
         {currentUser ? (
           <div className="flex items-center gap-3 md:pl-2 md:border-l border-slate-200">
-            <div className="hidden md:block text-right cursor-pointer" onClick={onOpenProfile}>
+            {/* Between xl (1280px, where the desktop nav appears) and 2xl
+                (1536px), this text plus the nav plus REQUEST BLOOD simply
+                don't fit -- the logo (the only flexible element) got starved
+                and truncated hard. Hidden in exactly that range; still shown
+                on tablets (nav is hidden there, so there's no competition)
+                and on wide screens (2xl+, plenty of room again). */}
+            <div className="hidden md:block xl:hidden 2xl:block text-right cursor-pointer" onClick={onOpenProfile}>
               <div className="flex items-center justify-end gap-1">
                 <p className="text-[10px] uppercase font-extrabold tracking-wider text-rose-600">
                   {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'hospital' ? 'Hospital' : 'Donor'}
                 </p>
               </div>
-              <p className="text-sm font-bold text-slate-900 leading-tight">{currentUser.name}</p>
+              <p className="text-sm font-bold text-slate-900 leading-tight truncate max-w-[9rem] 2xl:max-w-[12rem]">{currentUser.name}</p>
             </div>
 
             <div 

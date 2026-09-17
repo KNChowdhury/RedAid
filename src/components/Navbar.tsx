@@ -32,7 +32,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'network', label: 'Network' },
     { id: 'requests', label: 'Requests' },
     { id: 'success', label: 'Success Stories' },
-    { id: 'rewards', label: 'Rewards' }
+    { id: 'rewards', label: 'Rewards' },
+    { id: 'faq', label: 'FAQ' }
   ];
 
   const navItems = currentUser?.role === 'admin'

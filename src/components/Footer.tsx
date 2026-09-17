@@ -6,18 +6,32 @@ import React from 'react';
  * a way to reach him. The emergency number is set apart because that is the one
  * thing someone in a hurry needs to find without reading anything else.
  */
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenFaq: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenFaq }) => {
   const year = new Date().getFullYear();
 
   return (
     <footer className="border-t border-slate-200 bg-white">
       <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-10 py-10">
-        <div className="grid gap-8 md:grid-cols-[1.5fr_1fr_1fr]">
+        <div className="grid gap-8 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <p className="font-black text-slate-900">Roktobondhu Bangladesh</p>
             <p className="mt-1.5 text-sm text-slate-500 max-w-sm leading-relaxed">
               Connecting blood donors with the people who need them, across Bangladesh.
             </p>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-slate-700">Help</p>
+            <button
+              onClick={onOpenFaq}
+              className="mt-2 block text-sm text-slate-600 hover:text-rose-600 transition-colors text-left"
+            >
+              সাহায্য / যেভাবে কাজ করে (FAQ)
+            </button>
           </div>
 
           <div>

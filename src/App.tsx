@@ -5,6 +5,7 @@ import { Footer } from './components/Footer';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
 import { SuccessStories } from './components/SuccessStories';
+import { FaqSection } from './components/FaqSection';
 import { AuthModal, CompleteProfileModal, NotificationsModal, ProfileModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
@@ -22,7 +23,7 @@ export function App() {
   // there, unrelated to tab routing.
   const readTabFromPath = () => {
     const t = window.location.pathname.replace(/^\/+|\/+$/g, '');
-    const valid = ['requests', 'success', 'rewards', 'admin'];
+    const valid = ['requests', 'success', 'rewards', 'admin', 'faq'];
     return valid.includes(t) ? t : 'network';
   };
 
@@ -581,6 +582,8 @@ export function App() {
 
           {activeTab === 'success' && <SuccessStories />}
 
+          {activeTab === 'faq' && <FaqSection />}
+
           {activeTab === 'rewards' && (
             <RewardsHub
               currentUser={state.currentUser}
@@ -600,7 +603,7 @@ export function App() {
         </div>
       </main>
 
-      <Footer />
+      <Footer onOpenFaq={() => setActiveTab('faq')} />
 
       {/* Dialog Modals Overlay */}
       <ShareRequestModal

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Makes an overlay behave the way people expect it to.
@@ -14,6 +14,17 @@ import { useEffect } from 'react';
  * overlay was dismissed.
  */
 export function useDismissable(isOpen: boolean, onClose: () => void) {
+  // Callers pass an inline `() => ...}` that's a new reference every render.
+  // Keeping the latest one in a ref (instead of the effect below depending on
+  // `onClose` directly) means an unrelated re-render while the overlay is
+  // open can't retrigger this effect -- it would otherwise tear down and
+  // re-push/pop the history entry, toggle body scroll lock, and re-add the
+  // listeners on every render, not just on real open/close transitions.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -23,11 +34,11 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
 
     const onPopState = () => {
       closedByBack = true;
-      onClose();
+      onCloseRef.current();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
 
     const previousOverflow = document.body.style.overflow;
@@ -48,7 +59,7 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
         window.history.back();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 }
 
 /**

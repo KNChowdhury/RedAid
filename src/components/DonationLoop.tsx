@@ -98,7 +98,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
     <label
       key={id}
       className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-        selectedId === id ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+        selectedId === id ? 'border-rose-400 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
       }`}
     >
       <input
@@ -108,8 +108,8 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
         onChange={() => setSelectedId(id)}
         className="accent-rose-600"
       />
-      <span className="text-sm font-bold text-slate-800 flex-1">{name}</span>
-      {group && <span className="font-mono font-black text-rose-600 text-sm">{group}</span>}
+      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 flex-1">{name}</span>
+      {group && <span className="font-mono font-black text-rose-600 dark:text-rose-400 text-sm">{group}</span>}
     </label>
   );
 
@@ -118,15 +118,15 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
       onClick={backdropClose(onClose)}
       className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scroll">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scroll">
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h2 className="editorial-title text-2xl font-black text-slate-900">Who donated?</h2>
+            <h2 className="editorial-title text-2xl font-black text-slate-900 dark:text-slate-100">Who donated?</h2>
             <p className="text-xs font-bold text-slate-400 mt-0.5">
               For {request.patientName} • {request.bloodGroup} • {request.hospitalName}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Close donation dialog" className="p-2 hover:bg-slate-100 rounded-full">
+          <button onClick={onClose} aria-label="Close donation dialog" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
@@ -144,7 +144,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
           <div className="space-y-4">
             {responders.length > 0 && (
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
                   Offered to help
                 </p>
                 <div className="space-y-2">
@@ -165,7 +165,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Name or phone number"
-                className="w-full px-4 py-3 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                className="w-full px-4 py-3 mb-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
               />
               <div className="space-y-2">
                 {others.map(d => (
@@ -178,7 +178,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
             </div>
 
             <div>
-              <label htmlFor="donation-units" className="block text-xs font-bold uppercase text-slate-700 mb-1">Bags donated</label>
+              <label htmlFor="donation-units" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Bags donated</label>
               <input
                 id="donation-units"
                 name="units"
@@ -186,14 +186,14 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
                 min="1"
                 value={units}
                 onChange={e => setUnits(e.target.value)}
-                className="w-28 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                className="w-28 px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
               />
             </div>
           </div>
         )}
 
         {error && (
-          <div className="mt-4 flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
+          <div className="mt-4 flex items-start gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold text-rose-700 dark:text-rose-400">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             {error}
           </div>
@@ -248,16 +248,16 @@ export const ConfirmDonationBanner: React.FC<ConfirmDonationBannerProps> = ({
       {pending.map(p => (
         <div
           key={p.donationId}
-          className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div>
-            <p className="text-sm font-extrabold text-emerald-900">Did you donate for {p.patientName}?</p>
-            <p className="text-xs text-emerald-700 mt-0.5">
+            <p className="text-sm font-extrabold text-emerald-900 dark:text-emerald-300">Did you donate for {p.patientName}?</p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
               {p.bloodGroup} • {p.units} bag{p.units === 1 ? '' : 's'}
               {p.hospitalName ? ` • ${p.hospitalName}` : ''}
               {p.donatedAt ? ` • ${p.donatedAt}` : ''}
             </p>
-            <p className="text-[11px] text-emerald-600 mt-1">
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
               Confirm to receive 150 Roktobondhu points and update your donation record.
             </p>
           </div>
@@ -278,7 +278,7 @@ export const ConfirmDonationBanner: React.FC<ConfirmDonationBannerProps> = ({
       ))}
 
       {error && (
-        <p className="text-xs font-bold text-rose-700 px-1">{error}</p>
+        <p className="text-xs font-bold text-rose-700 dark:text-rose-400 px-1">{error}</p>
       )}
     </div>
   );
@@ -336,15 +336,15 @@ export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
       onClick={backdropClose(onClose)}
       className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scroll">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scroll">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="editorial-title text-2xl font-black text-slate-900">Request posted ✓</h2>
+            <h2 className="editorial-title text-2xl font-black text-slate-900 dark:text-slate-100">Request posted ✓</h2>
             <p className="text-xs font-bold text-slate-400 mt-0.5">
               Now spread it — this is what finds blood fastest
             </p>
           </div>
-          <button onClick={onClose} aria-label="Close share dialog" className="p-2 hover:bg-slate-100 rounded-full">
+          <button onClick={onClose} aria-label="Close share dialog" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
@@ -354,7 +354,7 @@ export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
           WhatsApp groups reaches many more people.
         </p>
 
-        <pre className="text-[11px] whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-700 font-sans mb-4">
+        <pre className="text-[11px] whitespace-pre-wrap bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-slate-700 dark:text-slate-300 font-sans mb-4">
 {text}
         </pre>
 
@@ -369,14 +369,14 @@ export const ShareRequestModal: React.FC<ShareRequestModalProps> = ({
 
         <button
           onClick={handleCopy}
-          className="mt-2 w-full py-3 border-2 border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-black uppercase text-xs tracking-widest transition-colors"
+          className="mt-2 w-full py-3 border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-black uppercase text-xs tracking-widest transition-colors"
         >
           {copied ? 'Copied ✓' : 'Copy text'}
         </button>
 
         <button
           onClick={onClose}
-          className="mt-3 w-full text-xs font-bold text-slate-400 hover:text-slate-600"
+          className="mt-3 w-full text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-400"
         >
           Skip for now
         </button>

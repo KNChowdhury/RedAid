@@ -81,7 +81,7 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
 
   if (loading) {
     return (
-      <section className="p-6 lg:p-10 h-full bg-white flex items-center justify-center">
+      <section className="p-6 lg:p-10 h-full bg-white dark:bg-slate-900 flex items-center justify-center">
         <p className="flex items-center gap-2 text-sm font-bold text-slate-500">
           <Loader2 className="w-4 h-4 animate-spin" />
           Loading hospitals…
@@ -92,10 +92,10 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
 
   if (hospitals.length === 0) {
     return (
-      <section className="p-6 lg:p-10 h-full bg-white flex items-center justify-center">
+      <section className="p-6 lg:p-10 h-full bg-white dark:bg-slate-900 flex items-center justify-center">
         <div className="max-w-md text-center">
           <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <h2 className="text-lg font-extrabold text-slate-800">No hospitals registered yet</h2>
+          <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-200">No hospitals registered yet</h2>
           <p className="text-sm text-slate-500 mt-1">
             Once hospitals are added to the database they'll appear here with their live requisitions.
           </p>
@@ -105,11 +105,11 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
   }
 
   return (
-    <section className="p-6 lg:p-10 overflow-y-auto custom-scroll h-full bg-white space-y-10 pb-20">
-      <header className="border-b border-slate-100 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <section className="p-6 lg:p-10 overflow-y-auto custom-scroll h-full bg-white dark:bg-slate-900 space-y-10 pb-20">
+      <header className="border-b border-slate-100 dark:border-slate-800 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 flex items-center gap-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" />
               Hospital Portal
             </span>
@@ -117,17 +117,17 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
               <span className="text-xs font-bold text-slate-400">• View only</span>
             )}
           </div>
-          <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 leading-tight">
-            Hospital Emergency <span className="text-rose-600">Operations.</span>
+          <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-tight">
+            Hospital Emergency <span className="text-rose-600 dark:text-rose-400">Operations.</span>
           </h1>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-2xl">
-          <Building2 className="w-5 h-5 text-rose-600 ml-2" />
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-2 rounded-2xl">
+          <Building2 className="w-5 h-5 text-rose-600 dark:text-rose-400 ml-2" />
           <select
             value={selectedId}
             onChange={e => setSelectedId(e.target.value)}
-            className="bg-transparent font-extrabold text-sm text-slate-800 outline-hidden pr-4 py-1 cursor-pointer max-w-[16rem]"
+            className="bg-transparent font-extrabold text-sm text-slate-800 dark:text-slate-200 outline-hidden pr-4 py-1 cursor-pointer max-w-[16rem]"
           >
             {hospitals.map(h => (
               <option key={h.hospitalId} value={h.hospitalId}>{h.hospitalName}</option>
@@ -138,30 +138,30 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
 
       {/* Live stats — every figure counted from the database */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-slate-900 text-white p-6 rounded-3xl border border-slate-800 shadow-lg">
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Active Blood Requisitions</p>
-          <p className="text-4xl font-mono font-black text-white">{selected?.activeRequests ?? 0}</p>
-          <p className="text-xs text-rose-400 font-bold mt-2">
+        <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 p-6 rounded-3xl border border-slate-800 dark:border-slate-300 shadow-lg">
+          <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-600 tracking-wider mb-1">Active Blood Requisitions</p>
+          <p className="text-4xl font-mono font-black text-white dark:text-slate-900">{selected?.activeRequests ?? 0}</p>
+          <p className="text-xs text-rose-400 dark:text-rose-600 font-bold mt-2">
             {selected?.criticalRequests
               ? `🚨 ${selected.criticalRequests} critical`
               : 'No critical cases right now'}
           </p>
         </div>
 
-        <div className="bg-rose-50 p-6 rounded-3xl border border-rose-200/80">
-          <p className="text-[10px] uppercase font-extrabold text-rose-800 tracking-wider mb-1">Verified Transfusions (This Month)</p>
-          <p className="text-4xl font-mono font-black text-rose-600">{selected?.unitsThisMonth ?? 0} Units</p>
+        <div className="bg-rose-50 dark:bg-rose-950/30 p-6 rounded-3xl border border-rose-200/80 dark:border-rose-900/50">
+          <p className="text-[10px] uppercase font-extrabold text-rose-800 dark:text-rose-400 tracking-wider mb-1">Verified Transfusions (This Month)</p>
+          <p className="text-4xl font-mono font-black text-rose-600 dark:text-rose-400">{selected?.unitsThisMonth ?? 0} Units</p>
           <p className="text-xs text-slate-500 font-bold mt-2">
             {selected?.bagsNeeded ? `${selected.bagsNeeded} bags still needed` : 'All requisitions met'}
           </p>
         </div>
 
-        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 flex flex-col justify-between">
+        <div className="bg-slate-50 dark:bg-slate-800/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
           <div>
             <p className="text-[10px] uppercase font-extrabold text-slate-500 tracking-wider mb-1">
               On-Call Donors in {selected?.district || 'district'}
             </p>
-            <p className="text-4xl font-mono font-black text-slate-900">{selected?.onCallDonors ?? 0}</p>
+            <p className="text-4xl font-mono font-black text-slate-900 dark:text-slate-100">{selected?.onCallDonors ?? 0}</p>
           </div>
           <button
             onClick={onRequestBlood}
@@ -174,7 +174,7 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
       </div>
 
       {actionError && (
-        <div className="flex items-start gap-2 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-bold text-rose-700">
+        <div className="flex items-start gap-2 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-2xl text-xs font-bold text-rose-700 dark:text-rose-400">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           {actionError}
         </div>
@@ -183,12 +183,12 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Requisitions & Screening Roster</h2>
-          {selected?.area && <span className="text-xs font-bold text-slate-600">{selected.area}</span>}
+          {selected?.area && <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{selected.area}</span>}
         </div>
 
         {hospitalRequests.length === 0 ? (
-          <div className="p-10 text-center bg-slate-50 border border-dashed border-slate-200 rounded-3xl">
-            <p className="text-sm font-bold text-slate-600">No open requisitions for this hospital</p>
+          <div className="p-10 text-center bg-slate-50 dark:bg-slate-800/60 border border-dashed border-slate-200 dark:border-slate-700 rounded-3xl">
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-400">No open requisitions for this hospital</p>
             <p className="text-xs text-slate-400 mt-1">
               Requests posted with this hospital's name will show up here automatically.
             </p>
@@ -198,22 +198,22 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
             {hospitalRequests.map(req => {
               const checkedIn = responders[req.id] || [];
               return (
-                <div key={req.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+                <div key={req.id} className="bg-white dark:bg-slate-800/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xs">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                     <div className="flex items-start gap-4 pr-4">
-                      <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl font-mono font-black text-2xl flex items-center justify-center shrink-0">
+                      <div className="w-14 h-14 bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-2xl font-mono font-black text-2xl flex items-center justify-center shrink-0">
                         {req.bloodGroup}
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-extrabold text-lg text-slate-900">Patient: {req.patientName}</h3>
+                          <h3 className="font-extrabold text-lg text-slate-900 dark:text-slate-100">Patient: {req.patientName}</h3>
                           <span className="text-[9px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold uppercase">{req.urgency}</span>
                           {req.status === 'Fulfilled' && (
                             <span className="text-[9px] bg-emerald-600 text-white px-2 py-0.5 rounded font-bold uppercase">Fulfilled</span>
                           )}
                         </div>
                         <p className="text-xs text-slate-500 mt-1 font-medium">
-                          Requirement: <strong className="text-slate-800">{req.requiredBags} Bags</strong>
+                          Requirement: <strong className="text-slate-800 dark:text-slate-200">{req.requiredBags} Bags</strong>
                           {req.neededByTime ? ` • Needed by ${formatRequestDeadline(req.neededByTime, req.createdAt)}` : ''}
                         </p>
                         {req.reason && <p className="text-xs text-slate-400 italic mt-0.5">"{req.reason}"</p>}
@@ -221,7 +221,7 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-bold text-emerald-600 flex items-center gap-1 justify-end">
+                      <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end">
                         <Users className="w-3.5 h-3.5" />
                         {checkedIn.length} donor{checkedIn.length === 1 ? '' : 's'} checked in
                       </p>
@@ -233,19 +233,19 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
 
                   {/* One verify button per donor who actually responded. */}
                   {checkedIn.length > 0 && (
-                    <div className="mt-5 pt-5 border-t border-slate-100 space-y-2">
+                    <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-800 space-y-2">
                       {checkedIn.map(d => (
-                        <div key={d.donorId} className="flex items-center justify-between gap-3 bg-slate-50 px-4 py-3 rounded-xl">
-                          <span className="text-xs font-bold text-slate-700">
+                        <div key={d.donorId} className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800 px-4 py-3 rounded-xl">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                             {d.donorName}
-                            {d.bloodGroup && <span className="ml-2 font-mono text-rose-600">{d.bloodGroup}</span>}
+                            {d.bloodGroup && <span className="ml-2 font-mono text-rose-600 dark:text-rose-400">{d.bloodGroup}</span>}
                           </span>
 
                           {canVerify ? (
                             <button
                               onClick={() => handleVerify(req.id, d.donorId)}
                               disabled={verifying === req.id + d.donorId || req.status === 'Fulfilled'}
-                              className="px-4 py-2 bg-slate-900 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
+                              className="px-4 py-2 bg-slate-900 dark:bg-slate-100 hover:bg-emerald-600 disabled:opacity-50 text-white dark:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
                             >
                               {verifying === req.id + d.donorId ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

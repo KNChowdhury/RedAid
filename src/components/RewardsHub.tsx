@@ -34,40 +34,40 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
 
   const renderBadgeIcon = (iconName: string) => {
     switch (iconName) {
-      case 'Heart': return <Heart className="w-6 h-6 text-rose-600 fill-rose-100" />;
-      case 'ShieldCheck': return <ShieldCheck className="w-6 h-6 text-emerald-600" />;
-      case 'CalendarCheck': return <CalendarCheck className="w-6 h-6 text-blue-600" />;
-      case 'Crown': return <Crown className="w-6 h-6 text-amber-500" />;
-      case 'Zap': return <Zap className="w-6 h-6 text-purple-600" />;
-      default: return <Award className="w-6 h-6 text-rose-600" />;
+      case 'Heart': return <Heart className="w-6 h-6 text-rose-600 dark:text-rose-400 fill-rose-100" />;
+      case 'ShieldCheck': return <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />;
+      case 'CalendarCheck': return <CalendarCheck className="w-6 h-6 text-blue-600 dark:text-blue-400" />;
+      case 'Crown': return <Crown className="w-6 h-6 text-amber-500 dark:text-amber-400" />;
+      case 'Zap': return <Zap className="w-6 h-6 text-purple-600 dark:text-purple-400" />;
+      default: return <Award className="w-6 h-6 text-rose-600 dark:text-rose-400" />;
     }
   };
 
   return (
-    <section className="p-6 lg:p-10 overflow-y-auto custom-scroll h-full bg-white space-y-10 pb-20">
+    <section className="p-6 lg:p-10 overflow-y-auto custom-scroll h-full bg-white dark:bg-slate-900 space-y-10 pb-20">
       {/* Title Header */}
-      <header className="border-b border-slate-100 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <header className="border-b border-slate-100 dark:border-slate-800 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+          <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-2.5 py-1 rounded-md border border-rose-200 dark:border-rose-900/50">
             Roktobondhu Bangladesh Recognition Hub
           </span>
-          <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 leading-tight mt-3">
+          <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-tight mt-3">
             Rewards, Badges &<br />
-            <span className="text-rose-600">Honors.</span>
+            <span className="text-rose-600 dark:text-rose-400">Honors.</span>
           </h1>
         </div>
 
         {/* User Hero Rank Summary */}
         {currentUser && (
-          <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-800 flex items-center gap-5 shadow-xl">
+          <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 p-5 rounded-3xl border border-slate-800 dark:border-slate-300 flex items-center gap-5 shadow-xl">
             <div className="w-14 h-14 blood-gradient rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/30">
               <Trophy className="w-7 h-7 text-white" />
             </div>
             <div>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Your National Standing</p>
-              <p className="text-2xl font-mono font-black text-white">{currentUser.impactScore ?? 0} <span className="text-xs text-rose-400 font-sans">Points</span></p>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-600">Your National Standing</p>
+              <p className="text-2xl font-mono font-black text-white dark:text-slate-900">{currentUser.impactScore ?? 0} <span className="text-xs text-rose-400 dark:text-rose-600 font-sans">Points</span></p>
               {currentUserRank > 0 && (
-                <p className="text-xs text-emerald-400 font-semibold mt-0.5">🎖️ Rank #{currentUserRank} on this leaderboard</p>
+                <p className="text-xs text-emerald-400 dark:text-emerald-700 font-semibold mt-0.5">🎖️ Rank #{currentUserRank} on this leaderboard</p>
               )}
             </div>
           </div>
@@ -109,7 +109,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Achievements Showcase</h2>
-            <p className="text-lg font-bold text-slate-800 mt-0.5">Unlock Badges By Saving Lives</p>
+            <p className="text-lg font-bold text-slate-800 dark:text-slate-200 mt-0.5">Unlock Badges By Saving Lives</p>
           </div>
           <span className="text-xs font-mono font-bold text-slate-500">
             {badges.filter(b => b.achieved).length} / {badges.length} Unlocked
@@ -128,35 +128,35 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               transition={{ duration: 0.35, delay: idx * 0.08, ease: "easeOut" }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
               className={`p-6 rounded-3xl border transition-all flex flex-col justify-between relative overflow-hidden ${
-                badge.achieved 
-                  ? 'bg-white border-rose-200/80 shadow-md shadow-rose-500/5' 
-                  : 'bg-slate-50/80 border-slate-200/60 opacity-65 grayscale-[0.6]'
+                badge.achieved
+                  ? 'bg-white dark:bg-slate-800/60 border-rose-200/80 dark:border-rose-900/50 shadow-md shadow-rose-500/5'
+                  : 'bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700 opacity-65 grayscale-[0.6]'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                    badge.achieved ? 'bg-rose-50 shadow-sm' : 'bg-slate-200'
+                    badge.achieved ? 'bg-rose-50 dark:bg-rose-950/30 shadow-sm' : 'bg-slate-200 dark:bg-slate-700'
                   }`}>
                     {renderBadgeIcon(badge.icon)}
                   </div>
                   <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg ${
-                    badge.achieved ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                    badge.achieved ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                   }`}>
                     {badge.pointsRequired} Pts
                   </span>
                 </div>
 
-                <h3 className="font-extrabold text-lg text-slate-900">{badge.name}</h3>
+                <h3 className="font-extrabold text-lg text-slate-900 dark:text-slate-100">{badge.name}</h3>
                 <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{badge.description}</p>
 
                 {/* Animated Framer Motion Progress Bar */}
                 <div className="mt-4">
                   <div className="flex justify-between text-[10px] font-mono font-bold mb-1 text-slate-400">
                     <span>Progress ({currentPts}/{badge.pointsRequired} pts)</span>
-                    <span className={badge.achieved ? 'text-emerald-600 font-black' : 'text-rose-600'}>{progressPercent}%</span>
+                    <span className={badge.achieved ? 'text-emerald-600 dark:text-emerald-400 font-black' : 'text-rose-600 dark:text-rose-400'}>{progressPercent}%</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60 shadow-inner">
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200/60 dark:border-slate-700 shadow-inner">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${progressPercent}%` }}
@@ -167,10 +167,10 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Category: {badge.category}</span>
                 <span className={`text-[10px] font-black uppercase tracking-wider ${
-                  badge.achieved ? 'text-emerald-600' : 'text-slate-400'
+                  badge.achieved ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
                 }`}>
                   {badge.achieved ? '✓ Achieved' : '🔒 Locked'}
                 </span>
@@ -182,13 +182,13 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
       </section>
 
       {/* National Leaderboard */}
-      <section className="bg-slate-50 rounded-[2.5rem] p-6 lg:p-8 border border-slate-200/80">
+      <section className="bg-slate-50 dark:bg-slate-800/60 rounded-[2.5rem] p-6 lg:p-8 border border-slate-200/80 dark:border-slate-700">
         <div className="flex items-center justify-between mb-6">
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hall of Fame</span>
-            <h2 className="text-2xl font-black text-slate-900 mt-1">Top Roktobondhu Contributors</h2>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">Top Roktobondhu Contributors</h2>
           </div>
-          <span className="text-xs font-bold text-rose-600 uppercase tracking-wider bg-rose-100 px-3 py-1 rounded-full">
+          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider bg-rose-100 dark:bg-rose-950/30 px-3 py-1 rounded-full">
             🔥 Updated Hourly
           </span>
         </div>
@@ -200,15 +200,15 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               <div
                 key={user.id}
                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                  user.id === currentUser?.id 
-                    ? 'bg-rose-50 border-rose-300 shadow-md' 
-                    : 'bg-white border-slate-200/80 hover:shadow-sm'
+                  user.id === currentUser?.id
+                    ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 shadow-md'
+                    : 'bg-white dark:bg-slate-800 border-slate-200/80 dark:border-slate-700 hover:shadow-sm'
                 }`}
               >
                 <span className={`w-8 h-8 rounded-xl font-mono text-xs font-black flex items-center justify-center shrink-0 ${
-                  idx === 0 ? 'bg-amber-400 text-slate-950 shadow-md' :
-                  idx === 1 ? 'bg-slate-300 text-slate-900' :
-                  idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-500'
+                  idx === 0 ? 'bg-amber-400 dark:bg-amber-500 text-slate-950 shadow-md' :
+                  idx === 1 ? 'bg-slate-300 dark:bg-slate-400 text-slate-900' :
+                  idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                 }`}>
                   {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                 </span>
@@ -217,7 +217,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="font-bold text-sm text-slate-900 truncate">{user.name}</p>
+                    <p className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
                     {user.id === currentUser?.id && (
                       <span className="text-[9px] bg-rose-600 text-white font-black px-1.5 py-0.5 rounded uppercase">You</span>
                     )}
@@ -228,7 +228,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
                 </div>
 
                 <div className="text-right shrink-0">
-                  <p className="text-base font-mono font-black text-slate-900">{user.impactScore.toLocaleString()}</p>
+                  <p className="text-base font-mono font-black text-slate-900 dark:text-slate-100">{user.impactScore.toLocaleString()}</p>
                   <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Roktobondhu Pts</p>
                 </div>
               </div>
@@ -240,10 +240,10 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
       {/* Official Certificate Dialog Modal */}
       {showCertificateModal && currentUser && (
         <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[3rem] p-8 lg:p-12 max-w-3xl w-full border-8 border-double border-rose-600 shadow-2xl text-center relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 lg:p-12 max-w-3xl w-full border-8 border-double border-rose-600 shadow-2xl text-center relative overflow-hidden">
             <button
               onClick={() => setShowCertificateModal(false)}
-              className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold"
+              className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold"
             >
               ✕
             </button>
@@ -253,25 +253,25 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
             </div>
 
             <p className="text-xs uppercase tracking-[0.3em] font-black text-slate-400">People's Republic of Bangladesh • Roktobondhu Bangladesh Network</p>
-            <h2 className="editorial-title text-4xl sm:text-5xl font-black text-slate-900 my-4">Certificate of Appreciation</h2>
-            
-            <p className="text-sm text-slate-600 max-w-lg mx-auto font-medium leading-relaxed">
+            <h2 className="editorial-title text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 my-4">Certificate of Appreciation</h2>
+
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto font-medium leading-relaxed">
               This official honour is proudly awarded to
             </p>
-            <p className="text-3xl font-black text-rose-600 font-serif border-b-2 border-slate-200 inline-block px-8 py-2 my-2">
+            <p className="text-3xl font-black text-rose-600 dark:text-rose-400 font-serif border-b-2 border-slate-200 dark:border-slate-700 inline-block px-8 py-2 my-2">
               {currentUser.name}
             </p>
-            <p className="text-sm text-slate-600 max-w-lg mx-auto font-medium leading-relaxed mt-2">
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto font-medium leading-relaxed mt-2">
               For voluntary, verified blood donation ({currentUser.bloodGroup}) and demonstrating supreme humanitarian spirit in saving {currentUser.livesSaved} lives.
             </p>
 
-            <div className="grid grid-cols-2 gap-8 mt-10 pt-8 border-t border-slate-200 max-w-md mx-auto text-center">
+            <div className="grid grid-cols-2 gap-8 mt-10 pt-8 border-t border-slate-200 dark:border-slate-700 max-w-md mx-auto text-center">
               <div>
-                <p className="font-serif italic font-bold text-slate-800">Dr. Kawsar Chowdhury</p>
+                <p className="font-serif italic font-bold text-slate-800 dark:text-slate-200">Dr. Kawsar Chowdhury</p>
                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Chief Medical Advisor</p>
               </div>
               <div>
-                <p className="font-serif italic font-bold text-slate-800">Roktobondhu Registrar</p>
+                <p className="font-serif italic font-bold text-slate-800 dark:text-slate-200">Roktobondhu Registrar</p>
                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">National Blood Bank</p>
               </div>
             </div>

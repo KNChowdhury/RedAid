@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Manual dark mode: a `dark` class on <html> (set by the inline script in
+   index.html and toggled by useTheme) turns on dark: variants, instead of
+   only following the OS-level prefers-color-scheme media query. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer utilities {
   .editorial-title {
     font-family: 'Playfair Display', Georgia, serif;

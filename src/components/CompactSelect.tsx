@@ -28,7 +28,7 @@ export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, on
         id={id}
         type="button"
         onClick={() => setOpen(current => !current)}
-        className={`w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-800 outline-hidden focus:border-rose-500 transition-colors cursor-pointer flex items-center justify-between gap-3 ${className}`}
+        className={`w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-800 dark:text-slate-200 outline-hidden focus:border-rose-500 transition-colors cursor-pointer flex items-center justify-between gap-3 ${className}`}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -36,13 +36,13 @@ export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, on
         <ChevronDown className={`w-4 h-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-30 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl" role="listbox">
+        <div className="absolute left-0 right-0 top-full mt-1 z-30 max-h-56 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-xl" role="listbox">
           {options.map(option => (
             <button
               key={option.value}
               type="button"
               onClick={() => { onChange(option.value); setOpen(false); }}
-              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${option.value === value ? 'bg-rose-50 font-bold text-rose-600' : 'text-slate-700 hover:bg-slate-50'}`}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors cursor-pointer ${option.value === value ? 'bg-rose-50 dark:bg-rose-950/40 font-bold text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
               role="option"
               aria-selected={option.value === value}
             >

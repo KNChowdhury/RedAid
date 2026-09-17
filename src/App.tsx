@@ -474,7 +474,7 @@ export function App() {
     // this div into position:sticky's scrolling container instead of the
     // window — breaking sticky descendants like SidebarStats. clip avoids
     // that forced computation while still preventing horizontal overflow.
-    <div className="min-h-[100dvh] overflow-x-clip flex flex-col bg-slate-100/60 font-sans text-slate-900 selection:bg-rose-500 selection:text-white antialiased">
+    <div className="min-h-[100dvh] overflow-x-clip flex flex-col bg-slate-100/60 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 selection:bg-rose-500 selection:text-white antialiased">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -490,9 +490,9 @@ export function App() {
 
       <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-10 py-4">
         {state.currentUser ? (
-          <div className="rounded-2xl border border-rose-100 bg-rose-50/70 px-5 py-4 flex items-center justify-between gap-4">
-            <p className="text-sm text-slate-700">
-              Signed in as <span className="font-bold text-slate-900">{state.currentUser.name}</span>
+          <div className="rounded-2xl border border-rose-100 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/20 px-5 py-4 flex items-center justify-between gap-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Signed in as <span className="font-bold text-slate-900 dark:text-slate-100">{state.currentUser.name}</span>
             </p>
             <button
               onClick={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
@@ -504,13 +504,13 @@ export function App() {
         ) : (
           /* Guests get one sentence and one action. The old panel had three
              cards that carried no information and could not be acted on. */
-          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <p className="text-sm text-slate-600">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               Find blood donors across Bangladesh. Sign in to post a request or offer to donate.
             </p>
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="shrink-0 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-colors"
+              className="shrink-0 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white rounded-xl text-sm font-bold transition-colors"
             >
               Sign in
             </button>
@@ -530,7 +530,7 @@ export function App() {
         />
 
         {/* Right Active Workspace Container */}
-        <div className="flex-1 min-w-0 lg:overflow-hidden lg:h-full flex flex-col bg-white">
+        <div className="flex-1 min-w-0 lg:overflow-hidden lg:h-full flex flex-col bg-white dark:bg-slate-900">
           {activeTab === 'network' && (
             <DonorsNetwork
               donors={filteredDonorsList}
@@ -544,13 +544,13 @@ export function App() {
           {activeTab === 'requests' && (
             <>
             {isLoggedIn && notifyPermission === 'default' && (
-              <div className="mx-6 lg:mx-10 mt-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <p className="text-sm text-slate-600">
+              <div className="mx-6 lg:mx-10 mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   Get alerted on screen when someone nearby needs your blood type.
                 </p>
                 <button
                   onClick={askNotifyPermission}
-                  className="shrink-0 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-colors"
+                  className="shrink-0 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white rounded-xl text-sm font-bold transition-colors"
                 >
                   Turn on alerts
                 </button>

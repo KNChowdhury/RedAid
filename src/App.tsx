@@ -22,7 +22,7 @@ export function App() {
   // there, unrelated to tab routing.
   const readTabFromPath = () => {
     const t = window.location.pathname.replace(/^\/+|\/+$/g, '');
-    const valid = ['requests', 'success', 'map', 'rewards', 'admin'];
+    const valid = ['requests', 'success', 'rewards', 'admin'];
     return valid.includes(t) ? t : 'network';
   };
 
@@ -533,7 +533,6 @@ export function App() {
           {activeTab === 'network' && (
             <DonorsNetwork
               donors={filteredDonorsList}
-              filters={filters}
               currentUserId={state.currentUser?.id ?? null}
               onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
@@ -581,18 +580,6 @@ export function App() {
           )}
 
           {activeTab === 'success' && <SuccessStories />}
-
-          {activeTab === 'map' && (
-            <DonorsNetwork
-              donors={filteredDonorsList}
-              filters={filters}
-              currentUserId={state.currentUser?.id ?? null}
-              onSelectDonor={d => openDonorProfile(d)}
-              onRequestBlood={() => setIsRequestModalOpen(true)}
-              onRequireAuth={() => setIsAuthModalOpen(true)}
-              initialViewMode="map"
-            />
-          )}
 
           {activeTab === 'rewards' && (
             <RewardsHub

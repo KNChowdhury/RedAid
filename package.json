@@ -13,7 +13,6 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
     "@tailwindcss/vite": "^4.1.14",
-    "@vis.gl/react-google-maps": "^1.10.0",
     "@vitejs/plugin-react": "^5.0.4",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",

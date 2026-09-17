@@ -5,7 +5,7 @@ import { Footer } from './components/Footer';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
 import { SuccessStories } from './components/SuccessStories';
-import { AuthModal, NotificationsModal, ProfileModal, RequestBloodModal } from './components/Modals';
+import { AuthModal, CompleteProfileModal, NotificationsModal, ProfileModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
 import { ConfirmDonationBanner, MarkDonatedModal, ShareRequestModal } from './components/DonationLoop';
@@ -94,6 +94,14 @@ export function App() {
   }, [activeTab, state.currentUser, setActiveTab]);
 
   const isLoggedIn = !!state.currentUser;
+  // A Google (or any OAuth/magic-link) sign-in lands with a donor row whose
+  // required fields are still blank -- getCurrentDonorFromSession's fallback
+  // insert creates it so login itself doesn't get stuck, but phone/district/
+  // area are never populated by that path. Real signups always fill these in,
+  // so their absence reliably means "needs the one-time completion step,"
+  // not a false positive on an existing complete account.
+  const needsProfileCompletion = !!state.currentUser
+    && (!state.currentUser.phone || !state.currentUser.district || !state.currentUser.area);
   const isMountedRef = useRef(true);
   const currentUserRef = useRef(state.currentUser);
   currentUserRef.current = state.currentUser;
@@ -512,6 +520,7 @@ export function App() {
               currentUserId={state.currentUser?.id ?? null}
               onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
+              onRequireAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
@@ -563,6 +572,7 @@ export function App() {
               currentUserId={state.currentUser?.id ?? null}
               onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}
+              onRequireAuth={() => setIsAuthModalOpen(true)}
               initialViewMode="map"
             />
           )}
@@ -613,6 +623,19 @@ export function App() {
         onSubmit={handleAddNewRequest}
       />
 
+      {needsProfileCompletion && state.currentUser && (
+        <CompleteProfileModal
+          donor={state.currentUser}
+          onCompleted={updated => {
+            setState(prev => ({
+              ...prev,
+              currentUser: updated,
+              donors: prev.donors.map(d => d.id === updated.id ? updated : d)
+            }));
+          }}
+        />
+      )}
+
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
@@ -638,6 +661,7 @@ export function App() {
           }));
           setSelectedProfileDonor(updated);
         } : undefined}
+        onRequireAuth={() => { setSelectedProfileDonor(null); setIsAuthModalOpen(true); }}
       />
 
       <NotificationsModal

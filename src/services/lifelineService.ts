@@ -1357,6 +1357,78 @@ export async function signInDonor(email: string, password: string): Promise<{ us
   return { user: signedInProfile, error: null };
 }
 
+// Redirects to Google's consent screen; the session is picked up afterward by
+// subscribeToAuthState (detectSessionInUrl is already on for this client), the
+// same path magic-link and password-reset already use. This only returns an
+// error if the redirect itself couldn't be started -- it never resolves with
+// a user, since the page navigates away.
+export async function signInWithGoogle(): Promise<{ error: string | null }> {
+  if (!supabase) return { error: 'Supabase client not configured.' };
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+  return { error: error?.message || null };
+}
+
+// A Google (or any OAuth/magic-link) sign-in has no donor row with a real
+// blood group, phone, or district yet -- getCurrentDonorFromSession's own
+// fallback insert (below) creates a placeholder with those fields blank so
+// login itself never gets stuck. This is the one place that fills them in for
+// real, keyed to the existing row rather than creating a second one.
+export async function completeDonorProfile(
+  donorId: string,
+  profile: {
+    name: string;
+    /** Already normalized (e.g. via toBdDialing) by the caller, same as updateDonorProfile expects. */
+    phone: string;
+    whatsapp: string;
+    bloodGroup: string;
+    district: string;
+    area: string;
+    birthYear?: number | null;
+    isSmoker?: boolean;
+  }
+): Promise<{ profile: DonorProfile | null; error: string | null }> {
+  if (!supabase) return { profile: null, error: 'Supabase client not configured.' };
+  if (!donorId) return { profile: null, error: 'Your session needs a refresh. Please reload the page and try again.' };
+  if (!isValidDonorName(profile.name)) return { profile: null, error: 'Please enter your name (not just symbols).' };
+  if (!profile.bloodGroup) return { profile: null, error: 'Please select your blood group.' };
+  if (!profile.phone.trim()) return { profile: null, error: 'Please enter your phone number.' };
+
+  const { lat, lng } = lookupCoordinates(profile.district, profile.area);
+
+  const { data, error } = await supabase
+    .from('donors')
+    .update({
+      name: profile.name,
+      phone: profile.phone,
+      whatsapp: profile.whatsapp,
+      blood_group: profile.bloodGroup,
+      district: profile.district,
+      area: profile.area,
+      lat,
+      lng,
+      birth_year: profile.birthYear ?? null,
+      is_smoker: profile.isSmoker ?? false
+    })
+    .eq('id', donorId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    if (error?.code === '23505') {
+      return { profile: null, error: 'That phone number is already registered to another account.' };
+    }
+    console.error('Complete donor profile error:', error);
+    return { profile: null, error: 'Could not save your profile. Please try again.' };
+  }
+
+  const completedProfile = mapDbDonorToProfile(data);
+  completedProfile.healthInfo = { ...(completedProfile.healthInfo || {}), ...(await fetchMyHealthInfo(completedProfile.id)) } as any;
+  return { profile: completedProfile, error: null };
+}
+
 export async function getCurrentDonorFromSession(): Promise<DonorProfile | null> {
   if (!supabase) {
     return null;

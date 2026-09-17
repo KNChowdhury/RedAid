@@ -10,6 +10,7 @@ interface DonorsNetworkProps {
   currentUserId: string | null;
   onSelectDonor: (donor: DonorProfile) => void;
   onRequestBlood: () => void;
+  onRequireAuth: () => void;
   initialViewMode?: 'grid' | 'map';
 }
 
@@ -19,6 +20,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   currentUserId,
   onSelectDonor,
   onRequestBlood,
+  onRequireAuth,
   initialViewMode = 'grid'
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>(initialViewMode);
@@ -29,6 +31,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   const revealRequestVersionRef = useRef(0);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -47,6 +50,10 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 
   const revealContact = async (donorId: string) => {
     if (revealingDonorId || !isMountedRef.current) return;
+    if (!currentUserId) {
+      onRequireAuth();
+      return;
+    }
     const requestVersion = revealRequestVersionRef.current;
     setRevealingDonorId(donorId);
     const contact = await getDonorContact(donorId);

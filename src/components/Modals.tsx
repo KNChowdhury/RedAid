@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, 
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { calculateAge, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
@@ -425,6 +425,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     onClose();
   };
 
+  const handleGoogleSignIn = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    setLoading(true);
+    // Full-page redirect to Google; this modal (and the whole app) unmounts
+    // here. The session is picked up on return by subscribeToAuthState in
+    // App.tsx, same as magic-link and password-reset already work.
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setLoading(false);
+      setErrorMsg(error);
+    }
+  };
+
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl relative text-slate-900">
@@ -561,6 +575,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             {loading ? 'Please wait...' : view === 'register' ? 'Create Secure Profile' : view === 'reset' ? 'Send Reset Email' : view === 'new-password' ? 'Update Password' : 'Sign In'}
           </button>
 
+          {(view === 'login' || view === 'register') && (
+            <>
+              <div className="flex items-center gap-3 py-1">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Or</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="w-full py-3.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.28 1.48-1.13 2.73-2.4 3.58v2.98h3.89c2.28-2.1 3.53-5.19 3.53-8.8z" />
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.89-2.98c-1.08.72-2.45 1.16-4.04 1.16-3.1 0-5.73-2.09-6.67-4.9H1.32v3.07C3.29 21.3 7.31 24 12 24z" />
+                  <path fill="#FBBC05" d="M5.33 14.38c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.75H1.32C.48 8.4 0 10.15 0 12s.48 3.6 1.32 5.25l4.01-3.12z" />
+                  <path fill="#EA4335" d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.29 2.7 1.32 6.75l4.01 3.09c.94-2.81 3.57-5.09 6.67-5.09z" />
+                </svg>
+                Continue with Google
+              </button>
+            </>
+          )}
+
           {successMsg && (
             <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-bold">
               {successMsg}
@@ -593,9 +632,10 @@ interface ProfileModalProps {
   onClose: () => void;
   onToggleAvailability?: () => void;
   onProfileUpdated?: (updated: DonorProfile) => void;
+  onRequireAuth: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, currentUserId, onClose, onToggleAvailability, onProfileUpdated }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, currentUserId, onClose, onToggleAvailability, onProfileUpdated, onRequireAuth }) => {
   const districts = useDistricts();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -720,6 +760,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
   const handleRevealContact = async () => {
     if (revealingContact || !donor.availableNow || !isMountedRef.current) return;
+    if (!currentUserId) {
+      onRequireAuth();
+      return;
+    }
     const requestVersion = revealVersionRef.current;
     setRevealingContact(true);
     const contact = await getDonorContact(donor.id);
@@ -1070,6 +1114,145 @@ export const NotificationsModal: React.FC<NotifModalProps> = ({ isOpen, onClose,
             })()
           ))}
         </div>
+      </div>
+    </div>
+  );
+};
+
+/* ================= 5. COMPLETE PROFILE MODAL ================= */
+// Shown once, right after a Google (or any OAuth/magic-link) sign-in that has
+// no blood group/phone/district yet -- getCurrentDonorFromSession's fallback
+// insert already created a bare donor row so the sign-in itself never gets
+// stuck, but that row is not usable until this is filled in. Deliberately not
+// dismissable (no useDismissable, no backdrop/X close): the rest of the app
+// stays mounted underneath, but the person can't act as a donor with blank
+// required fields.
+interface CompleteProfileModalProps {
+  donor: DonorProfile;
+  onCompleted: (updated: DonorProfile) => void;
+}
+
+export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ donor, onCompleted }) => {
+  const districts = useDistricts();
+  const [name, setName] = useState(donor.name || '');
+  const [phone, setPhone] = useState('');
+  const [bloodGroup, setBloodGroup] = useState<string>('');
+  const [district, setDistrict] = useState('Dhaka');
+  const [area, setArea] = useState('Banani');
+  const [birthYear, setBirthYear] = useState('');
+  const [isSmoker, setIsSmoker] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (!isValidDonorName(name)) {
+      setErrorMsg('Please enter your name (not just symbols).');
+      return;
+    }
+    if (!bloodGroup) {
+      setErrorMsg('Please select your blood group.');
+      return;
+    }
+    if (!phone.trim()) {
+      setErrorMsg('Please enter your phone number.');
+      return;
+    }
+
+    setSaving(true);
+    const { profile, error } = await completeDonorProfile(donor.id, {
+      name,
+      phone: toBdDialing(phone),
+      whatsapp: toBdWhatsapp(phone),
+      bloodGroup,
+      district,
+      area,
+      birthYear: birthYear ? Number(birthYear) : null,
+      isSmoker
+    });
+    setSaving(false);
+
+    if (!profile) {
+      setErrorMsg(error || 'Could not save your profile. Please try again.');
+      return;
+    }
+    onCompleted(profile);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full border border-slate-200 shadow-2xl relative text-slate-900 max-h-[90vh] overflow-y-auto custom-scroll">
+        <div className="w-12 h-12 blood-gradient rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-rose-500/20">
+          <Heart className="w-6 h-6 fill-white" />
+        </div>
+        <h2 className="editorial-title text-2xl sm:text-3xl font-black">One Last Step</h2>
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
+          A few required details to finish setting up your donor profile
+        </p>
+
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Full Name <span className="text-rose-600">*</span></label>
+            <input value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Phone Number <span className="text-rose-600">*</span></label>
+            <input value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="01712345678" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Blood Group <span className="text-rose-600">*</span></label>
+              <select required value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-rose-600">
+                <option value="" disabled>Select blood group</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">District <span className="text-rose-600">*</span></label>
+              <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
+                {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Area <span className="text-rose-600">*</span></label>
+            <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1900}
+              max={new Date().getFullYear()}
+              value={birthYear}
+              onChange={e => setBirthYear(e.target.value)}
+              placeholder="e.g. 1995"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+            />
+          </div>
+
+          <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+            <input type="checkbox" checked={isSmoker} onChange={e => setIsSmoker(e.target.checked)} className="accent-rose-600 w-4 h-4" />
+            <span className="text-xs font-bold text-slate-700">I am a smoker (health note)</span>
+          </label>
+
+          <button type="submit" disabled={saving} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
+            {saving ? 'Saving...' : 'Finish Setting Up My Profile'}
+          </button>
+        </form>
       </div>
     </div>
   );

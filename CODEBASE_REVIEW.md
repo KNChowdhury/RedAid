@@ -581,3 +581,66 @@ Supabase SQL Editor and post-migration anon/authenticated behavior checks.
 - Supplied principle-engineer audit reported no immediate heap/DOM leak, but flagged browser storage PII and missing CSP. Both code/config findings are now addressed; live header and clean-storage verification remains required.
 
 The request-storm diagnosis is high-confidence from the repeated request pattern and call structure, but production runtime confirmation is still required before calling it fully resolved.
+
+## Update 2026-09-18 — Restored "Last Donation Date" and fixed a real availability/eligibility mismatch
+
+Re-added the "Last Donation Date" field to the own-profile edit form in
+`ProfileModal` (`src/components/Modals.tsx`) — it existed in older code but
+was dropped without being migrated to the current form, so donors had no way
+to self-report a past donation date, and every donor showed as "first-time
+donor" regardless of history. The field writes through the existing
+`updateDonorProfile()` path in `lifelineService.ts`, which already mapped
+`lastDonationDate` → `last_donation_date` and left `next_eligible_date` to the
+DB-side trigger (`+120 days`) — no new persistence logic was needed, only the
+missing UI.
+
+While verifying it live (full-page-text dump, not just a targeted locator —
+a targeted `indexOf('Last Donated')` gave a false negative earlier from a
+case-sensitivity mismatch against the CSS-`uppercase`-rendered label; the
+full-body dump caught it), a separate, pre-existing bug surfaced: a donor
+whose `next_eligible_date` is in the future (not yet medically eligible) but
+whose `available_now` flag is still `true` (a self-toggled, donor-controlled
+broadcast switch, never itself gated by eligibility) was shown everywhere as
+**"Available now"** and was fully contactable — reveal button enabled,
+WhatsApp/Call links live. Two other donors in the same dataset with the same
+kind of future eligibility date correctly showed "Not available" only because
+their `available_now` had separately been flipped to `false` by the donation-
+confirmation code path. Any donor who never had that path run (including this
+one, a donor who only self-reported a past date without going through
+donation confirmation) was contactable while ineligible — a real safety-
+relevant gap in a blood-donation app, not a display nitpick: a requester could
+call or message someone whose profile now claims a future eligible date, on
+the strength of a stale or self-toggled "available" switch that nothing was
+checking against it.
+
+Fixed by adding one canonical derivation, `isDonorAvailableNow()` in
+`lifelineService.ts` (`available_now && (no next_eligible_date OR it's today
+or earlier)`), and switching every "can this donor be shown/contacted by
+someone else" call site to it: the donor list card badge and "Available from"
+countdown and reveal button in `DonorsNetwork.tsx`; the reveal-contact guard,
+"Show number" button, and WhatsApp/Call fallback labels in `Modals.tsx`; and
+the "Available right now" list filter in `lifelineService.ts`'s
+`filterDonors()`. The donor's own "Broadcasting as Available for Emergency /
+Off-Duty" toggle display was deliberately left reading the raw `available_now`
+flag (it is the donor's own control and readout of their own preference, not
+a decision about whether someone else can act on it) — but a new inline
+warning was added next to it, shown only to the donor themselves, when their
+toggle says available but the derived state says otherwise, naming the exact
+date they'll show as available again. This is a single-layer fix at the
+display/filter layer only: `available_now` and `next_eligible_date` are not
+reconciled at the database or RPC level, so a future consumer that reads
+`available_now` directly (a new admin view, a report, a different client)
+would still see the stale flag. Flagging this explicitly per defense-in-depth
+practice, rather than presenting it as fully closed.
+
+Verified live end-to-end against the running dev server (not just types):
+signed in as an existing test donor, set their Last Donation Date to
+2026-08-01 via the real edit form, confirmed the save round-tripped through
+Supabase and back (`Last Donated: 2026-08-01`, `Next Eligible: 2026-11-29` —
+a correct +120-day trigger computation), then confirmed the donor list and
+that donor's own profile both switched from "Available now" to "Not available
+· Available from 2026-11-29" purely from the new derivation, with the new
+warning banner correctly appearing on their own profile view.
+
+`npm run lint` (`tsc --noEmit`) passed clean. No `npm run build` or production
+deploy was performed as part of this change.

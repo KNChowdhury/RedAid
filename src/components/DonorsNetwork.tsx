@@ -1,6 +1,6 @@
 import { Calendar, MessageCircle, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { calculateAge, getDonorContact, getWhatsAppUrl } from '../services/lifelineService';
+import { calculateAge, getDonorContact, getWhatsAppUrl, isDonorAvailableNow } from '../services/lifelineService';
 import { DonorProfile } from '../types';
 
 interface DonorsNetworkProps {
@@ -111,7 +111,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                     </p>
 
                     <p className="text-xs text-slate-400 mt-1.5">
-                      {donor.availableNow ? (
+                      {isDonorAvailableNow(donor) ? (
                         <span className="text-emerald-600 font-semibold">Available now</span>
                       ) : (
                         <span>Not available</span>
@@ -127,7 +127,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                         Last donated <span className="font-bold text-slate-700">{donor.lastDonationDate}</span>
                       </p>
                     )}
-                    {!donor.availableNow && donor.nextEligibleDate && (
+                    {!isDonorAvailableNow(donor) && donor.nextEligibleDate && (
                       <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1.5 mt-1.5 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1 w-fit">
                         <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                         Available from <span className="font-black">{donor.nextEligibleDate}</span>
@@ -138,7 +138,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 
                 {/* One action, and it does the actual job. */}
                 <div className="mt-4 flex items-center gap-2">
-                  {donor.availableNow ? (
+                  {isDonorAvailableNow(donor) ? (
                     revealedContacts[donor.id]?.phone ? (
                       <div className="flex-1 flex items-center gap-2">
                         <a href={`tel:${revealedContacts[donor.id].phone}`} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors">

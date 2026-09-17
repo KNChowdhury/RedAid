@@ -72,6 +72,17 @@ export function isValidDonorName(name: string): boolean {
   return /\p{L}/u.test(name);
 }
 
+// availableNow is a self-declared broadcast toggle a donor flips by hand; it
+// is never itself blocked by eligibility, so a donor can leave it "on" from
+// before their last donation and still show as contactable while medically
+// ineligible. Anywhere the app decides whether to show/contact a donor as
+// available to somebody else, gate on this instead of the raw flag.
+export function isDonorAvailableNow(donor: Pick<DonorProfile, 'availableNow' | 'nextEligibleDate'>): boolean {
+  if (!donor.availableNow) return false;
+  if (!donor.nextEligibleDate) return true;
+  return donor.nextEligibleDate <= new Date().toISOString().split('T')[0];
+}
+
 // Load or initialize state
 export function getAppState(): AppState {
   // Donor and request data must come from Supabase, not a readable browser
@@ -183,7 +194,7 @@ export function filterDonors(donors: DonorProfile[], filters: SearchFilters, cur
       return false;
     }
     // Available now
-    if (filters.availableNowOnly && !donor.availableNow) {
+    if (filters.availableNowOnly && !isDonorAvailableNow(donor)) {
       return false;
     }
     // Distance filter

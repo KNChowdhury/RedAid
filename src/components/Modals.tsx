@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, 
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isDonorAvailableNow, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
@@ -647,6 +647,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [birthYear, setBirthYear] = useState('');
   const [district, setDistrict] = useState('');
   const [area, setArea] = useState('');
+  const [lastDonationDate, setLastDonationDate] = useState('');
   const [hbsagStatus, setHbsagStatus] = useState('Not Tested');
   const [hcvStatus, setHcvStatus] = useState('Not Tested');
   const [hivStatus, setHivStatus] = useState('Not Tested');
@@ -699,6 +700,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       setBirthYear(donor.birthYear ? String(donor.birthYear) : '');
       setDistrict(donor.district);
       setArea(donor.area);
+      setLastDonationDate(donor.lastDonationDate || '');
       setHbsagStatus(donor.healthInfo?.hbsagStatus || 'Not Tested');
       setHcvStatus(donor.healthInfo?.hcvStatus || 'Not Tested');
       setHivStatus(donor.healthInfo?.hivStatus || 'Not Tested');
@@ -739,6 +741,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       birthYear: birthYear ? Number(birthYear) : null,
       district,
       area,
+      lastDonationDate,
       hbsagStatus,
       hcvStatus,
       hivStatus,
@@ -759,7 +762,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   };
 
   const handleRevealContact = async () => {
-    if (revealingContact || !donor.availableNow || !isMountedRef.current) return;
+    if (revealingContact || !isDonorAvailableNow(donor) || !isMountedRef.current) return;
     if (!currentUserId) {
       onRequireAuth();
       return;
@@ -821,10 +824,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             {!isOwnProfile && (
               <button
                 onClick={handleRevealContact}
-                disabled={!donor.availableNow || revealingContact || !!revealedContact}
+                disabled={!isDonorAvailableNow(donor) || revealingContact || !!revealedContact}
                 className="w-full mb-4 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest disabled:bg-slate-100 disabled:text-slate-400"
               >
-                {!donor.availableNow ? 'Not available right now' : revealedContact ? 'Contact checked' : revealingContact ? 'Checking availability...' : 'Show number'}
+                {!isDonorAvailableNow(donor) ? 'Not available right now' : revealedContact ? 'Contact checked' : revealingContact ? 'Checking availability...' : 'Show number'}
               </button>
             )}
 
@@ -950,6 +953,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Last Donation Date <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+              <input
+                type="date"
+                value={lastDonationDate}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={e => setLastDonationDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                শেষ কবে রক্ত দিয়েছেন? খালি রাখলে "প্রথমবার দাতা" দেখাবে। পরবর্তী তারিখ ১২০ দিন পর নিজে থেকেই হিসাব হবে।
+              </p>
+            </div>
+
             <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Screening results you entered</h4>
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -993,7 +1010,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
         )}
 
         {onToggleAvailability && !isEditing && (
-          <div className="p-5 bg-rose-50 rounded-3xl border border-rose-200 flex items-center justify-between mb-6">
+          <div className="p-5 bg-rose-50 rounded-3xl border border-rose-200 flex flex-wrap items-center justify-between mb-6">
             <div>
               <p className="text-xs font-black uppercase text-rose-900">Instant Telemetry Status</p>
               <p className="text-xs text-rose-700 mt-0.5">{donor.availableNow ? 'Broadcasting as Available for Emergency' : 'Set as resting / off-duty'}</p>
@@ -1006,6 +1023,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             >
               {donor.availableNow ? '● Available Now' : '○ Off-Duty'}
             </button>
+            {donor.availableNow && !isDonorAvailableNow(donor) && (
+              <p className="w-full mt-3 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                অন্যরা আপনাকে এখনো "Not available" দেখছেন — আপনার পরবর্তী যোগ্যতার তারিখ {donor.nextEligibleDate} পর্যন্ত।
+              </p>
+            )}
           </div>
         )}
 
@@ -1022,7 +1044,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </a>
             ) : (
               <span className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
-                {!donor.availableNow ? 'Not available right now' : 'Show number first'}
+                {!isDonorAvailableNow(donor) ? 'Not available right now' : 'Show number first'}
               </span>
             )}
             {(isOwnProfile || revealedContact?.phone) ? (
@@ -1034,7 +1056,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </a>
             ) : (
               <span className="px-8 py-4 border-2 border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-center text-slate-400">
-                {!donor.availableNow ? 'Not available right now' : 'Show number first'}
+                {!isDonorAvailableNow(donor) ? 'Not available right now' : 'Show number first'}
               </span>
             )}
           </div>

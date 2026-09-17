@@ -207,7 +207,24 @@ export function App() {
       // A password-reset link also creates a temporary session. Ignore the
       // generic sign-in callback while the recovery form is active.
       const activeDonor = recoveryModeRef.current ? null : donor;
-      setState(prev => ({ ...prev, currentUser: activeDonor }));
+      setState(prev => {
+        // Same class of race as the null-id guard above, but for a valid id:
+        // this listener's own resolution (its own select/RPC/fallback-insert
+        // round trip, done independently of AuthModal's) can finish AFTER
+        // handleLoginSuccess already committed a complete profile for the
+        // same donor right after signup -- e.g. this resolution's own
+        // fallback insert can race ahead with blank defaults before the
+        // just-submitted real data lands. Don't let a same-id resolution
+        // regress an already-complete profile back to blank fields just
+        // because it happened to resolve later.
+        if (
+          activeDonor && prev.currentUser?.id === activeDonor.id &&
+          prev.currentUser.phone && !activeDonor.phone
+        ) {
+          return prev;
+        }
+        return { ...prev, currentUser: activeDonor };
+      });
       refreshSharedData(!!activeDonor, activeDonor?.impactScore ?? null);
     },
     () => {

@@ -1322,7 +1322,12 @@ export async function signInDonor(email: string, password: string): Promise<{ us
     const linked = await supabase.rpc('link_or_get_my_donor');
     if (linked.error) {
       console.error('link_or_get_my_donor error:', linked.error.message);
-    } else if (linked.data) {
+    } else if (linked.data?.id) {
+      // link_or_get_my_donor can return a shell object of every column set to
+      // null (no id) instead of actually finding/creating a row -- checking
+      // truthiness alone treated that null shell as "found," skipping the
+      // fallback insert below and sending a donor profile with a null id all
+      // the way to handleLoginSuccess, which then had to silently drop it.
       donorRes = { ...donorRes, data: linked.data } as typeof donorRes;
     }
   }
@@ -1333,11 +1338,21 @@ export async function signInDonor(email: string, password: string): Promise<{ us
     }
 
     const fallbackPayload = buildDonorInsertPayload(authData.user);
-    const { data: insertedDonor, error: insertError } = await supabase
+    let { data: insertedDonor, error: insertError } = await supabase
       .from('donors')
       .insert(fallbackPayload)
       .select()
       .single();
+
+    if (insertError?.code === '23505') {
+      // Lost a race with another call creating this row first (e.g. two tabs
+      // signing in at once, or getCurrentDonorFromSession's own fallback
+      // insert) -- the row exists now, so fetch it instead of surfacing a
+      // raw duplicate-key error for something that isn't actually a failure.
+      const retry = await supabase.from('donors').select('*').eq('auth_user_id', userId).maybeSingle();
+      insertedDonor = retry.data;
+      insertError = retry.error;
+    }
 
     if (insertError || !insertedDonor) {
       console.error('Supabase donor profile fallback insert error:', insertError);
@@ -1446,7 +1461,10 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
     const linked = await supabase.rpc('link_or_get_my_donor');
     if (linked.error) {
       console.error('link_or_get_my_donor error:', linked.error.message);
-    } else if (linked.data) {
+    } else if (linked.data?.id) {
+      // Same guard as signInDonor -- link_or_get_my_donor can return an
+      // all-null shell instead of a real row, which truthiness alone would
+      // mistake for "found" and skip the fallback insert below entirely.
       donorRes = { ...donorRes, data: linked.data } as typeof donorRes;
     }
   }

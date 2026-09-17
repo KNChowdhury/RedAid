@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Roktobondhu Bangladesh</string>
+    <string name="title_activity_main">Roktobondhu Bangladesh</string>
+    <string name="package_name">com.roktobondhu.app</string>
+    <string name="custom_url_scheme">com.roktobondhu.app</string>
+</resources>

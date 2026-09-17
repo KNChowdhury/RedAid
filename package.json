@@ -28,6 +28,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@types/canvas-confetti": "^1.9.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
@@ -36,9 +37,14 @@
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "playwright": "^1.62.1",
+    "sharp": "^0.35.4",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
+  },
+  "allowScripts": {
+    "sharp@0.32.6": true,
+    "sharp@0.35.4": true
   }
 }

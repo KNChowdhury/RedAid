@@ -1,6 +1,6 @@
 import { AlertCircle, Building2, FileCheck, Loader2, Plus, ShieldCheck, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { fetchHospitalStats, fetchRequestResponders, verifyDonation, HospitalStats } from '../services/lifelineService';
+import { fetchHospitalStats, fetchRequestResponders, formatRequestDeadline, verifyDonation, HospitalStats } from '../services/lifelineService';
 import { DonorProfile, EmergencyRequest } from '../types';
 
 interface HospitalPortalProps {
@@ -50,11 +50,16 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
 
   // Load who actually responded, instead of showing an invented count.
   useEffect(() => {
+    let cancelled = false;
     hospitalRequests.forEach(async req => {
       if (responders[req.id]) return;
       const list = await fetchRequestResponders(req.id);
+      if (cancelled) return;
       setResponders(prev => ({ ...prev, [req.id]: list }));
     });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hospitalRequests.map(r => r.id).join(',')]);
 
@@ -209,7 +214,7 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
                         </div>
                         <p className="text-xs text-slate-500 mt-1 font-medium">
                           Requirement: <strong className="text-slate-800">{req.requiredBags} Bags</strong>
-                          {req.neededByTime ? ` • Needed by ${req.neededByTime}` : ''}
+                          {req.neededByTime ? ` • Needed by ${formatRequestDeadline(req.neededByTime, req.createdAt)}` : ''}
                         </p>
                         {req.reason && <p className="text-xs text-slate-400 italic mt-0.5">"{req.reason}"</p>}
                       </div>

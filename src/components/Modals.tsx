@@ -43,6 +43,27 @@ interface RequestModalProps {
   editingRequest?: EmergencyRequest | null;
 }
 
+function getDefaultNeededByTime(): string {
+  const date = new Date();
+  date.setMinutes(0, 0, 0);
+  date.setHours(date.getHours() + 2);
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 16);
+}
+
+function formatNeededByTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function toDateTimeLocal(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return getDefaultNeededByTime();
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 16);
+}
+
 export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, editingRequest = null }) => {
   const districts = useDistricts();
   const [patientName, setPatientName] = useState('');
@@ -52,7 +73,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const [area, setArea] = useState('Banani');
   const [hospitalName, setHospitalName] = useState('');
   const [bags, setBags] = useState('2');
-  const [neededBy, setNeededBy] = useState('Today, 6:00 PM');
+  const [neededBy, setNeededBy] = useState(getDefaultNeededByTime);
   const [urgency, setUrgency] = useState<'Critical' | 'High' | 'Medium'>('Critical');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -76,7 +97,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
       setArea(editingRequest.area || '');
       setHospitalName(editingRequest.hospitalName || '');
       setBags(String(editingRequest.requiredBags ?? 1));
-      setNeededBy(editingRequest.neededByTime || '');
+      setNeededBy(toDateTimeLocal(editingRequest.neededByAt || editingRequest.neededByTime || ''));
       setUrgency(editingRequest.urgency);
       setPhone(editingRequest.contactPhone || '');
       setWhatsapp(editingRequest.contactWhatsapp || '');
@@ -109,7 +130,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         district,
         area,
         requiredBags: Number(bags) || 1,
-        neededByTime: neededBy,
+        neededByTime: formatNeededByTime(neededBy),
+        neededByAt: new Date(neededBy).toISOString(),
         urgency,
         contactPhone: toBdDialing(phone),
         contactWhatsapp: toBdWhatsapp(whatsappSameAsPhone ? phone : whatsapp),
@@ -199,7 +221,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             </div>
             <div>
               <label htmlFor="request-needed-by" className="block text-xs font-bold uppercase text-slate-700 mb-1">Needed By Time <span className="text-rose-600">*</span></label>
-              <input id="request-needed-by" name="neededBy" value={neededBy} onChange={e => setNeededBy(e.target.value)} placeholder="e.g. Today, 5 PM" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
+              <input id="request-needed-by" name="neededBy" required type="datetime-local" value={neededBy} onChange={e => setNeededBy(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900" />
             </div>
             <div>
               <label htmlFor="request-urgency" className="block text-xs font-bold uppercase text-slate-700 mb-1">Urgency Priority <span className="text-rose-600">*</span></label>
@@ -415,7 +437,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         </div>
 
         <h2 className="editorial-title text-3xl font-black">
-          {view === 'register' ? 'Join Lifeline Network' : view === 'reset' ? 'Reset Password' : view === 'new-password' ? 'Set New Password' : 'Welcome Back Hero'}
+          {view === 'register' ? 'Join Roktobondhu Bangladesh' : view === 'reset' ? 'Reset Password' : view === 'new-password' ? 'Set New Password' : 'Welcome Back Hero'}
         </h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
           {view === 'register'
@@ -423,8 +445,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             : view === 'reset'
             ? 'Enter your email to receive password reset instructions'
             : view === 'new-password'
-            ? 'Choose a new password for your LifelineBD account'
-            : 'Sign in to your LifelineBD account'}
+            ? 'Choose a new password for your Roktobondhu Bangladesh account'
+            : 'Sign in to your Roktobondhu Bangladesh account'}
         </p>
 
         {errorMsg && (
@@ -820,7 +842,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex justify-between font-bold">
-                <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600' : 'text-emerald-600'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
+                {donor.isSmoker !== null && (
+                  <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600' : 'text-emerald-600'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
+                )}
                 <span>Regular Donor: <strong className="text-rose-600">{donor.isRegular ? 'Yes (3+ times)' : 'New'}</strong></span>
               </div>
             </div> : (

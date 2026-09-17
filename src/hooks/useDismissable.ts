@@ -21,9 +21,7 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
   // re-push/pop the history entry, toggle body scroll lock, and re-add the
   // listeners on every render, not just on real open/close transitions.
   const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!isOpen) return;

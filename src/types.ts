@@ -49,7 +49,7 @@ export interface DonorProfile {
   lng: number;
   lastDonationDate: string; // YYYY-MM-DD
   nextEligibleDate: string; // YYYY-MM-DD
-  isSmoker: boolean;
+  isSmoker: boolean | null;
   isRegular: boolean;
   isVerified: boolean;
   availableNow: boolean;
@@ -72,6 +72,7 @@ export interface EmergencyRequest {
   area: string;
   requiredBags: number;
   neededByTime: string; // e.g. "Today, 6:00 PM"
+  neededByAt?: string;
   urgency: 'Critical' | 'High' | 'Medium';
   contactPhone: string;
   contactWhatsapp: string;
@@ -109,7 +110,6 @@ export interface SearchFilters {
   district: string;
   area: string;
   verifiedOnly: boolean;
-  nonSmokerOnly: boolean;
   regularOnly: boolean;
   availableNowOnly: boolean;
   maxDistanceKm: number;

@@ -49,7 +49,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
       <header className="border-b border-slate-100 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
-            LifelineBD Recognition Hub
+            Roktobondhu Bangladesh Recognition Hub
           </span>
           <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 leading-tight mt-3">
             Rewards, Badges &<br />
@@ -89,7 +89,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold editorial-title mt-1.5">Official Life Saver Certificate</h2>
               <p className="text-xs sm:text-sm text-rose-100 mt-1 max-w-xl font-medium">
-                You have completed verified hospital blood donations. Download your official recognition certificate signed by LifelineBD & DGHS Medical Board.
+                You have completed verified hospital blood donations. Download your official recognition certificate signed by Roktobondhu Bangladesh & DGHS Medical Board.
               </p>
             </div>
           </div>
@@ -186,7 +186,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
         <div className="flex items-center justify-between mb-6">
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hall of Fame</span>
-            <h2 className="text-2xl font-black text-slate-900 mt-1">Top Lifeline Contributors</h2>
+            <h2 className="text-2xl font-black text-slate-900 mt-1">Top Roktobondhu Contributors</h2>
           </div>
           <span className="text-xs font-bold text-rose-600 uppercase tracking-wider bg-rose-100 px-3 py-1 rounded-full">
             🔥 Updated Hourly
@@ -229,7 +229,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
 
                 <div className="text-right shrink-0">
                   <p className="text-base font-mono font-black text-slate-900">{user.impactScore.toLocaleString()}</p>
-                  <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Lifeline Pts</p>
+                  <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Roktobondhu Pts</p>
                 </div>
               </div>
             );
@@ -252,7 +252,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               <Award className="w-10 h-10" />
             </div>
 
-            <p className="text-xs uppercase tracking-[0.3em] font-black text-slate-400">People's Republic of Bangladesh • LifelineBD Network</p>
+            <p className="text-xs uppercase tracking-[0.3em] font-black text-slate-400">People's Republic of Bangladesh • Roktobondhu Bangladesh Network</p>
             <h2 className="editorial-title text-4xl sm:text-5xl font-black text-slate-900 my-4">Certificate of Appreciation</h2>
             
             <p className="text-sm text-slate-600 max-w-lg mx-auto font-medium leading-relaxed">
@@ -271,7 +271,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Chief Medical Advisor</p>
               </div>
               <div>
-                <p className="font-serif italic font-bold text-slate-800">LifelineBD Registrar</p>
+                <p className="font-serif italic font-bold text-slate-800">Roktobondhu Registrar</p>
                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">National Blood Bank</p>
               </div>
             </div>

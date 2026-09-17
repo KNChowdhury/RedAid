@@ -1,14 +1,14 @@
 
 
-# LifelineBD
+# Roktobondhu Bangladesh
 
 সংক্ষিপ্ত বর্ণনা (বাংলা):
 
-LifelineBD একটি ছোট React + TypeScript অ্যাপ যা Supabase ব্যবহার করে ব্যবহারকারী authentication এবং ডেটা ফেচ করে — রক্তদাতা/রিসিভারের নেটওয়ার্ক প্রদর্শন করে এবং জরুরী অনুরোধ/নোটিফিকেশন পরিচালনা করে।
+Roktobondhu Bangladesh একটি ছোট React + TypeScript অ্যাপ যা Supabase ব্যবহার করে ব্যবহারকারী authentication এবং ডেটা ফেচ করে — রক্তদাতা/রিসিভারের নেটওয়ার্ক প্রদর্শন করে এবং জরুরী অনুরোধ/নোটিফিকেশন পরিচালনা করে।
 
 Brief description (English):
 
-LifelineBD is a Vite + React + TypeScript frontend that integrates with Supabase for authentication, realtime data access, and storage. It provides features for donors, hospitals, and emergency requests.
+Roktobondhu Bangladesh is a Vite + React + TypeScript frontend that integrates with Supabase for authentication, realtime data access, and storage. It provides features for donors, hospitals, and emergency requests.
 
 ## Quick Start
 
@@ -47,7 +47,7 @@ npm run build
 Notes:
 
 - Ensure your Supabase project's authentication settings (redirect URLs, email templates) are configured if you use magic links or password reset emails.
-- The app reads initial mock data from `src/mockData.ts` if no Supabase data is available.
+- The app starts with an empty state when Supabase is unavailable or has no rows. `src/mockData.ts` is used only for local district and area fallback data, not for donor or request records.
 
 Contributing:
 

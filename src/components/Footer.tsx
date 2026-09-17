@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
       <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-10 py-10">
         <div className="grid gap-8 md:grid-cols-[1.5fr_1fr_1fr]">
           <div>
-            <p className="font-black text-slate-900">LifelineBD</p>
+            <p className="font-black text-slate-900">Roktobondhu Bangladesh</p>
             <p className="mt-1.5 text-sm text-slate-500 max-w-sm leading-relaxed">
               Connecting blood donors with the people who need them, across Bangladesh.
             </p>
@@ -51,7 +51,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <p className="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400">
-          © {year} LifelineBD · Donor contact details are shared only with signed-in
+          © {year} Roktobondhu Bangladesh · Donor contact details are shared only with signed-in
           users, and health information stays private to each donor.
         </p>
       </div>

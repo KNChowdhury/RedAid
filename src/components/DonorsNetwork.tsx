@@ -171,9 +171,9 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                             <a href={`tel:${revealedContacts[donor.id].phone}`} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold text-center transition-colors">
                               {revealedContacts[donor.id].phone}
                             </a>
-                            {revealedContacts[donor.id]?.whatsapp && getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on LifelineBD. Can you help?') && (
+                            {revealedContacts[donor.id]?.whatsapp && getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on Roktobondhu Bangladesh. Can you help?') && (
                               <a
-                                href={getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on LifelineBD. Can you help?') || undefined}
+                                href={getWhatsAppUrl(revealedContacts[donor.id].whatsapp, 'Hello, I found your number on Roktobondhu Bangladesh. Can you help?') || undefined}
                                 target="_blank"
                                 rel="noreferrer"
                                 aria-label={`Message ${donor.name} on WhatsApp`}

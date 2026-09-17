@@ -1,8 +1,11 @@
 import { Award, Calendar, Heart, MapPin, MessageCircle, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { APIProvider, AdvancedMarker, Map, Pin } from '@vis.gl/react-google-maps';
 import { calculateAge, calculateDistanceKm, getDonorContact, getWhatsAppUrl, lookupCoordinates } from '../services/lifelineService';
 import { DonorProfile, SearchFilters } from '../types';
 import { Avatar } from './Avatar';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 interface DonorsNetworkProps {
   donors: DonorProfile[];
@@ -214,79 +217,50 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
             </div>
           )}
         </div>
+      ) : !GOOGLE_MAPS_API_KEY ? (
+        <div className="flex-1 flex items-center justify-center bg-slate-50 rounded-[2.5rem] border border-slate-200 p-10 text-center">
+          <p className="text-sm font-semibold text-slate-500 max-w-sm">
+            Map view needs a Google Maps API key. Set <code className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">VITE_GOOGLE_MAPS_API_KEY</code> and reload.
+          </p>
+        </div>
       ) : (
-        /* Interactive Radar Map View */
-        <div className="flex-1 bg-slate-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden flex flex-col shadow-2xl pb-12">
-          {/* Radar Grid Background */}
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: 'radial-gradient(#E11D48 1.5px, transparent 1.5px), linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)',
-            backgroundSize: '32px 32px'
-          }} />
+        /* Real Google Map, donors plotted at their actual coordinates */
+        <div className="flex-1 rounded-[2.5rem] relative overflow-hidden shadow-2xl flex flex-col pb-0">
+          <div className="flex-1 relative">
+            <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+              <Map
+                mapId="lifelinebd-donor-map"
+                defaultCenter={mapCenter}
+                defaultZoom={12}
+                gestureHandling="greedy"
+                disableDefaultUI={false}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <AdvancedMarker position={mapCenter}>
+                  <div className="w-4 h-4 bg-blue-600 rounded-full border-4 border-white shadow-xl" />
+                </AdvancedMarker>
 
-          {/* Map Overlay Header */}
-          <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl border border-slate-700">
-            <div className="flex items-center gap-3">
-              <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
-              <span className="text-xs font-bold uppercase tracking-wider font-mono">
-                Active Sector: {filters.district !== 'ALL' ? filters.district : 'Dhaka Central'} Radar
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-300">
-              Showing real-time donor telemetry in approximately 10km radius.
-            </p>
-          </div>
-
-          {/* Radar Stage Pins */}
-          <div className="flex-1 relative my-6 border border-slate-800 rounded-3xl bg-slate-950/40 overflow-hidden flex items-center justify-center">
-            {/* Center User Pin */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center group">
-              <div className="w-8 h-8 bg-blue-600 rounded-full border-4 border-white shadow-2xl flex items-center justify-center animate-pulse">
-                <span className="w-2 h-2 bg-white rounded-full" />
-              </div>
-              <span className="bg-slate-900 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-slate-700 mt-1 shadow-lg">
-                📍 You ({filters.district !== 'ALL' ? filters.district : 'Dhaka'})
-              </span>
-            </div>
-
-            {/* Simulated Radar Circles */}
-            <div className="absolute w-64 h-64 border border-rose-500/20 rounded-full animate-ping duration-1000 pointer-events-none" />
-            <div className="absolute w-96 h-96 border border-slate-800 rounded-full pointer-events-none" />
-            <div className="absolute w-[32rem] h-[32rem] border border-slate-800/60 rounded-full pointer-events-none" />
-
-            {/* Render Donors as Map Pins */}
-            {donors.map((donor, idx) => {
-              // Calculate relative positions on radar canvas
-              const angle = (idx * (360 / Math.max(1, donors.length))) * (Math.PI / 180);
-              const radiusPercent = 18 + (idx % 3) * 12; // Spread out
-              const leftPercent = 50 + Math.cos(angle) * radiusPercent;
-              const topPercent = 50 + Math.sin(angle) * radiusPercent;
-
-              return (
-                <div
-                  key={donor.id}
-                  style={{ top: `${topPercent}%`, left: `${leftPercent}%` }}
-                  onClick={() => setSelectedMapPin(donor)}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-30 group flex flex-col items-center hover:z-50 transition-all"
-                >
-                  <div className={`w-9 h-9 rounded-2xl font-mono text-xs font-black flex items-center justify-center shadow-xl border-2 transition-transform group-hover:scale-125 ${
-                    donor.availableNow 
-                      ? 'blood-gradient text-white border-white' 
-                      : 'bg-slate-800 text-slate-300 border-slate-600'
-                  }`}>
-                    {donor.bloodGroup}
-                  </div>
-                  
-                  <span className="opacity-0 group-hover:opacity-100 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg border border-rose-500 mt-1 whitespace-nowrap shadow-2xl transition-opacity">
-                    {donor.name} ({donor.area})
-                  </span>
-                </div>
-              );
-            })}
+                {donors.filter(d => d.lat && d.lng).map(donor => (
+                  <AdvancedMarker
+                    key={donor.id}
+                    position={{ lat: donor.lat, lng: donor.lng }}
+                    onClick={() => setSelectedMapPin(donor)}
+                  >
+                    <Pin
+                      background={donor.availableNow ? '#e11d48' : '#64748b'}
+                      borderColor="#ffffff"
+                      glyphColor="#ffffff"
+                      glyphText={donor.bloodGroup}
+                    />
+                  </AdvancedMarker>
+                ))}
+              </Map>
+            </APIProvider>
           </div>
 
           {/* Map Pin Detail Card Overlay */}
           {selectedMapPin && (
-            <div className="relative z-30 bg-slate-800 border border-slate-700 p-5 rounded-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-200 shadow-2xl">
+            <div className="relative z-30 bg-slate-800 text-white border border-slate-700 p-5 rounded-b-[2.5rem] flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-200 shadow-2xl">
               <div className="flex items-center gap-4">
                 <Avatar name={selectedMapPin.name} src={selectedMapPin.avatar} className="w-12 h-12" />
                 <div>

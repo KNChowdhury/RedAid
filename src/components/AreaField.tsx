@@ -37,7 +37,7 @@ export const AreaField: React.FC<AreaFieldProps> = ({ areas, value, onChange, cl
             setCustomMode(false);
             onChange(areas[0] || '');
           }}
-          className="shrink-0 px-3 text-xs font-bold text-slate-500 hover:text-rose-600"
+          className="shrink-0 px-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
         >
           List
         </button>

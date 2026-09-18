@@ -1,4 +1,12 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* tw-animate-css implements the animate-in / fade-in / zoom-in / slide-in
+   family of utilities. Several components already used these classes (modal
+   entrances, the mobile nav drawer) but nothing in this project ever provided
+   the CSS behind them, so every one of those animations was actually inert,
+   confirmed by zero matching rules in a production build before this line
+   was added. */
 
 /* Manual dark mode: a `dark` class on <html> (set by the inline script in
    index.html and toggled by useTheme) turns on dark: variants, instead of

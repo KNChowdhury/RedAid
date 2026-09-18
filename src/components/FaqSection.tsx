@@ -1,4 +1,5 @@
 import { ChevronDown, HelpCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
 
 interface FaqItem {
@@ -153,11 +154,21 @@ export const FaqSection: React.FC = () => {
                       <span className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{item.q}</span>
                       <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    {isOpen && (
-                      <p className="px-5 pb-4 text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">
-                        {item.a}
-                      </p>
-                    )}
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <p className="px-5 pb-4 text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">
+                            {item.a}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })}

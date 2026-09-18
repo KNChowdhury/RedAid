@@ -1,4 +1,5 @@
 import { AlertCircle, Clock, MapPin, Share2, ShieldCheck, Users } from 'lucide-react';
+import { motion } from 'motion/react';
 import React from 'react';
 import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline } from '../services/lifelineService';
 import { EmergencyRequest } from '../types';
@@ -59,11 +60,14 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
             <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">All hospital requirements in this area are fulfilled.</p>
           </div>
         ) : (
-          requests.map(req => {
+          requests.map((req, idx) => {
             const isCritical = req.urgency === 'Critical';
             return (
-              <div
+              <motion.div
                 key={req.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(idx, 10) * 0.03, ease: 'easeOut' }}
                 className={`group bg-white dark:bg-slate-800/60 p-6 sm:p-7 rounded-[2.2rem] border transition-all relative overflow-hidden ${
                   req.status === 'Fulfilled'
                     ? 'border-slate-100 dark:border-slate-800 opacity-60 grayscale-[0.4]'
@@ -193,7 +197,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })
         )}

@@ -1,4 +1,5 @@
 import { Calendar, MessageCircle, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { calculateAge, getDonorContact, getWhatsAppUrl, isDonorAvailableNow } from '../services/lifelineService';
 import { DonorProfile } from '../types';
@@ -84,9 +85,13 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {donors.map(donor => (
-              <div
+            {donors.map((donor, idx) => (
+              <motion.div
                 key={donor.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(idx, 10) * 0.03, ease: 'easeOut' }}
+                whileHover={{ y: -3, transition: { duration: 0.15 } }}
                 className="group bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 hover:border-rose-300 dark:hover:border-rose-700 hover:shadow-lg transition-all flex flex-col"
               >
                 {/* The blood group is the one thing someone is scanning for,
@@ -174,7 +179,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                     Profile
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}

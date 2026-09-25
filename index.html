@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Applied synchronously, before any CSS/React loads, so a returning
-         dark-mode user never sees a flash of the light theme. Mirrors the
-         precedence in src/hooks/useTheme.ts: an explicit saved choice wins,
-         otherwise fall back to the OS-level preference. -->
+         dark-mode user never sees a flash of the light theme. Light is the
+         brand default regardless of OS preference -- only an explicit
+         in-app toggle (which writes 'theme' to localStorage) switches a
+         visitor to dark. Mirrors src/hooks/useTheme.ts, which just reads
+         the class this script already set. -->
     <script>
       (function () {
         try {
-          var stored = localStorage.getItem('theme');
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (stored === 'dark' || (stored !== 'light' && prefersDark)) {
+          if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
           }
         } catch (e) {}

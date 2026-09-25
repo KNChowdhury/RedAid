@@ -5,7 +5,24 @@
       <stop offset="100%" stop-color="#9F1239"/>
     </linearGradient>
   </defs>
+
   <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <path d="M32 14c0 0 12 13.4 12 21.1C44 41.9 38.6 48 32 48s-12-6.1-12-12.9C20 27.4 32 14 32 14z"
+
+  <!-- Precise, tangent-continuous drop: two symmetric bezier sides
+       flowing into a true circular base (no eyeballed curves). -->
+  <path d="M32 12
+           C40 24 45 30 45 38
+           A13 13 0 1 1 19 38
+           C19 30 24 24 32 12 Z"
         fill="#FFFFFF"/>
+
+  <!-- Heartbeat pulse cut across the drop's lower third: the "life"
+       half of the mark, not just a generic water droplet. -->
+  <path d="M23 42 L28 42 L31 46.5 L34.5 33.5 L38 42 L42 42"
+        fill="none" stroke="#E11D48" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Soft specular highlight for a touch of dimensionality. -->
+  <ellipse cx="26" cy="27" rx="3.4" ry="5.2" fill="#FFFFFF" opacity="0.35"
+           transform="rotate(-18 26 27)"/>
 </svg>

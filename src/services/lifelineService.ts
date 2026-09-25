@@ -189,8 +189,12 @@ export function filterDonors(donors: DonorProfile[], filters: SearchFilters, cur
     if (filters.verifiedOnly && !donor.isVerified) {
       return false;
     }
-    // Regular
-    if (filters.regularOnly && !donor.isRegular) {
+    // Has donated before (checkbox reads "Has donated before" -- isRegular
+    // specifically means 3+ confirmed donations, per the "Regular Donor"
+    // badge in Modals.tsx, so almost every donor failed this check since
+    // most are first-time donors. lastDonationDate is set the moment any
+    // single donation is confirmed, which is what the label promises.)
+    if (filters.regularOnly && !donor.lastDonationDate) {
       return false;
     }
     // Available now

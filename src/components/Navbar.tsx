@@ -52,7 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         onClick={() => setActiveTab('network')}
       >
         <img
-          src="/favicon.svg"
+          src="/logo-mark.svg"
           alt="Roktobondhu Bangladesh"
           className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform"
         />

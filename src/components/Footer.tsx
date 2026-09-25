@@ -19,7 +19,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenFaq }) => {
         <div className="grid gap-8 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-3">
-              <img src="/favicon.svg" alt="Roktobondhu Bangladesh" className="w-10 h-10 rounded-xl shrink-0" />
+              <img src="/logo-mark.svg" alt="RBB — Roktobondhu Bangladesh" className="w-10 h-10 rounded-xl shrink-0" />
               <div>
                 <p className="font-black text-slate-900 dark:text-slate-100">Roktobondhu Bangladesh</p>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-rose-500">Save Life By Your Blood</p>

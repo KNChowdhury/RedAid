@@ -1,4 +1,4 @@
-import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Heart, MapPin, Phone, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
@@ -446,9 +446,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           <X className="w-5 h-5" />
         </button>
 
-        <div className="w-12 h-12 blood-gradient rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-rose-500/20">
-          <Heart className="w-6 h-6 fill-white" />
-        </div>
+        <img src="/logo-mark.svg" alt="RBB — Roktobondhu Bangladesh" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
 
         <h2 className="editorial-title text-3xl font-black">
           {view === 'register' ? 'Join Roktobondhu Bangladesh' : view === 'reset' ? 'Reset Password' : view === 'new-password' ? 'Set New Password' : 'Welcome Back Hero'}
@@ -1206,9 +1204,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
   return (
     <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto custom-scroll">
-        <div className="w-12 h-12 blood-gradient rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-rose-500/20">
-          <Heart className="w-6 h-6 fill-white" />
-        </div>
+        <img src="/logo-mark.svg" alt="RBB — Roktobondhu Bangladesh" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
         <h2 className="editorial-title text-2xl sm:text-3xl font-black">One Last Step</h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
           A few required details to finish setting up your donor profile

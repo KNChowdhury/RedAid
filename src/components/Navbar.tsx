@@ -1,4 +1,4 @@
-import { Bell, Heart, LogOut, Menu, Moon, Sun, User, X } from 'lucide-react';
+import { Bell, LogOut, Menu, Moon, Sun, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { DonorProfile } from '../types';
 import { useTheme } from '../hooks/useTheme';
@@ -51,16 +51,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 cursor-pointer group"
         onClick={() => setActiveTab('network')}
       >
-        <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 blood-gradient rounded-xl flex items-center justify-center shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform">
-          <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white animate-pulse" />
-        </div>
+        <img
+          src="/favicon.svg"
+          alt="Roktobondhu Bangladesh"
+          className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform"
+        />
         <div className="flex flex-col min-w-0">
           <span className="block truncate text-sm sm:text-2xl font-black tracking-tighter uppercase text-slate-900 dark:text-slate-100 leading-none">
             Roktobondhu<span className="text-rose-600 dark:text-rose-400"> Bangladesh</span>
           </span>
           {/* Wraps to a second line and looks cramped below ~400px, so it's
               desktop/tablet-only; the wordmark alone reads fine on its own. */}
-          <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Every Drop Saves a Life</span>
+          <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Save Life By Your Blood</span>
         </div>
       </div>
 

@@ -128,7 +128,7 @@ export const FaqSection: React.FC = () => {
     <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
       <header className="mb-8">
         <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-none mb-3 whitespace-nowrap">
-          কীভাবে <span className="text-rose-600 dark:text-rose-400">কাজ করে।</span>
+          কীভাবে <span className="text-rose-600 dark:text-rose-400">কাজ করে?</span>
         </h1>
         <p className="text-slate-400 font-bold max-w-lg uppercase text-[11px] tracking-widest">
           Roktobondhu Bangladesh সম্পর্কে সবচেয়ে বেশি জিজ্ঞাসিত প্রশ্ন

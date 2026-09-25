@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 340">
+  <defs>
+    <linearGradient id="rbbDrop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#9F1239"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="340" rx="56" fill="#0F172A"/>
+
+  <path d="M160 40
+           C160 40 214 102 214 135
+           C214 164 190 186 160 186
+           C130 186 106 164 106 135
+           C106 102 160 40 160 40 Z"
+        fill="url(#rbbDrop)"/>
+  <path d="M140 160c0 12.5 7.8 21.3 17.2 23.1"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="6" stroke-linecap="round"/>
+
+  <text x="160" y="252" text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif" font-weight="800"
+        font-size="66" letter-spacing="6" fill="#FFFFFF">RBB</text>
+
+  <text x="160" y="286" text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif" font-weight="700"
+        font-size="16" letter-spacing="3" fill="#FB7185">SAVE LIFE BY YOUR BLOOD</text>
+</svg>

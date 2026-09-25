@@ -18,8 +18,14 @@ export const Footer: React.FC<FooterProps> = ({ onOpenFaq }) => {
       <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-10 py-10">
         <div className="grid gap-8 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
-            <p className="font-black text-slate-900 dark:text-slate-100">Roktobondhu Bangladesh</p>
-            <p className="mt-1.5 text-sm text-slate-500 max-w-sm leading-relaxed">
+            <div className="flex items-center gap-3">
+              <img src="/logo-rbb.svg" alt="RBB — Roktobondhu Bangladesh" className="w-12 h-12 rounded-xl shrink-0" />
+              <div>
+                <p className="font-black text-slate-900 dark:text-slate-100">Roktobondhu Bangladesh</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-rose-500">Save Life By Your Blood</p>
+              </div>
+            </div>
+            <p className="mt-3 text-sm text-slate-500 max-w-sm leading-relaxed">
               Connecting blood donors with the people who need them, across Bangladesh.
             </p>
           </div>

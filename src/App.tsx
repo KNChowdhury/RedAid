@@ -527,6 +527,7 @@ export function App() {
           setFilters={setFilters}
           onSearch={() => setActiveTab('network')}
           donorsCount={filteredDonorsList.length}
+          showFilters={activeTab === 'network'}
         />
 
         {/* Right Active Workspace Container */}

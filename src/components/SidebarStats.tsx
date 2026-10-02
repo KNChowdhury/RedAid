@@ -11,6 +11,10 @@ interface SidebarStatsProps {
   setFilters: React.Dispatch<React.SetStateAction<SearchFilters>>;
   onSearch: () => void;
   donorsCount: number;
+  // Filters only narrow the donor list, so they're shown on the Network tab
+  // only; on FAQ/Requests/etc. they did nothing when clicked. "Your impact"
+  // and the eligibility card stay on every tab.
+  showFilters: boolean;
 }
 
 export const SidebarStats: React.FC<SidebarStatsProps> = ({
@@ -18,7 +22,8 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
   filters,
   setFilters,
   onSearch,
-  donorsCount
+  donorsCount,
+  showFilters
 }) => {
   const districts = useDistricts();
   const selectedDistrictObj = districts.find(d => d.name === filters.district);
@@ -73,8 +78,9 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
         )}
       </section>
 
-      {/* Smart Search Filter Engine */}
-      <section className="flex-1">
+      {/* Smart Search Filter Engine -- hidden (not unmounted) off the Network
+          tab, so the "More options" toggle survives switching tabs. */}
+      <section className="flex-1" hidden={!showFilters}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />

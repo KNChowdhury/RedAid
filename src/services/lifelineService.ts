@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Session, RealtimeChannel } from '@supabase/supabase-js';
+import type { AuthError, Session, RealtimeChannel } from '@supabase/supabase-js';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBadge, SearchFilters } from '../types';
 
 // Retained only as a migration key so old browser snapshots can be removed.
@@ -1076,6 +1076,22 @@ export function subscribeToNotifications(
   };
 }
 
+// Supabase answers /recover and /otp with a 5xx when it can't hand the email
+// to the SMTP provider (e.g. a rejected Gmail app password). auth-js treats
+// 5xx as retryable and builds the message by JSON.stringify-ing the raw
+// Response, so error.message is literally "{}" -- which is what users saw in
+// the Reset Password modal on 2026-10-02. Map it to something actionable.
+function friendlyAuthEmailError(error: AuthError): string {
+  const message = (error.message || '').trim();
+  if (error.status === 429 || message.toLowerCase().includes('rate limit')) {
+    return 'Email rate limit exceeded. Please wait a few minutes before trying again.';
+  }
+  if ((error.status ?? 0) >= 500 || message === '' || message === '{}') {
+    return 'We could not send the email right now. Please try again in a few minutes.';
+  }
+  return message;
+}
+
 export async function sendPasswordResetEmail(email: string): Promise<{ error: string | null }> {
   if (!supabase) {
     return { error: 'Supabase client not configured.' };
@@ -1085,7 +1101,10 @@ export async function sendPasswordResetEmail(email: string): Promise<{ error: st
     redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('resetPasswordForEmail error:', error.status, error.name);
+    return { error: friendlyAuthEmailError(error) };
+  }
   return { error: null };
 }
 
@@ -1102,7 +1121,10 @@ export async function sendMagicLink(email: string): Promise<{ error: string | nu
     }
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('signInWithOtp error:', error.status, error.name);
+    return { error: friendlyAuthEmailError(error) };
+  }
   return { error: null };
 }
 

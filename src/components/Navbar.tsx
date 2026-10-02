@@ -46,10 +46,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="h-20 flex items-center justify-between gap-4 lg:gap-6 px-2 sm:px-6 lg:px-10 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
-      {/* Brand Logo */}
-      <div
+      {/* Brand Logo -- a real link to "/" so it's keyboard-focusable and
+          middle-click opens home in a new tab. Plain clicks stay in-app.
+          Scrolling to top matters: on Network already, setActiveTab is a
+          no-op, so a user scrolled down the donor list saw the (sticky) logo
+          "do nothing" when they clicked it. */}
+      <a
+        href="/"
         className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 cursor-pointer group"
-        onClick={() => setActiveTab('network')}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+          e.preventDefault();
+          setActiveTab('network');
+          setMobileMenuOpen(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       >
         <img
           src="/logo-mark.svg"
@@ -64,7 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               desktop/tablet-only; the wordmark alone reads fine on its own. */}
           <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Save Life By Your Blood</span>
         </div>
-      </div>
+      </a>
 
       {/* Desktop Navigation */}
       <nav className="hidden xl:flex items-center gap-4 2xl:gap-6 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">

@@ -68,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform"
         />
         <div className="flex flex-col min-w-0">
-          <span className="block truncate text-sm sm:text-2xl font-black tracking-tighter uppercase text-slate-900 dark:text-slate-100 leading-none">
+          <span className="block truncate text-sm sm:text-2xl font-black tracking-tighter uppercase text-brand-green dark:text-brand-green-light leading-none">
             Roktobondhu<span className="text-rose-600 dark:text-rose-400"> Bangladesh</span>
           </span>
           {/* Wraps to a second line and looks cramped below ~400px, so it's
@@ -146,7 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'hospital' ? 'Hospital' : 'Donor'}
                 </p>
               </div>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight truncate max-w-[9rem] 2xl:max-w-[12rem]">{currentUser.name}</p>
+              <p className="text-sm font-bold text-brand-ink dark:text-brand-green-light leading-tight truncate max-w-[9rem] 2xl:max-w-[12rem]">{currentUser.name}</p>
             </div>
 
             <div
@@ -243,7 +243,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center gap-3" onClick={() => { onOpenProfile(); setMobileMenuOpen(false); }}>
                 <Avatar name={currentUser.name} src={currentUser.avatar} className="w-10 h-10" textClassName="text-xs" />
                 <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{currentUser.name}</p>
+                  <p className="text-xs font-bold text-brand-ink dark:text-brand-green-light">{currentUser.name}</p>
                   <p className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold">{currentUser.bloodGroup} • {currentUser.area}, {currentUser.district}</p>
                 </div>
               </div>

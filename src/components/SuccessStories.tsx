@@ -54,7 +54,7 @@ export const SuccessStories: React.FC = () => {
                   <span className="font-black text-slate-900 dark:text-slate-100">{d.donorName}</span> donated{' '}
                   <span className="text-rose-600 dark:text-rose-400 font-black">{d.units} bag{d.units === 1 ? '' : 's'}</span> of{' '}
                   <span className="font-mono font-bold text-rose-600 dark:text-rose-400">{d.bloodGroup}</span> for{' '}
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{d.patientName}</span> at {d.hospitalName}.
+                  <span className="font-bold text-brand-ink dark:text-brand-green-light">{d.patientName}</span> at {d.hospitalName}.
                 </p>
                 <p className="text-slate-400 text-xs uppercase font-bold tracking-wider flex items-center flex-wrap gap-x-2 gap-y-1 mt-2">
                   {(d.area || d.district) && (

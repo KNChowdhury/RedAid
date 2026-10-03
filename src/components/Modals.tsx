@@ -793,7 +793,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               <input value={name} onChange={e => setName(e.target.value)} className="font-black text-xl border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 w-full mb-1 bg-white dark:bg-slate-800" />
             ) : (
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-2xl break-words">{donor.name}</h3>
+                <h3 className="font-black text-2xl break-words text-brand-ink dark:text-brand-green-light">{donor.name}</h3>
               </div>
             )}
             <p className="text-xs font-bold text-slate-500 flex items-center gap-1 mt-1">

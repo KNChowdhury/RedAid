@@ -132,7 +132,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="flex items-center gap-4 min-w-0">
                 <Avatar name={donor.name} src={donor.avatar} className="w-10 h-10" textClassName="text-xs" />
                 <div className="min-w-0">
-                  <p className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{donor.name}</p>
+                  <p className="font-bold text-sm text-brand-ink dark:text-brand-green-light truncate">{donor.name}</p>
                   <p className="text-xs text-slate-500 font-mono truncate">{donor.email} • {donor.phone}</p>
                 </div>
               </div>

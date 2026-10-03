@@ -217,7 +217,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
+                    <p className="font-bold text-sm text-brand-ink dark:text-brand-green-light truncate">{user.name}</p>
                     {user.id === currentUser?.id && (
                       <span className="text-[9px] bg-rose-600 text-white font-black px-1.5 py-0.5 rounded uppercase">You</span>
                     )}

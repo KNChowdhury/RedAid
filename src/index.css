@@ -13,6 +13,18 @@
    only following the OS-level prefers-color-scheme media query. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Brand greens, taken from the logo's hands (public/brand/rbb-icon.svg).
+   Red stays Tailwind's rose-600/400 and means urgency/actions, so names
+   and the wordmark use green instead. Contrast (WCAG):
+     brand-green  #006A4E  6.6:1 on white   -> "ROKTOBONDHU" wordmark (large text)
+     brand-ink    #0B4F3C  9.6:1 on white   -> people's names (AAA at body size)
+     brand-green-light #4FD1A5  9.4:1 on slate-900 -> both of the above in dark mode */
+@theme {
+  --color-brand-green: #006A4E;
+  --color-brand-ink: #0B4F3C;
+  --color-brand-green-light: #4FD1A5;
+}
+
 @layer utilities {
   .editorial-title {
     font-family: 'Playfair Display', Georgia, serif;

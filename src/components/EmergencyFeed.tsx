@@ -115,7 +115,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                 </div>
 
                 <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 mb-6 font-semibold leading-relaxed">
-                  <span className="text-slate-900 dark:text-slate-100 font-bold">Patient: {req.patientName}{req.age ? ` (${req.age}y)` : ''}.</span> Requirement for{' '}
+                  <span className="text-brand-ink dark:text-brand-green-light font-bold">Patient: {req.patientName}{req.age ? ` (${req.age}y)` : ''}.</span> Requirement for{' '}
                   <span className="text-rose-600 dark:text-rose-400 font-black underline decoration-rose-300 decoration-2">{req.requiredBags} Bags</span> of {req.bloodGroup} blood. {req.reason}
                 </p>
 

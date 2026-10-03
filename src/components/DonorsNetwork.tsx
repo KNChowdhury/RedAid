@@ -135,7 +135,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{donor.name}</h3>
+                      <h3 className="font-bold text-brand-ink dark:text-brand-green-light truncate">{donor.name}</h3>
                     </div>
 
                     <p className="text-sm text-slate-500 truncate mt-0.5">

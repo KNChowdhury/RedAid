@@ -206,7 +206,7 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-extrabold text-lg text-slate-900 dark:text-slate-100">Patient: {req.patientName}</h3>
+                          <h3 className="font-extrabold text-lg text-brand-ink dark:text-brand-green-light">Patient: {req.patientName}</h3>
                           <span className="text-[9px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold uppercase">{req.urgency}</span>
                           {req.status === 'Fulfilled' && (
                             <span className="text-[9px] bg-emerald-600 text-white px-2 py-0.5 rounded font-bold uppercase">Fulfilled</span>

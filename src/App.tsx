@@ -533,7 +533,7 @@ export function App() {
         {state.currentUser ? (
           <div className="rounded-2xl border border-rose-100 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/20 px-5 py-4 flex items-center justify-between gap-4">
             <p className="text-sm text-slate-700 dark:text-slate-300">
-              Signed in as <span className="font-bold text-slate-900 dark:text-slate-100">{state.currentUser.name}</span>
+              Signed in as <span className="font-bold text-brand-ink dark:text-brand-green-light">{state.currentUser.name}</span>
             </p>
             <button
               onClick={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}

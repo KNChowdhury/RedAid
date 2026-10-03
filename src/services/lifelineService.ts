@@ -131,6 +131,12 @@ export function normalizeWhatsAppNumber(value: string | null | undefined): strin
  * contacts to send it to. In Bangladesh most blood is found through group
  * forwards, so this simply makes what people already do much faster.
  */
+// Public address for links people forward. Deliberately not
+// window.location.origin: inside the Android app that is https://localhost.
+// Was hard-coded to lifelinebd.vercel.app, which died with the 2026-09 domain
+// move, so every shared request pointed at a dead site until 2026-10-04.
+export const PUBLIC_SITE_URL = 'https://rokto-bondhu-bangladesh.vercel.app';
+
 export function buildRequestShareText(req: {
   bloodGroup: string;
   requiredBags: number;
@@ -154,7 +160,7 @@ export function buildRequestShareText(req: {
     req.contactPhone ? `যোগাযোগ: ${req.contactPhone}` : '',
     '',
     'আপনার পরিচিত কেউ দিতে পারলে দয়া করে জানান।',
-    'বিস্তারিত ও অন্যান্য অনুরোধ: https://lifelinebd.vercel.app'
+    `বিস্তারিত ও অন্যান্য অনুরোধ: ${PUBLIC_SITE_URL}/requests`
   ];
   return lines.filter(l => l !== '').join('\n');
 }

@@ -751,9 +751,17 @@ export async function fetchSharedData(
     return { donors: [], requests: [], badges: [] };
   }
 
-  const donorsQuery = supabase
+  // A fetch on a connection that died mid-request (laptop sleep, phone
+  // switching networks) can hang for minutes, and App's in-flight dedupe would
+  // hand every later refresh that same hung promise. Cap it so it fails and
+  // the caller's retry path takes over.
+  const signal = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(20000) : undefined;
+  const withTimeout = <Q extends { abortSignal: (s: AbortSignal) => Q }>(query: Q): Q =>
+    signal ? query.abortSignal(signal) : query;
+
+  const donorsQuery = withTimeout(supabase
     .from('v_public_donors')
-    .select('id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_regular,is_verified,available_now,impact_score,lives_saved');
+    .select('id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_regular,is_verified,available_now,impact_score,lives_saved'));
 
   const requestsView = isLoggedIn ? 'v_authenticated_requests' : 'v_public_requests';
   const requestsColumns = isLoggedIn
@@ -762,11 +770,11 @@ export async function fetchSharedData(
 
   const [donorsRes, requestsRes, badgesRes] = await Promise.all([
     donorsQuery,
-    supabase
+    withTimeout(supabase
       .from(requestsView)
       .select(requestsColumns)
-      .order('created_at', { ascending: false }),
-    supabase.from('badges').select('id,name,icon,description,points_required,category')
+      .order('created_at', { ascending: false })),
+    withTimeout(supabase.from('badges').select('id,name,icon,description,points_required,category'))
   ]);
 
   if (donorsRes.error) console.error('Supabase donors fetch error:', donorsRes.error);

@@ -6,6 +6,10 @@ import { DonorProfile } from '../types';
 
 interface DonorsNetworkProps {
   donors: DonorProfile[];
+  // 'loading'/'error' mean the list has never loaded, so an empty `donors`
+  // says nothing about the filters -- don't claim "no donors match".
+  loadStatus: 'loading' | 'ready' | 'error';
+  onRetryLoad: () => void;
   currentUserId: string | null;
   onSelectDonor: (donor: DonorProfile) => void;
   onRequestBlood: () => void;
@@ -14,6 +18,8 @@ interface DonorsNetworkProps {
 
 export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   donors,
+  loadStatus,
+  onRetryLoad,
   currentUserId,
   onSelectDonor,
   onRequestBlood,
@@ -60,16 +66,37 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">Donors</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {donors.length === 0
-              ? 'No donors match these filters'
-              : `${donors.length} donor${donors.length === 1 ? '' : 's'} match your filters`}
+            {loadStatus === 'loading'
+              ? 'Loading donors…'
+              : loadStatus === 'error'
+                ? 'Could not load donors'
+                : donors.length === 0
+                  ? 'No donors match these filters'
+                  : `${donors.length} donor${donors.length === 1 ? '' : 's'} match your filters`}
           </p>
         </div>
       </header>
 
       {/* Main Content Area */}
       <div className="flex-1 lg:overflow-y-auto custom-scroll lg:pr-2 pb-12">
-        {donors.length === 0 ? (
+        {loadStatus === 'loading' && donors.length === 0 ? (
+          <div className="text-center py-20 text-sm text-slate-500" role="status">
+            Loading donors…
+          </div>
+        ) : loadStatus === 'error' && donors.length === 0 ? (
+          <div className="text-center py-20 bg-slate-50 dark:bg-slate-800/60 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-700 p-8" role="alert">
+            <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">Could not load donors</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto mt-2">
+              Check your internet connection. We'll keep trying automatically.
+            </p>
+            <button
+              onClick={onRetryLoad}
+              className="mt-6 px-6 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white font-bold text-sm rounded-xl transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        ) : donors.length === 0 ? (
           <div className="text-center py-20 bg-slate-50 dark:bg-slate-800/60 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-700 p-8">
             <Sparkles className="w-12 h-12 text-rose-500 mx-auto mb-4 animate-spin" />
             <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-200">No Donors Match Your Current Filters</h3>

@@ -114,6 +114,12 @@ export function App() {
   const lastRefreshAtRef = useRef(0);
   const liveRefreshTimerRef = useRef<number | null>(null);
   const loopRefreshVersionRef = useRef(0);
+  // Whether the donor/request lists have ever loaded. Before this existed, a
+  // first load that failed (tab reloaded by the browser while Wi-Fi/mobile
+  // data was still reconnecting) left donors=[], the list said "No donors
+  // match these filters", and nothing ever retried -- users saw every donor
+  // "disappear" after leaving the site open for a while (2026-10-03).
+  const [sharedDataStatus, setSharedDataStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const openRequestsTab = React.useCallback(() => setActiveTab('requests'), [setActiveTab]);
   const { permission: notifyPermission, requestPermission: askNotifyPermission, notify } = useBrowserNotifications(
     openRequestsTab
@@ -159,10 +165,15 @@ export function App() {
           requests: shared.requests,
           badges: shared.badges
         }));
+        setSharedDataStatus('ready');
         lastRefreshKeyRef.current = refreshKey;
         lastRefreshAtRef.current = Date.now();
       } catch (error) {
         console.error('Failed to fetch shared Supabase data:', error);
+        if (!isMountedRef.current || refreshGeneration !== refreshGenerationRef.current) return;
+        // Already showing data: keep it (stale beats empty) and let the
+        // online/visibility catch-up below refresh it later.
+        setSharedDataStatus(prev => (prev === 'ready' ? 'ready' : 'error'));
       }
     })();
 
@@ -292,14 +303,44 @@ export function App() {
       onResponsesChange: scheduleRefresh
     });
 
+    // Realtime only delivers changes made while the socket is up. A laptop
+    // that slept, a phone that switched apps, or a dropped Wi-Fi connection
+    // misses those events for good, so catch up when the page comes back.
+    // Throttled on visibility so flicking between tabs doesn't refetch.
+    const onOnline = () => scheduleRefresh();
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastRefreshAtRef.current < 30000) return;
+      scheduleRefresh();
+    };
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
       unsubscribe();
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       if (liveRefreshTimerRef.current !== null) {
         window.clearTimeout(liveRefreshTimerRef.current);
         liveRefreshTimerRef.current = null;
       }
     };
   }, [isLoggedIn, state.currentUser?.id]);
+
+  // Nothing has loaded yet and the last attempt failed: keep retrying while
+  // the page is visible. 'online' doesn't fire when the device thinks it's
+  // connected but Supabase is still unreachable (DNS/Wi-Fi warming up), so
+  // this is the path that actually recovers. One attempt per 10s at most,
+  // and refreshSharedData's in-flight dedupe prevents overlap.
+  useEffect(() => {
+    if (sharedDataStatus !== 'error') return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const currentUser = currentUserRef.current;
+      refreshSharedData(!!currentUser, currentUser?.impactScore ?? null);
+    }, 10000);
+    return () => window.clearInterval(timer);
+  }, [sharedDataStatus, refreshSharedData]);
 
   useEffect(() => {
     const donorId = state.currentUser?.id;
@@ -535,6 +576,8 @@ export function App() {
           {activeTab === 'network' && (
             <DonorsNetwork
               donors={filteredDonorsList}
+              loadStatus={sharedDataStatus}
+              onRetryLoad={() => refreshSharedData(isLoggedIn, state.currentUser?.impactScore ?? null)}
               currentUserId={state.currentUser?.id ?? null}
               onSelectDonor={d => openDonorProfile(d)}
               onRequestBlood={() => setIsRequestModalOpen(true)}

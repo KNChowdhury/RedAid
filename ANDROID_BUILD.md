@@ -47,9 +47,11 @@ cd android && ./gradlew assembleDebug
 
 ## Still needed before a real release (not a debug build)
 
-- Real app icon/splash — see `resources/` (source images already generated
-  from the brand favicon) and run `npx capacitor-assets generate --android`
-  to apply them into `android/app/src/main/res/`.
+- App icon/splash — all generated from the master mark
+  `public/brand/rbb-icon.svg`. To change the logo, edit that file, then run
+  `node scripts/generate-brand-assets.js` (rewrites `resources/` and the web
+  icons) and `npx capacitor-assets generate --android --assetPath resources`
+  (fans them out into `android/app/src/main/res/`).
 - A release signing keystore (`keytool -genkey ...`) and the corresponding
   `signingConfigs` block in `android/app/build.gradle` — a debug build is
   not installable from the Play Store.

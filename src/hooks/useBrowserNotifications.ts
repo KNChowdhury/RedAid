@@ -48,8 +48,10 @@ export function useBrowserNotifications(onNotificationClick?: () => void) {
         const n = new Notification(title, {
           body,
           tag,
-          icon: '/favicon.svg',
-          badge: '/favicon.svg',
+          // PNGs: Android Chrome won't render SVG notification images, and
+          // the badge must be a transparent silhouette (only alpha is used).
+          icon: '/icon-192.png',
+          badge: '/notification-badge.png',
           // Blood requests are time-critical, so don't let the OS silently
           // collapse them into a quiet group.
           requireInteraction: false

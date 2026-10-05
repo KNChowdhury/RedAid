@@ -3,6 +3,7 @@ import { Award, CalendarCheck, Crown, Download, Heart, ShieldCheck, Trophy, Zap 
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { defineStrings, formatNumber, useStrings } from '../i18n';
+import { hasFullyNegativeScreening } from '../services/lifelineService';
 import { DonorProfile, RewardBadge } from '../types';
 import { Avatar } from './Avatar';
 
@@ -22,8 +23,14 @@ const S = defineStrings(
     achievementsTitle: 'Unlock Badges By Saving Lives',
     unlockedCount: '{done} / {total} Unlocked',
     badgePoints: '{points} Pts',
-    progress: 'Progress ({current}/{required} pts)',
+    progress: 'Progress ({current}/{required})',
     category: 'Category: {category}',
+    firstDropName: 'First Drop',
+    firstDropDescription: 'Completed your very first donation',
+    goldHeroName: 'Gold Hero',
+    goldHeroDescription: 'Saved 5 lives through verified emergency requests',
+    fullyScreenedName: 'Fully Screened',
+    fullyScreenedDescription: 'All five screening results are recorded as negative. These are donor-reported results, not independent medical verification.',
     // Badge categories are stored codes; English shows the code as before.
     categoryDonation: 'donation',
     categoryStreak: 'streak',
@@ -61,8 +68,14 @@ const S = defineStrings(
     achievementsTitle: 'জীবন বাঁচিয়ে ব্যাজ অর্জন করুন',
     unlockedCount: '{done} / {total} আনলক হয়েছে',
     badgePoints: '{points} পয়েন্ট',
-    progress: 'অগ্রগতি ({current}/{required} পয়েন্ট)',
+    progress: 'অগ্রগতি ({current}/{required})',
     category: 'ধরন: {category}',
+    firstDropName: 'প্রথম রক্তদান',
+    firstDropDescription: 'আপনার প্রথম রক্তদান সম্পন্ন হয়েছে',
+    goldHeroName: 'গোল্ড হিরো',
+    goldHeroDescription: 'যাচাইকৃত জরুরি অনুরোধে ৫টি জীবন বাঁচিয়েছেন',
+    fullyScreenedName: 'সম্পূর্ণ স্ক্রিনিং',
+    fullyScreenedDescription: 'পাঁচটি স্ক্রিনিং ফলাফলই নেগেটিভ হিসেবে নথিভুক্ত। এগুলো দাতার দেওয়া তথ্য, স্বাধীন চিকিৎসা যাচাই নয়।',
     categoryDonation: 'রক্তদান',
     categoryStreak: 'ধারাবাহিকতা',
     categoryEmergency: 'জরুরি',
@@ -86,7 +99,7 @@ const S = defineStrings(
   }
 );
 
-const VISIBLE_BADGE_CATEGORIES: RewardBadge['category'][] = ['donation', 'emergency', 'verified'];
+const FEATURED_BADGE_NAMES = new Set(['first drop', 'gold hero', 'fully screened']);
 
 interface RewardsHubProps {
   currentUser: DonorProfile | null;
@@ -117,7 +130,43 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
     emergency: s.categoryEmergency,
     verified: s.categoryVerified
   };
-  const visibleBadges = badges.filter(badge => VISIBLE_BADGE_CATEGORIES.includes(badge.category));
+  const visibleBadges = badges.filter(badge => FEATURED_BADGE_NAMES.has(badge.name.trim().toLowerCase()));
+  const completedDonationCount = currentUser
+    ? Math.max(
+        currentUser.donationCount ?? 0,
+        currentUser.donationsHistory.filter(donation => donation.status === 'Completed').length
+      )
+    : 0;
+  const badgeProgress = (badge: RewardBadge) => {
+    switch (badge.name.trim().toLowerCase()) {
+      case 'first drop': {
+        const current = Math.min(completedDonationCount, 1);
+        return { current, required: 1, achieved: completedDonationCount > 0 };
+      }
+      case 'gold hero': {
+        const current = Math.min(currentUser?.livesSaved ?? 0, 5);
+        return { current, required: 5, achieved: current >= 5 };
+      }
+      case 'fully screened': {
+        const achieved = hasFullyNegativeScreening(currentUser?.healthInfo);
+        return { current: achieved ? 1 : 0, required: 1, achieved };
+      }
+      default:
+        return { current: 0, required: 1, achieved: false };
+    }
+  };
+  const badgePresentation = (badge: RewardBadge) => {
+    switch (badge.name.trim().toLowerCase()) {
+      case 'first drop':
+        return { name: s.firstDropName, description: s.firstDropDescription };
+      case 'gold hero':
+        return { name: s.goldHeroName, description: s.goldHeroDescription };
+      case 'fully screened':
+        return { name: s.fullyScreenedName, description: s.fullyScreenedDescription };
+      default:
+        return { name: badge.name, description: badge.description };
+    }
+  };
 
   const currentUserRank = currentUser
     ? leaderboard.findIndex(donor => donor.id === currentUser.id) + 1
@@ -213,14 +262,15 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
             <p className="text-lg font-bold text-slate-800 dark:text-slate-200 mt-0.5">{s.achievementsTitle}</p>
           </div>
           <span className="text-xs font-mono font-bold text-slate-500">
-            {f(s.unlockedCount, { done: num(visibleBadges.filter(b => b.achieved).length), total: num(visibleBadges.length) })}
+            {f(s.unlockedCount, { done: num(visibleBadges.filter(badge => badgeProgress(badge).achieved).length), total: num(visibleBadges.length) })}
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {visibleBadges.map((badge, idx) => {
-            const currentPts = currentUser?.impactScore ?? 0;
-            const progressPercent = Math.min(100, Math.round((currentPts / badge.pointsRequired) * 100));
+            const progress = badgeProgress(badge);
+            const presentation = badgePresentation(badge);
+            const progressPercent = Math.round((progress.current / progress.required) * 100);
             return (
             <motion.div
               key={badge.id}
@@ -229,7 +279,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               transition={{ duration: 0.35, delay: idx * 0.08, ease: "easeOut" }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
               className={`p-6 rounded-3xl border transition-all flex flex-col justify-between relative overflow-hidden ${
-                badge.achieved
+                progress.achieved
                   ? 'bg-white dark:bg-slate-800/60 border-rose-200/80 dark:border-rose-900/50 shadow-md shadow-rose-500/5'
                   : 'bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700 opacity-65 grayscale-[0.6]'
               }`}
@@ -237,32 +287,32 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                    badge.achieved ? 'bg-rose-50 dark:bg-rose-950/30 shadow-sm' : 'bg-slate-200 dark:bg-slate-700'
+                    progress.achieved ? 'bg-rose-50 dark:bg-rose-950/30 shadow-sm' : 'bg-slate-200 dark:bg-slate-700'
                   }`}>
                     {renderBadgeIcon(badge.icon)}
                   </div>
                   <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg ${
-                    badge.achieved ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                    progress.achieved ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                   }`}>
                     {f(s.badgePoints, { points: num(badge.pointsRequired) })}
                   </span>
                 </div>
 
-                <h3 className="font-extrabold text-lg text-slate-900 dark:text-slate-100">{badge.name}</h3>
-                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{badge.description}</p>
+                <h3 className="font-extrabold text-lg text-slate-900 dark:text-slate-100">{presentation.name}</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{presentation.description}</p>
 
                 {/* Animated Framer Motion Progress Bar */}
                 <div className="mt-4">
                   <div className="flex justify-between text-[10px] font-mono font-bold mb-1 text-slate-400">
-                    <span>{f(s.progress, { current: num(currentPts), required: num(badge.pointsRequired) })}</span>
-                    <span className={badge.achieved ? 'text-emerald-600 dark:text-emerald-400 font-black' : 'text-rose-600 dark:text-rose-400'}>{num(progressPercent)}%</span>
+                    <span>{f(s.progress, { current: num(progress.current), required: num(progress.required) })}</span>
+                    <span className=                    {progress.achieved ? 'text-emerald-600 dark:text-emerald-400 font-black' : 'text-rose-600 dark:text-rose-400'}>{num(progressPercent)}%</span>
                   </div>
                   <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200/60 dark:border-slate-700 shadow-inner">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${progressPercent}%` }}
                       transition={{ duration: 0.8, delay: 0.2 + idx * 0.08, ease: "easeOut" }}
-                      className={`h-full rounded-full ${badge.achieved ? 'bg-emerald-500' : 'blood-gradient'}`}
+                      className={`h-full rounded-full ${progress.achieved ? 'bg-emerald-500' : 'blood-gradient'}`}
                     />
                   </div>
                 </div>
@@ -271,9 +321,9 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <span className="text-[10px] uppercase font-bold text-slate-400">{f(s.category, { category: CATEGORY_LABEL[badge.category] ?? badge.category })}</span>
                 <span className={`text-[10px] font-black uppercase tracking-wider ${
-                  badge.achieved ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                  progress.achieved ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
                 }`}>
-                  {badge.achieved ? s.achieved : s.locked}
+                  {progress.achieved ? s.achieved : s.locked}
                 </span>
               </div>
             </motion.div>

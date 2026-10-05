@@ -1,4 +1,4 @@
-import { Calendar, MessageCircle, Sparkles } from 'lucide-react';
+import { Calendar, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { calculateAge, getDonorContact, getWhatsAppUrl, isDonorAvailableNow } from '../services/lifelineService';
@@ -26,6 +26,7 @@ const S = defineStrings(
     firstTime: ' · first-time donor',
     lastDonated: 'Last donated',
     availableFrom: 'Available from',
+    screeningComplete: 'Screening complete · self-reported',
     whatsappMessage: 'Hello, I found your number on Roktobondhu Bangladesh. Can you help?',
     whatsappLabel: 'Message {name} on WhatsApp',
     notAvailableNow: 'Not available right now',
@@ -53,6 +54,7 @@ const S = defineStrings(
     firstTime: ' · প্রথমবার দাতা',
     lastDonated: 'শেষ রক্তদান',
     availableFrom: 'দিতে পারবেন',
+    screeningComplete: 'দাতার দেওয়া তথ্য অনুযায়ী স্ক্রিনিং সম্পন্ন',
     whatsappMessage: 'হ্যালো, Roktobondhu Bangladesh-এ আপনার নম্বর পেয়েছি। আপনি কি সাহায্য করতে পারবেন?',
     whatsappLabel: '{name}-কে WhatsApp-এ মেসেজ দিন',
     notAvailableNow: 'এখন দিতে পারবেন না',
@@ -230,6 +232,13 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                     )}
                   </div>
                 </div>
+
+                {donor.screeningCompletionPublic && (
+                  <span className="mt-3 inline-flex items-center gap-1.5 self-start rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    {s.screeningComplete}
+                  </span>
+                )}
 
                 {/* One action, and it does the actual job. */}
                 <div className="mt-4 flex items-center gap-2">

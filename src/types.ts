@@ -53,6 +53,8 @@ export interface DonorProfile {
   isRegular: boolean;
   isVerified: boolean;
   availableNow: boolean;
+  shareScreeningCompletion: boolean;
+  screeningCompletionPublic: boolean;
   healthInfo: HealthInfo;
   impactScore: number;
   livesSaved: number;

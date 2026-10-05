@@ -165,6 +165,7 @@ export function App() {
   // match these filters", and nothing ever retried -- users saw every donor
   // "disappear" after leaving the site open for a while (2026-10-03).
   const [sharedDataStatus, setSharedDataStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [screeningBadgeFeatureAvailable, setScreeningBadgeFeatureAvailable] = useState(false);
   const openRequestsTab = React.useCallback(() => setActiveTab('requests'), [setActiveTab]);
   const { permission: notifyPermission, requestPermission: askNotifyPermission, notify } = useBrowserNotifications(
     openRequestsTab
@@ -246,6 +247,7 @@ export function App() {
           requests: shared.requests,
           badges: shared.badges
         }));
+        setScreeningBadgeFeatureAvailable(shared.screeningBadgeFeatureAvailable);
         setSharedDataStatus('ready');
         lastRefreshKeyRef.current = refreshKey;
         lastRefreshAtRef.current = Date.now();
@@ -785,6 +787,7 @@ export function App() {
         donor={selectedProfileDonor}
         isOwnProfile={selectedProfileDonor?.id === state.currentUser?.id}
         currentUserId={state.currentUser?.id ?? null}
+        screeningBadgeFeatureAvailable={screeningBadgeFeatureAvailable}
         onClose={() => setSelectedProfileDonor(null)}
         onToggleAvailability={selectedProfileDonor?.id === state.currentUser?.id ? handleToggleCurrentUserAvailability : undefined}
         onProfileUpdated={selectedProfileDonor?.id === state.currentUser?.id ? (updated) => {

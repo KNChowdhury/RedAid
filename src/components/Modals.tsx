@@ -1,4 +1,4 @@
-import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
@@ -157,7 +157,11 @@ const S = defineStrings(
     regularDonor: 'Regular Donor:',
     regularYes: 'Yes (3+ times)',
     regularNew: 'New',
-    healthPrivate: 'Health and screening details are private and visible only to the donor.',
+    healthPrivate: 'Individual health and screening results stay private. Only donors who opt in can show a completion badge.',
+    screeningCompletionPublic: 'Screening complete · self-reported',
+    shareScreeningCompletion: 'Show screening-completion badge publicly',
+    shareScreeningCompletionHelp: 'Only the completion badge appears, and only when all five results are recorded as negative. Individual results stay private; this is not independent medical verification.',
+    screeningFeatureUnavailable: 'Public screening-completion badges are not available yet.',
     editProfile: 'Edit Profile',
     phone: 'Phone',
     lastDonationDate: 'Last Donation Date',
@@ -308,7 +312,11 @@ const S = defineStrings(
     regularDonor: 'নিয়মিত দাতা:',
     regularYes: 'হ্যাঁ (৩+ বার)',
     regularNew: 'নতুন',
-    healthPrivate: 'স্বাস্থ্য ও স্ক্রিনিংয়ের তথ্য গোপন — শুধু রক্তদাতা নিজে দেখতে পারেন।',
+    healthPrivate: 'স্বাস্থ্য ও স্ক্রিনিংয়ের আলাদা ফলাফল গোপন থাকে। শুধু সম্মতি দিলে স্ক্রিনিং সম্পন্নের badge দেখা যায়।',
+    screeningCompletionPublic: 'দাতার দেওয়া তথ্য অনুযায়ী স্ক্রিনিং সম্পন্ন',
+    shareScreeningCompletion: 'স্ক্রিনিং সম্পন্ন badge অন্যদের দেখান',
+    shareScreeningCompletionHelp: 'পাঁচটি ফলাফল নেগেটিভ হিসেবে নথিভুক্ত হলেই শুধু completion badge দেখা যাবে। আলাদা কোনো ফলাফল প্রকাশ হবে না; এটি স্বাধীন চিকিৎসা যাচাই নয়।',
+    screeningFeatureUnavailable: 'স্ক্রিনিং সম্পন্নের public badge এখনো চালু হয়নি।',
     editProfile: 'প্রোফাইল এডিট করুন',
     phone: 'ফোন নম্বর',
     lastDonationDate: 'শেষ রক্তদানের তারিখ',
@@ -941,13 +949,14 @@ interface ProfileModalProps {
   donor: DonorProfile | null;
   isOwnProfile: boolean;
   currentUserId: string | null;
+  screeningBadgeFeatureAvailable: boolean;
   onClose: () => void;
   onToggleAvailability?: () => void;
   onProfileUpdated?: (updated: DonorProfile) => void;
   onRequireAuth: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, currentUserId, onClose, onToggleAvailability, onProfileUpdated, onRequireAuth }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, currentUserId, screeningBadgeFeatureAvailable, onClose, onToggleAvailability, onProfileUpdated, onRequireAuth }) => {
   const districts = useDistricts();
   const { s, f, lang } = useStrings(S);
   const [isEditing, setIsEditing] = useState(false);
@@ -966,6 +975,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [hivStatus, setHivStatus] = useState('Not Tested');
   const [syphilisStatus, setSyphilisStatus] = useState('Not Tested');
   const [malariaStatus, setMalariaStatus] = useState('Not Tested');
+  const [shareScreeningCompletion, setShareScreeningCompletion] = useState(false);
   const [revealedContact, setRevealedContact] = useState<{ phone: string | null; whatsapp: string | null } | null>(null);
   const [revealingContact, setRevealingContact] = useState(false);
   const isMountedRef = React.useRef(true);
@@ -1019,6 +1029,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       setHivStatus(donor.healthInfo?.hivStatus || 'Not Tested');
       setSyphilisStatus(donor.healthInfo?.syphilisStatus || 'Not Tested');
       setMalariaStatus(donor.healthInfo?.malariaStatus || 'Not Tested');
+      setShareScreeningCompletion(donor.shareScreeningCompletion);
     }
   }, [donor]);
 
@@ -1059,7 +1070,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       hcvStatus,
       hivStatus,
       syphilisStatus,
-      malariaStatus
+      malariaStatus,
+      shareScreeningCompletion: screeningBadgeFeatureAvailable ? shareScreeningCompletion : undefined
     });
     setSaving(false);
 
@@ -1125,6 +1137,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               {f(s.bloodGroupValue, { group: donor.bloodGroup })}
               {calculateAge(donor.birthYear) !== null && f(s.ageSuffix, { age: calculateAge(donor.birthYear) as number })}
             </span>
+            {donor.screeningCompletionPublic && (
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {s.screeningCompletionPublic}
+              </span>
+            )}
           </div>
         </div>
 
@@ -1304,6 +1322,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 </div>
               ))}
             </div>
+            {screeningBadgeFeatureAvailable ? (
+              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60">
+                <input
+                  type="checkbox"
+                  checked={shareScreeningCompletion}
+                  onChange={e => setShareScreeningCompletion(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-emerald-600"
+                />
+                <span>
+                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-100">{s.shareScreeningCompletion}</span>
+                  <span className="mt-1 block text-[11px] leading-relaxed text-slate-500">{s.shareScreeningCompletionHelp}</span>
+                </span>
+              </label>
+            ) : (
+              <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/60">
+                {s.screeningFeatureUnavailable}
+              </p>
+            )}
 
             {saveErrorMsg && (
               <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400">

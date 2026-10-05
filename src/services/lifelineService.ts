@@ -4,6 +4,7 @@ import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBad
 
 // Retained only as a migration key so old browser snapshots can be removed.
 const STORAGE_KEY = 'LIFELINE_BD_STATE_V3';
+let screeningProjectionWarningLogged = false;
 
 // `locale` undefined = the browser's default, which is what English mode has
 // always used; Bangla mode passes 'bn-BD'.
@@ -77,6 +78,15 @@ export interface AppState {
   currentUser: DonorProfile | null;
   notifications: NotificationItem[];
   token: string | null;
+}
+
+export function hasFullyNegativeScreening(healthInfo: DonorProfile['healthInfo'] | null | undefined): boolean {
+  return !!healthInfo
+    && healthInfo.hbsagStatus === 'Negative'
+    && healthInfo.hcvStatus === 'Negative'
+    && healthInfo.hivStatus === 'Negative'
+    && healthInfo.syphilisStatus === 'Negative'
+    && healthInfo.malariaStatus === 'Negative';
 }
 
 // Calculate Haversine distance between two lat/lng coordinates
@@ -391,6 +401,8 @@ function mapDbDonorToProfile(row: any): DonorProfile {
     isRegular: row.is_regular,
     isVerified: row.is_verified,
     availableNow: row.available_now,
+    shareScreeningCompletion: row.share_screening_completion === true,
+    screeningCompletionPublic: row.screening_completion_public === true,
     healthInfo: {
       weightKg: row.weight_kg || 0,
       bloodPressure: row.blood_pressure || '',
@@ -438,6 +450,7 @@ export async function updateDonorProfile(
     hivStatus: string;
     syphilisStatus: string;
     malariaStatus: string;
+    shareScreeningCompletion: boolean;
     antiHcvStatus: string;
     antiHivStatus: string;
     vdrlStatus: string;
@@ -477,6 +490,9 @@ export async function updateDonorProfile(
   if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
   if (updates.district !== undefined) dbUpdates.district = updates.district;
   if (updates.area !== undefined) dbUpdates.area = updates.area;
+  if (updates.shareScreeningCompletion !== undefined) {
+    dbUpdates.share_screening_completion = updates.shareScreeningCompletion;
+  }
   if (updates.isSmoker !== undefined) dbUpdates.is_smoker = updates.isSmoker;
   // The set_next_eligible trigger recomputes next_eligible_date (+120 days)
   // whenever this changes, so we never store that date by hand.
@@ -503,9 +519,7 @@ export async function updateDonorProfile(
   if (Object.keys(dbUpdates).length === 0) {
     const reloaded = await supabaseClient.from('donors').select('*').eq('id', donorId).maybeSingle();
     if (!reloaded.data) return null;
-    const profile = mapDbDonorToProfile(reloaded.data);
-    profile.healthInfo = { ...(profile.healthInfo || {}), ...(await fetchMyHealthInfo(donorId)) } as any;
-    return profile;
+    return attachPrivateHealthInfo(mapDbDonorToProfile(reloaded.data));
   }
 
   const { data, error } = await supabaseClient
@@ -519,9 +533,7 @@ export async function updateDonorProfile(
     console.error('Update donor error:', error);
     return null;
   }
-  const profile = mapDbDonorToProfile(data);
-  profile.healthInfo = { ...(profile.healthInfo || {}), ...(await fetchMyHealthInfo(donorId)) } as any;
-  return profile;
+  return attachPrivateHealthInfo(mapDbDonorToProfile(data));
 }
 
 export async function fetchMyHealthInfo(donorId: string): Promise<Record<string, any>> {
@@ -550,6 +562,12 @@ export async function fetchMyHealthInfo(donorId: string): Promise<Record<string,
     syphilisStatus: data.syphilis_status || 'Not Tested',
     malariaStatus: data.malaria_status || 'Not Tested'
   };
+}
+
+async function attachPrivateHealthInfo(profile: DonorProfile): Promise<DonorProfile> {
+  profile.healthInfo = { ...profile.healthInfo, ...(await fetchMyHealthInfo(profile.id)) } as DonorProfile['healthInfo'];
+  profile.screeningCompletionPublic = profile.shareScreeningCompletion && hasFullyNegativeScreening(profile.healthInfo);
+  return profile;
 }
 
 export async function updateDonorAvailability(donorId: string, availableNow: boolean): Promise<boolean> {
@@ -785,9 +803,10 @@ export async function fetchSharedData(
   donors: DonorProfile[];
   requests: EmergencyRequest[];
   badges: RewardBadge[];
+  screeningBadgeFeatureAvailable: boolean;
 }> {
   if (!supabase) {
-    return { donors: [], requests: [], badges: [] };
+    return { donors: [], requests: [], badges: [], screeningBadgeFeatureAvailable: false };
   }
 
   // A fetch on a connection that died mid-request (laptop sleep, phone
@@ -798,9 +817,10 @@ export async function fetchSharedData(
   const withTimeout = <Q extends { abortSignal: (s: AbortSignal) => Q }>(query: Q): Q =>
     signal ? query.abortSignal(signal) : query;
 
+  const donorColumns = 'id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_regular,is_verified,available_now,impact_score,lives_saved';
   const donorsQuery = withTimeout(supabase
     .from('v_public_donors')
-    .select('id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_regular,is_verified,available_now,impact_score,lives_saved'));
+    .select(`${donorColumns},screening_completion_public`));
 
   const requestsView = isLoggedIn ? 'v_authenticated_requests' : 'v_public_requests';
   const requestsColumns = isLoggedIn
@@ -816,19 +836,54 @@ export async function fetchSharedData(
     withTimeout(supabase.from('badges').select('id,name,icon,description,points_required,category'))
   ]);
 
-  if (donorsRes.error) console.error('Supabase donors fetch error:', donorsRes.error);
   if (requestsRes.error) console.error('Supabase requests fetch error:', requestsRes.error);
   if (badgesRes.error) console.error('Supabase badges fetch error:', badgesRes.error);
 
-  const queryError = donorsRes.error || requestsRes.error || badgesRes.error;
+  let donorRows = donorsRes.data || [];
+  let screeningBadgeFeatureAvailable = !donorsRes.error;
+  if (donorsRes.error) {
+    const errorMessage = donorsRes.error.message.toLowerCase();
+    const missingScreeningColumn = errorMessage.includes('screening_completion_public')
+      && (donorsRes.error.code === '42703' || donorsRes.error.code === 'PGRST204');
+    if (!missingScreeningColumn) {
+      console.error('Supabase donors fetch error:', donorsRes.error);
+      throw new Error(`Shared donor data fetch failed: ${donorsRes.error.message}`);
+    } else {
+      screeningBadgeFeatureAvailable = false;
+      if (!screeningProjectionWarningLogged) {
+        console.error('Public screening-completion badge is unavailable until patch_28 is applied:', donorsRes.error);
+        screeningProjectionWarningLogged = true;
+      }
+      const fallbackDonors = await withTimeout(supabase
+        .from('v_public_donors')
+        .select(donorColumns));
+      if (fallbackDonors.error) {
+        console.error('Supabase donors fetch error:', fallbackDonors.error);
+        throw new Error(`Shared donor data fetch failed: ${fallbackDonors.error.message}`);
+      }
+      donorRows = (fallbackDonors.data || []).map((row: any) => ({
+        ...row,
+        screening_completion_public: false
+      }));
+    }
+  }
+
+  const queryError = requestsRes.error || badgesRes.error;
   if (queryError) {
     throw new Error(`Shared data fetch failed: ${queryError.message}`);
   }
 
+  const donors = donorRows.map((row: any) => {
+    const donor = mapDbDonorToProfile(row);
+    donor.screeningCompletionPublic = row.screening_completion_public === true;
+    return donor;
+  });
+
   return {
-    donors: (donorsRes.data || []).map(mapDbDonorToProfile),
+    donors,
     requests: (requestsRes.data || []).map(mapDbRequestToRequest),
-    badges: (badgesRes.data || []).map((row: any) => mapDbBadgeToBadge(row, currentUserPoints))
+    badges: (badgesRes.data || []).map((row: any) => mapDbBadgeToBadge(row, currentUserPoints)),
+    screeningBadgeFeatureAvailable
   };
 }
 
@@ -1369,8 +1424,7 @@ export async function signUpDonor(profile: {
   }
 
   const signedUpProfile = mapDbDonorToProfile(donorData);
-  signedUpProfile.healthInfo = { ...(signedUpProfile.healthInfo || {}), ...(await fetchMyHealthInfo(signedUpProfile.id)) } as any;
-  return { user: signedUpProfile, error: null };
+  return { user: await attachPrivateHealthInfo(signedUpProfile), error: null };
 }
 
 export async function signInDonor(email: string, password: string): Promise<{ user: DonorProfile | null; error: string | null }> {
@@ -1447,13 +1501,11 @@ export async function signInDonor(email: string, password: string): Promise<{ us
     }
 
     const insertedProfile = mapDbDonorToProfile(insertedDonor);
-    insertedProfile.healthInfo = { ...(insertedProfile.healthInfo || {}), ...(await fetchMyHealthInfo(insertedProfile.id)) } as any;
-    return { user: insertedProfile, error: null };
+    return { user: await attachPrivateHealthInfo(insertedProfile), error: null };
   }
 
   const signedInProfile = mapDbDonorToProfile(donorRes.data);
-  signedInProfile.healthInfo = { ...(signedInProfile.healthInfo || {}), ...(await fetchMyHealthInfo(signedInProfile.id)) } as any;
-  return { user: signedInProfile, error: null };
+  return { user: await attachPrivateHealthInfo(signedInProfile), error: null };
 }
 
 // Redirects to Google's consent screen; the session is picked up afterward by
@@ -1524,8 +1576,7 @@ export async function completeDonorProfile(
   }
 
   const completedProfile = mapDbDonorToProfile(data);
-  completedProfile.healthInfo = { ...(completedProfile.healthInfo || {}), ...(await fetchMyHealthInfo(completedProfile.id)) } as any;
-  return { profile: completedProfile, error: null };
+  return { profile: await attachPrivateHealthInfo(completedProfile), error: null };
 }
 
 export async function getCurrentDonorFromSession(): Promise<DonorProfile | null> {
@@ -1579,9 +1630,7 @@ export async function getCurrentDonorFromSession(): Promise<DonorProfile | null>
     }
   }
 
-  const restored = mapDbDonorToProfile(donorRes.data);
-  restored.healthInfo = { ...(restored.healthInfo || {}), ...(await fetchMyHealthInfo(restored.id)) } as any;
-  return restored;
+  return attachPrivateHealthInfo(mapDbDonorToProfile(donorRes.data));
 }
 
 export function subscribeToAuthState(onChange: (donor: DonorProfile | null) => void, onPasswordRecovery?: () => void): () => void {

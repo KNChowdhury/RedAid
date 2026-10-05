@@ -86,6 +86,8 @@ const S = defineStrings(
   }
 );
 
+const VISIBLE_BADGE_CATEGORIES: RewardBadge['category'][] = ['donation', 'emergency', 'verified'];
+
 interface RewardsHubProps {
   currentUser: DonorProfile | null;
   badges: RewardBadge[];
@@ -115,6 +117,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
     emergency: s.categoryEmergency,
     verified: s.categoryVerified
   };
+  const visibleBadges = badges.filter(badge => VISIBLE_BADGE_CATEGORIES.includes(badge.category));
 
   const currentUserRank = currentUser
     ? leaderboard.findIndex(donor => donor.id === currentUser.id) + 1
@@ -210,12 +213,12 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
             <p className="text-lg font-bold text-slate-800 dark:text-slate-200 mt-0.5">{s.achievementsTitle}</p>
           </div>
           <span className="text-xs font-mono font-bold text-slate-500">
-            {f(s.unlockedCount, { done: num(badges.filter(b => b.achieved).length), total: num(badges.length) })}
+            {f(s.unlockedCount, { done: num(visibleBadges.filter(b => b.achieved).length), total: num(visibleBadges.length) })}
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {badges.map((badge, idx) => {
+          {visibleBadges.map((badge, idx) => {
             const currentPts = currentUser?.impactScore ?? 0;
             const progressPercent = Math.min(100, Math.round((currentPts / badge.pointsRequired) * 100));
             return (

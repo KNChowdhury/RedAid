@@ -2,6 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, Sparkle
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
+import { defineStrings, formatNumber, useStrings } from '../i18n';
 import { calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isDonorAvailableNow, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
@@ -33,6 +34,317 @@ export function toBdWhatsapp(input: string): string {
   const d = bdDigits(input);
   return d ? `880${d}` : '';
 }
+
+/* ---------- UI text (English / Bangla) ----------
+ * Display text only. Values that are stored or compared in logic (urgency
+ * 'Critical'/'High'/'Medium', screening status 'Not Tested'/'Negative'/
+ * 'Positive', blood groups, districts/areas, the default request reason) stay
+ * as they are and are mapped to these labels at render time.
+ */
+const S = defineStrings(
+  {
+    // Shared form labels / buttons / messages
+    bloodGroup: 'Blood Group',
+    district: 'District',
+    area: 'Area',
+    optional: '(Optional)',
+    whatsappNumber: 'WhatsApp Number',
+    fullName: 'Full Name',
+    phoneNumber: 'Phone Number',
+    birthYear: 'Birth Year',
+    birthYearPlaceholder: 'e.g. 1995',
+    selectBloodGroup: 'Select blood group',
+    smokerCheckbox: 'I am a smoker (health note)',
+    saving: 'Saving...',
+    saveChanges: 'Save Changes',
+    errNameSymbols: 'Please enter your name (not just symbols).',
+    errSelectBloodGroup: 'Please select your blood group.',
+
+    // 1. Request blood modal
+    closeRequestDialog: 'Close request dialog',
+    requestTitleEdit: 'Edit Blood Requisition',
+    requestTitleNew: 'Broadcast Blood Requisition',
+    requestSubtitleEdit: 'Updates the live feed for everyone',
+    requestSubtitleNew: 'Pushes immediate live feed & notification',
+    errRequestUpdate: 'Could not update the request. You can only edit your own.',
+    errRequestSave: 'Request was not saved. Please sign in or try again.',
+    patientFullName: 'Patient Full Name',
+    patientNamePlaceholder: 'e.g. Mrs. Rahima Begum',
+    age: 'Age',
+    hospitalName: 'Hospital / Clinic Name',
+    hospitalPlaceholder: 'e.g. Dhaka Medical College Hospital',
+    requiredBags: 'Required Bags',
+    neededByTime: 'Needed By Time',
+    urgencyPriority: 'Urgency Priority',
+    urgencyCritical: 'Critical',
+    urgencyHigh: 'High',
+    urgencyMedium: 'Medium',
+    contactPhone: 'Contact Phone Number',
+    reasonLabel: 'Reason / Clinical Notes',
+    reasonPlaceholder: 'e.g. Emergency C-Section bleeding surgery scheduled at ICU.',
+    broadcastRequest: 'Broadcast Emergency Request',
+
+    // 2. Auth modal
+    closeAuthDialog: 'Close authentication dialog',
+    authTitleRegister: 'Join Roktobondhu Bangladesh',
+    authTitleReset: 'Reset Password',
+    authTitleNewPassword: 'Set New Password',
+    authTitleLogin: 'Welcome Back Hero',
+    authSubRegister: 'Register as a verified whole blood donor',
+    authSubReset: 'Enter your email to receive password reset instructions',
+    authSubNewPassword: 'Choose a new password for your Roktobondhu Bangladesh account',
+    authSubLogin: 'Sign in to your Roktobondhu Bangladesh account',
+    errInvalidEmail: 'Please enter a valid email address, for example: name@example.com.',
+    errPasswordLength: 'Password must be at least 6 characters.',
+    resetLinkSent: 'If this email is registered, a reset link has been sent. Check your inbox and spam folder, and confirm the spelling.',
+    errGeneric: 'Something went wrong. Please try again.',
+    errInvalidLogin: 'Invalid email or password.',
+    fullNamePlaceholder: 'e.g. John Doe',
+    email: 'Email',
+    password: 'Password',
+    passwordPlaceholder: 'At least 6 characters',
+    hidePassword: 'Hide password',
+    showPassword: 'Show password',
+    forgotPassword: 'Forgot password?',
+    errMagicLinkEmail: 'Please enter a valid email address before requesting a magic link.',
+    magicLinkSent: 'Magic login link sent to your email. Please check your inbox.',
+    loginWithEmailLink: 'Login with email link',
+    pleaseWait: 'Please wait...',
+    createSecureProfile: 'Create Secure Profile',
+    sendResetEmail: 'Send Reset Email',
+    updatePassword: 'Update Password',
+    signIn: 'Sign In',
+    or: 'Or',
+    continueWithGoogle: 'Continue with Google',
+    switchToLogin: 'Already registered? Sign In instead',
+    switchToRegister: 'New donor? Create free profile',
+
+    // 3. Profile modal
+    closeProfileDialog: 'Close profile dialog',
+    bloodGroupValue: 'Blood Group: {group}',
+    ageSuffix: ' · {age}y',
+    errSessionRefresh: 'Your session needs a refresh. Please reload the page and try again.',
+    errProfileUpdate: 'Failed to update profile. Please try again.',
+    phoneCaps: 'PHONE',
+    whatsappCaps: 'WHATSAPP',
+    notProvided: 'Not provided',
+    notAvailableRightNow: 'Not available right now',
+    hiddenUntilRevealed: 'Hidden until revealed',
+    contactChecked: 'Contact checked',
+    checkingAvailability: 'Checking availability...',
+    showNumber: 'Show number',
+    healthTelemetry: 'DGHS Health Telemetry',
+    hemoglobin: 'HEMOGLOBIN',
+    bloodPressure: 'BLOOD PRESSURE',
+    weight: 'WEIGHT',
+    weightValue: '{weight} kg',
+    notAvailable: 'Not available',
+    donationRecord: 'Donation Record',
+    timesDonated: 'Times Donated',
+    lastDonated: 'Last Donated',
+    nextEligible: 'Next Eligible',
+    never: 'Never',
+    now: 'Now',
+    ttiScreening: 'Mandatory TTI Screening',
+    syphilis: 'Syphilis',
+    malaria: 'Malaria',
+    statusNotTested: 'Not Tested',
+    statusNegative: 'Negative',
+    statusPositive: 'Positive',
+    smokingStatus: 'Smoking Status:',
+    smoker: 'Smoker',
+    nonSmoker: 'Non-Smoker',
+    regularDonor: 'Regular Donor:',
+    regularYes: 'Yes (3+ times)',
+    regularNew: 'New',
+    healthPrivate: 'Health and screening details are private and visible only to the donor.',
+    editProfile: 'Edit Profile',
+    phone: 'Phone',
+    lastDonationDate: 'Last Donation Date',
+    screeningEntered: 'Screening results you entered',
+    testHbsag: 'HBsAg (Hepatitis B)',
+    testHcv: 'Anti-HCV (Hepatitis C)',
+    testHiv: 'Anti-HIV',
+    testVdrl: 'VDRL (Syphilis)',
+    testMp: 'MP Test (Malaria)',
+    cancel: 'Cancel',
+    availabilityStatus: 'Instant Telemetry Status',
+    broadcastingAvailable: 'Broadcasting as Available for Emergency',
+    restingOffDuty: 'Set as resting / off-duty',
+    availableNowButton: 'Available Now',
+    offDutyButton: 'Off-Duty',
+    notYetVisibleHint: 'অন্যরা আপনাকে এখনো "Not available" দেখছেন — আপনার পরবর্তী যোগ্যতার তারিখ {date} পর্যন্ত।',
+    whatsappMessage: 'WhatsApp Message',
+    showNumberFirst: 'Show number first',
+    call: 'Call',
+
+    // 4. Notifications modal
+    notificationsTitle: 'Live Notification Feed',
+    markAllRead: 'Mark all read',
+    closeNotificationsDialog: 'Close notifications dialog',
+    noNotifications: 'No notifications yet.',
+    viewDonorProfile: 'View donor profile',
+    openRequestsToConfirm: 'Open Requests to confirm',
+
+    // 5. Complete profile modal
+    completeTitle: 'One Last Step',
+    completeSubtitle: 'A few required details to finish setting up your donor profile',
+    errEnterPhone: 'Please enter your phone number.',
+    errSaveProfile: 'Could not save your profile. Please try again.',
+    finishSetup: 'Finish Setting Up My Profile'
+  },
+  {
+    // Shared form labels / buttons / messages
+    bloodGroup: 'ব্লাড গ্রুপ',
+    district: 'জেলা',
+    area: 'এলাকা',
+    optional: '(ঐচ্ছিক)',
+    whatsappNumber: 'WhatsApp নম্বর',
+    fullName: 'পূর্ণ নাম',
+    phoneNumber: 'ফোন নম্বর',
+    birthYear: 'জন্মসাল',
+    birthYearPlaceholder: 'যেমন: 1995',
+    selectBloodGroup: 'ব্লাড গ্রুপ বাছুন',
+    smokerCheckbox: 'আমি ধূমপান করি (স্বাস্থ্য তথ্য)',
+    saving: 'সংরক্ষণ হচ্ছে...',
+    saveChanges: 'সংরক্ষণ করুন',
+    errNameSymbols: 'আপনার নাম লিখুন (শুধু চিহ্ন নয়)।',
+    errSelectBloodGroup: 'আপনার ব্লাড গ্রুপ বাছুন।',
+
+    // 1. Request blood modal
+    closeRequestDialog: 'অনুরোধ ফর্ম বন্ধ করুন',
+    requestTitleEdit: 'রক্তের অনুরোধ এডিট করুন',
+    requestTitleNew: 'রক্তের অনুরোধ পোস্ট করুন',
+    requestSubtitleEdit: 'সবার লাইভ ফিডে আপডেট হবে',
+    requestSubtitleNew: 'সঙ্গে সঙ্গে লাইভ ফিডে ও নোটিফিকেশনে যাবে',
+    errRequestUpdate: 'অনুরোধটি আপডেট করা যায়নি। আপনি শুধু নিজের অনুরোধ এডিট করতে পারবেন।',
+    errRequestSave: 'অনুরোধটি সংরক্ষণ হয়নি। সাইন ইন করুন অথবা আবার চেষ্টা করুন।',
+    patientFullName: 'রোগীর পূর্ণ নাম',
+    patientNamePlaceholder: 'যেমন: রহিমা বেগম',
+    age: 'বয়স',
+    hospitalName: 'হাসপাতাল / ক্লিনিকের নাম',
+    hospitalPlaceholder: 'যেমন: ঢাকা মেডিকেল কলেজ হাসপাতাল',
+    requiredBags: 'কত ব্যাগ লাগবে',
+    neededByTime: 'কখন লাগবে',
+    urgencyPriority: 'কতটা জরুরি',
+    urgencyCritical: 'অতি জরুরি',
+    urgencyHigh: 'জরুরি',
+    urgencyMedium: 'সাধারণ',
+    contactPhone: 'যোগাযোগের ফোন নম্বর',
+    reasonLabel: 'কারণ / চিকিৎসার তথ্য',
+    reasonPlaceholder: 'যেমন: জরুরি সিজারিয়ান অপারেশনে রক্তক্ষরণ, ICU-তে অপারেশন হবে।',
+    broadcastRequest: 'জরুরি অনুরোধ পোস্ট করুন',
+
+    // 2. Auth modal
+    closeAuthDialog: 'সাইন ইন ফর্ম বন্ধ করুন',
+    authTitleRegister: 'Roktobondhu Bangladesh-এ যোগ দিন',
+    authTitleReset: 'পাসওয়ার্ড রিসেট',
+    authTitleNewPassword: 'নতুন পাসওয়ার্ড দিন',
+    authTitleLogin: 'আবারও স্বাগতম',
+    authSubRegister: 'ভেরিফায়েড রক্তদাতা হিসেবে নিবন্ধন করুন',
+    authSubReset: 'পাসওয়ার্ড রিসেটের নির্দেশনা পেতে আপনার ইমেইল দিন',
+    authSubNewPassword: 'আপনার Roktobondhu Bangladesh অ্যাকাউন্টের নতুন পাসওয়ার্ড দিন',
+    authSubLogin: 'আপনার Roktobondhu Bangladesh অ্যাকাউন্টে সাইন ইন করুন',
+    errInvalidEmail: 'সঠিক ইমেইল ঠিকানা দিন (যেমন: name@example.com)।',
+    errPasswordLength: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।',
+    resetLinkSent: 'এই ইমেইল নিবন্ধিত থাকলে একটি রিসেট লিংক পাঠানো হয়েছে। ইনবক্স ও স্প্যাম ফোল্ডার দেখুন, আর ইমেইলের বানান ঠিক আছে কিনা মিলিয়ে নিন।',
+    errGeneric: 'কোনো সমস্যা হয়েছে। আবার চেষ্টা করুন।',
+    errInvalidLogin: 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।',
+    fullNamePlaceholder: 'যেমন: রহিম উদ্দিন',
+    email: 'ইমেইল',
+    password: 'পাসওয়ার্ড',
+    passwordPlaceholder: 'কমপক্ষে ৬ অক্ষর',
+    hidePassword: 'পাসওয়ার্ড লুকান',
+    showPassword: 'পাসওয়ার্ড দেখুন',
+    forgotPassword: 'পাসওয়ার্ড ভুলে গেছেন?',
+    errMagicLinkEmail: 'ইমেইল লিংক চাওয়ার আগে সঠিক ইমেইল ঠিকানা দিন।',
+    magicLinkSent: 'আপনার ইমেইলে সাইন ইন লিংক পাঠানো হয়েছে। ইনবক্স দেখুন।',
+    loginWithEmailLink: 'ইমেইল লিংকে সাইন ইন',
+    pleaseWait: 'অপেক্ষা করুন...',
+    createSecureProfile: 'প্রোফাইল তৈরি করুন',
+    sendResetEmail: 'রিসেট ইমেইল পাঠান',
+    updatePassword: 'পাসওয়ার্ড আপডেট করুন',
+    signIn: 'সাইন ইন',
+    or: 'অথবা',
+    continueWithGoogle: 'Google দিয়ে চালিয়ে যান',
+    switchToLogin: 'আগেই নিবন্ধন করেছেন? সাইন ইন করুন',
+    switchToRegister: 'নতুন রক্তদাতা? ফ্রি প্রোফাইল তৈরি করুন',
+
+    // 3. Profile modal
+    closeProfileDialog: 'প্রোফাইল বন্ধ করুন',
+    bloodGroupValue: 'ব্লাড গ্রুপ: {group}',
+    ageSuffix: ' · {age} বছর',
+    errSessionRefresh: 'আপনার সেশন রিফ্রেশ করা দরকার। পেজটি রিলোড করে আবার চেষ্টা করুন।',
+    errProfileUpdate: 'প্রোফাইল আপডেট করা যায়নি। আবার চেষ্টা করুন।',
+    phoneCaps: 'ফোন নম্বর',
+    whatsappCaps: 'WhatsApp',
+    notProvided: 'দেওয়া হয়নি',
+    notAvailableRightNow: 'এখন দিতে পারবেন না',
+    hiddenUntilRevealed: 'লুকানো আছে',
+    contactChecked: 'যোগাযোগ দেখা হয়েছে',
+    checkingAvailability: 'যাচাই করা হচ্ছে...',
+    showNumber: 'নম্বর দেখুন',
+    healthTelemetry: 'DGHS স্বাস্থ্য তথ্য',
+    hemoglobin: 'হিমোগ্লোবিন',
+    bloodPressure: 'রক্তচাপ',
+    weight: 'ওজন',
+    weightValue: '{weight} কেজি',
+    notAvailable: 'তথ্য নেই',
+    donationRecord: 'রক্তদানের রেকর্ড',
+    timesDonated: 'মোট রক্তদান',
+    lastDonated: 'শেষ রক্তদান',
+    nextEligible: 'আবার দিতে পারবেন',
+    never: 'কখনো না',
+    now: 'এখনই',
+    ttiScreening: 'বাধ্যতামূলক TTI স্ক্রিনিং',
+    syphilis: 'সিফিলিস',
+    malaria: 'ম্যালেরিয়া',
+    statusNotTested: 'পরীক্ষা হয়নি',
+    statusNegative: 'নেগেটিভ',
+    statusPositive: 'পজিটিভ',
+    smokingStatus: 'ধূমপান:',
+    smoker: 'ধূমপায়ী',
+    nonSmoker: 'অধূমপায়ী',
+    regularDonor: 'নিয়মিত দাতা:',
+    regularYes: 'হ্যাঁ (৩+ বার)',
+    regularNew: 'নতুন',
+    healthPrivate: 'স্বাস্থ্য ও স্ক্রিনিংয়ের তথ্য গোপন — শুধু রক্তদাতা নিজে দেখতে পারেন।',
+    editProfile: 'প্রোফাইল এডিট করুন',
+    phone: 'ফোন নম্বর',
+    lastDonationDate: 'শেষ রক্তদানের তারিখ',
+    screeningEntered: 'আপনার দেওয়া স্ক্রিনিং ফলাফল',
+    testHbsag: 'HBsAg (হেপাটাইটিস বি)',
+    testHcv: 'Anti-HCV (হেপাটাইটিস সি)',
+    testHiv: 'Anti-HIV',
+    testVdrl: 'VDRL (সিফিলিস)',
+    testMp: 'MP টেস্ট (ম্যালেরিয়া)',
+    cancel: 'বাতিল',
+    availabilityStatus: 'আপনার বর্তমান অবস্থা',
+    broadcastingAvailable: 'জরুরি প্রয়োজনে রক্ত দিতে প্রস্তুত হিসেবে দেখানো হচ্ছে',
+    restingOffDuty: 'বিশ্রামে আছেন (এখন দিতে পারবেন না)',
+    availableNowButton: 'এখন দিতে পারবেন',
+    offDutyButton: 'বিশ্রামে',
+    notYetVisibleHint: 'অন্যরা আপনাকে এখনো "এখন দিতে পারবেন না" দেখছেন — আপনার পরবর্তী যোগ্যতার তারিখ {date} পর্যন্ত।',
+    whatsappMessage: 'WhatsApp মেসেজ',
+    showNumberFirst: 'আগে নম্বর দেখুন',
+    call: 'কল করুন',
+
+    // 4. Notifications modal
+    notificationsTitle: 'নোটিফিকেশন',
+    markAllRead: 'সব পড়া হয়েছে',
+    closeNotificationsDialog: 'নোটিফিকেশন বন্ধ করুন',
+    noNotifications: 'এখনো কোনো নোটিফিকেশন নেই।',
+    viewDonorProfile: 'রক্তদাতার প্রোফাইল দেখুন',
+    openRequestsToConfirm: 'নিশ্চিত করতে অনুরোধগুলো খুলুন',
+
+    // 5. Complete profile modal
+    completeTitle: 'শেষ একটি ধাপ',
+    completeSubtitle: 'রক্তদাতা প্রোফাইল সম্পূর্ণ করতে কয়েকটি প্রয়োজনীয় তথ্য দিন',
+    errEnterPhone: 'আপনার ফোন নম্বর দিন।',
+    errSaveProfile: 'প্রোফাইল সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
+    finishSetup: 'প্রোফাইল সম্পূর্ণ করুন'
+  }
+);
 
 /* ================= 1. REQUEST BLOOD MODAL ================= */
 interface RequestModalProps {
@@ -66,6 +378,7 @@ function toDateTimeLocal(value: string): string {
 
 export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, editingRequest = null }) => {
   const districts = useDistricts();
+  const { s } = useStrings(S);
   const [patientName, setPatientName] = useState('');
   const [age, setAge] = useState('35');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('O-');
@@ -140,7 +453,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
         createdAt: new Date().toISOString(),
         matchedDonorsCount: 0
       });
-      if (!saved) setSubmitError(isEditMode ? 'Could not update the request. You can only edit your own.' : 'Request was not saved. Please sign in or try again.');
+      if (!saved) setSubmitError(isEditMode ? s.errRequestUpdate : s.errRequestSave);
     } finally {
       setSubmitting(false);
     }
@@ -152,7 +465,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 lg:p-10 max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scroll my-auto">
-        <button onClick={onClose} aria-label="Close request dialog" className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+        <button onClick={onClose} aria-label={s.closeRequestDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
 
@@ -161,8 +474,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="editorial-title text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">{isEditMode ? 'Edit Blood Requisition' : 'Broadcast Blood Requisition'}</h2>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{isEditMode ? 'Updates the live feed for everyone' : 'Pushes immediate live feed & notification'}</p>
+            <h2 className="editorial-title text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">{isEditMode ? s.requestTitleEdit : s.requestTitleNew}</h2>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{isEditMode ? s.requestSubtitleEdit : s.requestSubtitleNew}</p>
           </div>
         </div>
 
@@ -174,16 +487,16 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="request-patient-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Patient Full Name <span className="text-rose-600 dark:text-rose-400">*</span></label>
-              <input id="request-patient-name" name="patientName" required value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="e.g. Mrs. Rahima Begum" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100" />
+              <label htmlFor="request-patient-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.patientFullName} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <input id="request-patient-name" name="patientName" required value={patientName} onChange={e => setPatientName(e.target.value)} placeholder={s.patientNamePlaceholder} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label htmlFor="request-age" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Age <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label htmlFor="request-age" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.age} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <input id="request-age" name="age" required type="number" value={age} onChange={e => setAge(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100" />
               </div>
               <div>
-                <label htmlFor="request-blood-group" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Blood Group <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label htmlFor="request-blood-group" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <select id="request-blood-group" name="bloodGroup" value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-rose-600 dark:text-rose-400 font-mono">
                   {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                 </select>
@@ -193,12 +506,12 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="request-hospital" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Hospital / Clinic Name <span className="text-rose-600 dark:text-rose-400">*</span></label>
-              <input id="request-hospital" name="hospitalName" required value={hospitalName} onChange={e => setHospitalName(e.target.value)} placeholder="e.g. Dhaka Medical College Hospital" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100" />
+              <label htmlFor="request-hospital" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.hospitalName} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <input id="request-hospital" name="hospitalName" required value={hospitalName} onChange={e => setHospitalName(e.target.value)} placeholder={s.hospitalPlaceholder} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label htmlFor="request-district" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">District <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label htmlFor="request-district" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <CompactSelect
                   value={district}
                   onChange={value => { setDistrict(value); setArea(districts.find(d => d.name === value)?.areas[0] || ''); }}
@@ -208,7 +521,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
                 />
               </div>
               <div>
-                <label htmlFor="request-area" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Area <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label htmlFor="request-area" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.area} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <AreaField id="request-area" name="area" areas={areasList} value={area} onChange={setArea} className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100" />
               </div>
             </div>
@@ -216,26 +529,26 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label htmlFor="request-bags" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Required Bags <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label htmlFor="request-bags" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.requiredBags} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <input id="request-bags" name="requiredBags" type="number" min="1" max="10" value={bags} onChange={e => setBags(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-slate-100" />
             </div>
             <div>
-              <label htmlFor="request-needed-by" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Needed By Time <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label htmlFor="request-needed-by" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.neededByTime} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <input id="request-needed-by" name="neededBy" required type="datetime-local" value={neededBy} onChange={e => setNeededBy(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100" />
             </div>
             <div>
-              <label htmlFor="request-urgency" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Urgency Priority <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label htmlFor="request-urgency" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.urgencyPriority} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <select id="request-urgency" name="urgency" value={urgency} onChange={e => setUrgency(e.target.value as any)} className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-slate-100">
-                <option value="Critical">🚨 Critical</option>
-                <option value="High">⚠️ High</option>
-                <option value="Medium">ℹ️ Medium</option>
+                <option value="Critical">🚨 {s.urgencyCritical}</option>
+                <option value="High">⚠️ {s.urgencyHigh}</option>
+                <option value="Medium">ℹ️ {s.urgencyMedium}</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="request-phone" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Contact Phone Number <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label htmlFor="request-phone" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.contactPhone} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <input
                 required
                 id="request-phone"
@@ -250,7 +563,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
               <p className="mt-1 text-[11px] text-slate-500">আপনার নম্বর যেভাবে লেখেন সেভাবেই দিন — ০ দিয়ে শুরু।</p>
             </div>
             <div>
-              <label htmlFor="request-whatsapp" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">WhatsApp Number <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+              <label htmlFor="request-whatsapp" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.whatsappNumber} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
               <input
                 value={whatsappSameAsPhone ? phone : whatsapp}
                 id="request-whatsapp"
@@ -274,12 +587,12 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           </div>
 
           <div>
-            <label htmlFor="request-reason" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Reason / Clinical Notes <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
-            <textarea id="request-reason" name="reason" rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Emergency C-Section bleeding surgery scheduled at ICU." className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100" />
+            <label htmlFor="request-reason" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.reasonLabel} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
+            <textarea id="request-reason" name="reason" rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder={s.reasonPlaceholder} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100" />
           </div>
 
           <button type="submit" disabled={submitting} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-2 disabled:cursor-wait disabled:opacity-60">
-            {submitting ? 'Saving...' : (isEditMode ? '💾 Save Changes' : '🚨 Broadcast Emergency Request')}
+            {submitting ? s.saving : (isEditMode ? `💾 ${s.saveChanges}` : `🚨 ${s.broadcastRequest}`)}
           </button>
         </form>
       </div>
@@ -299,6 +612,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, passwordRecovery = false, onPasswordRecoveryComplete }) => {
   const districts = useDistricts();
+  const { s } = useStrings(S);
   const [view, setView] = useState<'login' | 'register' | 'reset' | 'new-password'>(passwordRecovery ? 'new-password' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -341,22 +655,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
     const normalizedEmail = email.trim().toLowerCase();
     if (view !== 'new-password' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setErrorMsg('Please enter a valid email address, for example: name@example.com.');
+      setErrorMsg(s.errInvalidEmail);
       return;
     }
 
     if ((view === 'register' || view === 'new-password') && password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters.');
+      setErrorMsg(s.errPasswordLength);
       return;
     }
 
     if (view === 'register' && !bloodGroup) {
-      setErrorMsg('Please select your blood group.');
+      setErrorMsg(s.errSelectBloodGroup);
       return;
     }
 
     if (view === 'register' && !isValidDonorName(name)) {
-      setErrorMsg('Please enter your name (not just symbols).');
+      setErrorMsg(s.errNameSymbols);
       return;
     }
 
@@ -386,7 +700,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         setErrorMsg(error);
         return;
       }
-      setSuccessMsg('If this email is registered, a reset link has been sent. Check your inbox and spam folder, and confirm the spelling.');
+      setSuccessMsg(s.resetLinkSent);
       return;
     }
 
@@ -407,7 +721,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         if (error?.toLowerCase().includes('already registered')) {
           setView('login');
         }
-        setErrorMsg(error || 'Something went wrong. Please try again.');
+        setErrorMsg(error || s.errGeneric);
         return;
       }
       onLoginSuccess(user);
@@ -418,7 +732,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     const { user, error } = await signInDonor(normalizedEmail, password);
     setLoading(false);
     if (error || !user) {
-      setErrorMsg(error || 'Invalid email or password.');
+      setErrorMsg(error || s.errInvalidLogin);
       return;
     }
     onLoginSuccess(user);
@@ -442,23 +756,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
-        <button onClick={onClose} aria-label="Close authentication dialog" className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+        <button onClick={onClose} aria-label={s.closeAuthDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
 
         <img src="/logo-mark.svg" alt="RBB — Roktobondhu Bangladesh" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
 
         <h2 className="editorial-title text-3xl font-black">
-          {view === 'register' ? 'Join Roktobondhu Bangladesh' : view === 'reset' ? 'Reset Password' : view === 'new-password' ? 'Set New Password' : 'Welcome Back Hero'}
+          {view === 'register' ? s.authTitleRegister : view === 'reset' ? s.authTitleReset : view === 'new-password' ? s.authTitleNewPassword : s.authTitleLogin}
         </h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
           {view === 'register'
-            ? 'Register as a verified whole blood donor'
+            ? s.authSubRegister
             : view === 'reset'
-            ? 'Enter your email to receive password reset instructions'
+            ? s.authSubReset
             : view === 'new-password'
-            ? 'Choose a new password for your Roktobondhu Bangladesh account'
-            : 'Sign in to your Roktobondhu Bangladesh account'}
+            ? s.authSubNewPassword
+            : s.authSubLogin}
         </p>
 
         {errorMsg && (
@@ -470,22 +784,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
           {view === 'register' && (
             <div>
-              <label htmlFor="auth-full-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Full Name <span className="text-rose-600 dark:text-rose-400">*</span></label>
-              <input id="auth-full-name" name="name" required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Doe" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+              <label htmlFor="auth-full-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.fullName} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <input id="auth-full-name" name="name" required value={name} onChange={e => setName(e.target.value)} placeholder={s.fullNamePlaceholder} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
             </div>
           )}
 
           {view !== 'new-password' && <div>
-            <label htmlFor="auth-email" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Email <span className="text-rose-600 dark:text-rose-400">*</span></label>
+            <label htmlFor="auth-email" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.email} <span className="text-rose-600 dark:text-rose-400">*</span></label>
             <input id="auth-email" required type="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
           </div>}
 
           {view !== 'reset' && (
             <div>
-              <label htmlFor="auth-password" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Password <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label htmlFor="auth-password" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.password} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <div className="relative">
-                <input id="auth-password" required type={showPassword ? 'text' : 'password'} name="password" autoComplete={view === 'login' ? 'current-password' : 'new-password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" className="w-full px-4 py-3 pr-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
-                <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" aria-label={showPassword ? 'Hide password' : 'Show password'} tabIndex={-1}>
+                <input id="auth-password" required type={showPassword ? 'text' : 'password'} name="password" autoComplete={view === 'login' ? 'current-password' : 'new-password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder={s.passwordPlaceholder} className="w-full px-4 py-3 pr-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+                <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" aria-label={showPassword ? s.hidePassword : s.showPassword} tabIndex={-1}>
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -495,7 +809,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           {view === 'login' && (
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
               <button type="button" onClick={() => { setView('reset'); setErrorMsg(''); setSuccessMsg(''); }} className="text-rose-600 dark:text-rose-400 hover:underline">
-                Forgot password?
+                {s.forgotPassword}
               </button>
               <button type="button" onClick={async () => {
                 setErrorMsg('');
@@ -504,7 +818,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 const normalizedEmail = email.trim().toLowerCase();
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
                   setLoading(false);
-                  setErrorMsg('Please enter a valid email address before requesting a magic link.');
+                  setErrorMsg(s.errMagicLinkEmail);
                   return;
                 }
                 const { error } = await sendMagicLink(normalizedEmail);
@@ -512,10 +826,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 if (error) {
                   setErrorMsg(error);
                 } else {
-                  setSuccessMsg('Magic login link sent to your email. Please check your inbox.');
+                  setSuccessMsg(s.magicLinkSent);
                 }
               }} className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300">
-                Login with email link
+                {s.loginWithEmailLink}
               </button>
             </div>
           )}
@@ -523,20 +837,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           {view === 'register' && (
             <>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Phone Number <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.phoneNumber} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <input required value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="01712345678" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Blood Group <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                  <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                   <select required value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400">
-                    <option value="" disabled>Select blood group</option>
+                    <option value="" disabled>{s.selectBloodGroup}</option>
                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">District <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                  <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                   <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold">
                     {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                   </select>
@@ -544,12 +858,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Area <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.area} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold" />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.birthYear} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -557,27 +871,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                   max={new Date().getFullYear()}
                   value={birthYear}
                   onChange={e => setBirthYear(e.target.value)}
-                  placeholder="e.g. 1995"
+                  placeholder={s.birthYearPlaceholder}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
                 />
               </div>
 
               <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer">
                 <input type="checkbox" checked={isSmoker} onChange={e => setIsSmoker(e.target.checked)} className="accent-rose-600 w-4 h-4" />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">I am a smoker (health note)</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.smokerCheckbox}</span>
               </label>
             </>
           )}
 
           <button type="submit" disabled={loading} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
-            {loading ? 'Please wait...' : view === 'register' ? 'Create Secure Profile' : view === 'reset' ? 'Send Reset Email' : view === 'new-password' ? 'Update Password' : 'Sign In'}
+            {loading ? s.pleaseWait : view === 'register' ? s.createSecureProfile : view === 'reset' ? s.sendResetEmail : view === 'new-password' ? s.updatePassword : s.signIn}
           </button>
 
           {(view === 'login' || view === 'register') && (
             <>
               <div className="flex items-center gap-3 py-1">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Or</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{s.or}</span>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               </div>
 
@@ -593,7 +907,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                   <path fill="#FBBC05" d="M5.33 14.38c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.75H1.32C.48 8.4 0 10.15 0 12s.48 3.6 1.32 5.25l4.01-3.12z" />
                   <path fill="#EA4335" d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.29 2.7 1.32 6.75l4.01 3.09c.94-2.81 3.57-5.09 6.67-5.09z" />
                 </svg>
-                Continue with Google
+                {s.continueWithGoogle}
               </button>
             </>
           )}
@@ -613,7 +927,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             }}
             className="w-full text-center py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer block"
           >
-            {view === 'register' ? 'Already registered? Sign In instead' : 'New donor? Create free profile'}
+            {view === 'register' ? s.switchToLogin : s.switchToRegister}
           </button>
         </form>
       </div>
@@ -635,6 +949,7 @@ interface ProfileModalProps {
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, currentUserId, onClose, onToggleAvailability, onProfileUpdated, onRequireAuth }) => {
   const districts = useDistricts();
+  const { s, f, lang } = useStrings(S);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
@@ -721,12 +1036,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
       // currentUser/donor with no id -- kept as a clear, specific message
       // rather than letting a stale/invalid id reach Postgres as a bad
       // request instead.
-      setSaveErrorMsg('Your session needs a refresh. Please reload the page and try again.');
+      setSaveErrorMsg(s.errSessionRefresh);
       return;
     }
 
     if (!isValidDonorName(name)) {
-      setSaveErrorMsg('Please enter your name (not just symbols).');
+      setSaveErrorMsg(s.errNameSymbols);
       return;
     }
 
@@ -749,7 +1064,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     setSaving(false);
 
     if (!updated) {
-      setSaveErrorMsg('Failed to update profile. Please try again.');
+      setSaveErrorMsg(s.errProfileUpdate);
       return;
     }
 
@@ -775,11 +1090,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
   const statusOptions = ['Not Tested', 'Negative', 'Positive'];
   const statusColor = (s: string) => s === 'Positive' ? 'text-rose-600 dark:text-rose-400' : s === 'Negative' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400';
+  // Stored values stay English; only the visible label is translated.
+  const STATUS_LABEL: Record<string, string> = {
+    'Not Tested': s.statusNotTested,
+    Negative: s.statusNegative,
+    Positive: s.statusPositive
+  };
+  const statusLabel = (value: string) => STATUS_LABEL[value] ?? value;
 
   return (
     <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 lg:p-10 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto custom-scroll">
-        <button onClick={onClose} aria-label="Close profile dialog" className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+        <button onClick={onClose} aria-label={s.closeProfileDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
 
@@ -800,8 +1122,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               <MapPin className="w-3.5 h-3.5 text-rose-500" /> {donor.area}, {donor.district}
             </p>
             <span className="mt-2 inline-block px-3 py-1 bg-rose-600 text-white font-mono text-sm font-black rounded-lg shadow-sm">
-              Blood Group: {donor.bloodGroup}
-              {calculateAge(donor.birthYear) !== null && ` · ${calculateAge(donor.birthYear)}y`}
+              {f(s.bloodGroupValue, { group: donor.bloodGroup })}
+              {calculateAge(donor.birthYear) !== null && f(s.ageSuffix, { age: calculateAge(donor.birthYear) as number })}
             </span>
           </div>
         </div>
@@ -810,12 +1132,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
           <>
             <div className="my-6 grid grid-cols-2 gap-3 text-xs font-bold">
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <span className="text-[10px] text-slate-400 block">PHONE</span>
-                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.phone || 'Not provided') : revealedContact?.phone || (revealedContact ? 'Not available right now' : 'Hidden until revealed')}</span>
+                <span className="text-[10px] text-slate-400 block">{s.phoneCaps}</span>
+                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.phone || s.notProvided) : revealedContact?.phone || (revealedContact ? s.notAvailableRightNow : s.hiddenUntilRevealed)}</span>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <span className="text-[10px] text-slate-400 block">WHATSAPP</span>
-                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.whatsapp || donor.phone || 'Not provided') : revealedContact?.whatsapp || (revealedContact ? 'Not available right now' : 'Hidden until revealed')}</span>
+                <span className="text-[10px] text-slate-400 block">{s.whatsappCaps}</span>
+                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.whatsapp || donor.phone || s.notProvided) : revealedContact?.whatsapp || (revealedContact ? s.notAvailableRightNow : s.hiddenUntilRevealed)}</span>
               </div>
             </div>
 
@@ -825,76 +1147,76 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 disabled={!isDonorAvailableNow(donor) || revealingContact || !!revealedContact}
                 className="w-full mb-4 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500"
               >
-                {!isDonorAvailableNow(donor) ? 'Not available right now' : revealedContact ? 'Contact checked' : revealingContact ? 'Checking availability...' : 'Show number'}
+                {!isDonorAvailableNow(donor) ? s.notAvailableRightNow : revealedContact ? s.contactChecked : revealingContact ? s.checkingAvailability : s.showNumber}
               </button>
             )}
 
             {isOwnProfile ? <div className="my-6 space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">DGHS Health Telemetry</h4>
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">{s.healthTelemetry}</h4>
               <div className="grid grid-cols-3 gap-3 font-mono text-xs text-center">
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 font-sans block font-bold">HEMOGLOBIN</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">{donor.healthInfo?.hemoglobin ? `${donor.healthInfo.hemoglobin} g/dL` : 'Not available'}</span>
+                  <span className="text-[10px] text-slate-400 font-sans block font-bold">{s.hemoglobin}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">{donor.healthInfo?.hemoglobin ? `${donor.healthInfo.hemoglobin} g/dL` : s.notAvailable}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 font-sans block font-bold">BLOOD PRESSURE</span>
-                  <span className="text-slate-900 dark:text-slate-100 font-black text-sm">{donor.healthInfo?.bloodPressure || 'Not available'}</span>
+                  <span className="text-[10px] text-slate-400 font-sans block font-bold">{s.bloodPressure}</span>
+                  <span className="text-slate-900 dark:text-slate-100 font-black text-sm">{donor.healthInfo?.bloodPressure || s.notAvailable}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 font-sans block font-bold">WEIGHT</span>
-                  <span className="text-slate-900 dark:text-slate-100 font-black text-sm">{donor.healthInfo?.weightKg ? `${donor.healthInfo.weightKg} kg` : 'Not available'}</span>
+                  <span className="text-[10px] text-slate-400 font-sans block font-bold">{s.weight}</span>
+                  <span className="text-slate-900 dark:text-slate-100 font-black text-sm">{donor.healthInfo?.weightKg ? f(s.weightValue, { weight: String(donor.healthInfo.weightKg) }) : s.notAvailable}</span>
                 </div>
               </div>
 
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Donation Record</h4>
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">{s.donationRecord}</h4>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Times Donated</span>
-                  <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-lg">{donor.donationCount ?? 0}</span>
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">{s.timesDonated}</span>
+                  <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-lg">{formatNumber(donor.donationCount ?? 0, lang)}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Last Donated</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">{donor.lastDonationDate || 'Never'}</span>
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">{s.lastDonated}</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">{donor.lastDonationDate || s.never}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="block text-[9px] font-bold uppercase text-slate-400">Next Eligible</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">{donor.nextEligibleDate || 'Now'}</span>
+                  <span className="block text-[9px] font-bold uppercase text-slate-400">{s.nextEligible}</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">{donor.nextEligibleDate || s.now}</span>
                 </div>
               </div>
 
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Mandatory TTI Screening</h4>
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">{s.ttiScreening}</h4>
               <div className="grid grid-cols-5 gap-2 font-mono text-[10px] text-center">
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                   <span className="text-[9px] text-slate-400 font-sans block font-bold">HBsAg</span>
-                  <span className={`font-black ${statusColor(donor.healthInfo?.hbsagStatus || 'Not Tested')}`}>{donor.healthInfo?.hbsagStatus || 'Not Tested'}</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.hbsagStatus || 'Not Tested')}`}>{statusLabel(donor.healthInfo?.hbsagStatus || 'Not Tested')}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                   <span className="text-[9px] text-slate-400 font-sans block font-bold">HCV</span>
-                  <span className={`font-black ${statusColor(donor.healthInfo?.hcvStatus || 'Not Tested')}`}>{donor.healthInfo?.hcvStatus || 'Not Tested'}</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.hcvStatus || 'Not Tested')}`}>{statusLabel(donor.healthInfo?.hcvStatus || 'Not Tested')}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                   <span className="text-[9px] text-slate-400 font-sans block font-bold">HIV</span>
-                  <span className={`font-black ${statusColor(donor.healthInfo?.hivStatus || 'Not Tested')}`}>{donor.healthInfo?.hivStatus || 'Not Tested'}</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.hivStatus || 'Not Tested')}`}>{statusLabel(donor.healthInfo?.hivStatus || 'Not Tested')}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[9px] text-slate-400 font-sans block font-bold">Syphilis</span>
-                  <span className={`font-black ${statusColor(donor.healthInfo?.syphilisStatus || 'Not Tested')}`}>{donor.healthInfo?.syphilisStatus || 'Not Tested'}</span>
+                  <span className="text-[9px] text-slate-400 font-sans block font-bold">{s.syphilis}</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.syphilisStatus || 'Not Tested')}`}>{statusLabel(donor.healthInfo?.syphilisStatus || 'Not Tested')}</span>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[9px] text-slate-400 font-sans block font-bold">Malaria</span>
-                  <span className={`font-black ${statusColor(donor.healthInfo?.malariaStatus || 'Not Tested')}`}>{donor.healthInfo?.malariaStatus || 'Not Tested'}</span>
+                  <span className="text-[9px] text-slate-400 font-sans block font-bold">{s.malaria}</span>
+                  <span className={`font-black ${statusColor(donor.healthInfo?.malariaStatus || 'Not Tested')}`}>{statusLabel(donor.healthInfo?.malariaStatus || 'Not Tested')}</span>
                 </div>
               </div>
 
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs flex justify-between font-bold">
                 {donor.isSmoker !== null && (
-                  <span>Smoking Status: <strong className={donor.isSmoker ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}>{donor.isSmoker ? 'Smoker' : 'Non-Smoker'}</strong></span>
+                  <span>{s.smokingStatus} <strong className={donor.isSmoker ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}>{donor.isSmoker ? s.smoker : s.nonSmoker}</strong></span>
                 )}
-                <span>Regular Donor: <strong className="text-rose-600 dark:text-rose-400">{donor.isRegular ? 'Yes (3+ times)' : 'New'}</strong></span>
+                <span>{s.regularDonor} <strong className="text-rose-600 dark:text-rose-400">{donor.isRegular ? s.regularYes : s.regularNew}</strong></span>
               </div>
             </div> : (
               <div className="my-6 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-4 text-sm font-semibold text-amber-900 dark:text-amber-300">
-                Health and screening details are private and visible only to the donor.
+                {s.healthPrivate}
               </div>
             )}
 
@@ -903,29 +1225,29 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 onClick={() => setIsEditing(true)}
                 className="w-full py-3.5 mb-4 border-2 border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 dark:hover:bg-slate-100 hover:text-white dark:hover:text-slate-900 transition-colors"
               >
-                ✏️ Edit Profile
+                ✏️ {s.editProfile}
               </button>
             )}
           </>
         ) : (
           <div className="my-6 space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Phone <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.phone} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">WhatsApp Number <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.whatsappNumber} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
               <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Blood Group <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400">
                   {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.birthYear} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -933,26 +1255,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                   max={new Date().getFullYear()}
                   value={birthYear}
                   onChange={e => setBirthYear(e.target.value)}
-                  placeholder="e.g. 1995"
+                  placeholder={s.birthYearPlaceholder}
                   className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">District <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <select value={district} onChange={e => { setDistrict(e.target.value); setArea(''); }} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold">
                   {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Area <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.area} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <AreaField areas={districtObj?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold" />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Last Donation Date <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.lastDonationDate} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
               <input
                 type="date"
                 value={lastDonationDate}
@@ -965,19 +1287,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </p>
             </div>
 
-            <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">Screening results you entered</h4>
+            <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">{s.screeningEntered}</h4>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'HBsAg (Hepatitis B)', value: hbsagStatus, setter: setHbsagStatus },
-                { label: 'Anti-HCV (Hepatitis C)', value: hcvStatus, setter: setHcvStatus },
-                { label: 'Anti-HIV', value: hivStatus, setter: setHivStatus },
-                { label: 'VDRL (Syphilis)', value: syphilisStatus, setter: setSyphilisStatus },
-                { label: 'MP Test (Malaria)', value: malariaStatus, setter: setMalariaStatus }
+                { label: s.testHbsag, value: hbsagStatus, setter: setHbsagStatus },
+                { label: s.testHcv, value: hcvStatus, setter: setHcvStatus },
+                { label: s.testHiv, value: hivStatus, setter: setHivStatus },
+                { label: s.testVdrl, value: syphilisStatus, setter: setSyphilisStatus },
+                { label: s.testMp, value: malariaStatus, setter: setMalariaStatus }
               ].map(field => (
                 <div key={field.label}>
                   <label className="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{field.label}</label>
                   <select value={field.value} onChange={e => field.setter(e.target.value)} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold">
-                    {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                    {statusOptions.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}
                   </select>
                 </div>
               ))}
@@ -995,13 +1317,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 disabled={saving}
                 className="flex-1 py-3.5 blood-gradient text-white rounded-2xl text-xs font-black uppercase tracking-widest disabled:opacity-60"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? s.saving : s.saveChanges}
               </button>
               <button
                 onClick={() => { setSaveErrorMsg(''); setIsEditing(false); }}
                 className="px-6 py-3.5 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest"
               >
-                Cancel
+                {s.cancel}
               </button>
             </div>
           </div>
@@ -1010,8 +1332,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
         {onToggleAvailability && !isEditing && (
           <div className="p-5 bg-rose-50 dark:bg-rose-950/30 rounded-3xl border border-rose-200 dark:border-rose-900/50 flex flex-wrap items-center justify-between mb-6">
             <div>
-              <p className="text-xs font-black uppercase text-rose-900 dark:text-rose-300">Instant Telemetry Status</p>
-              <p className="text-xs text-rose-700 dark:text-rose-400 mt-0.5">{donor.availableNow ? 'Broadcasting as Available for Emergency' : 'Set as resting / off-duty'}</p>
+              <p className="text-xs font-black uppercase text-rose-900 dark:text-rose-300">{s.availabilityStatus}</p>
+              <p className="text-xs text-rose-700 dark:text-rose-400 mt-0.5">{donor.availableNow ? s.broadcastingAvailable : s.restingOffDuty}</p>
             </div>
             <button
               onClick={onToggleAvailability}
@@ -1019,11 +1341,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 donor.availableNow ? 'bg-emerald-600 text-white shadow-md animate-pulse' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
               }`}
             >
-              {donor.availableNow ? '● Available Now' : '○ Off-Duty'}
+              {donor.availableNow ? `● ${s.availableNowButton}` : `○ ${s.offDutyButton}`}
             </button>
             {donor.availableNow && !isDonorAvailableNow(donor) && (
               <p className="w-full mt-3 text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl px-3 py-2">
-                অন্যরা আপনাকে এখনো "Not available" দেখছেন — আপনার পরবর্তী যোগ্যতার তারিখ {donor.nextEligibleDate} পর্যন্ত।
+                {f(s.notYetVisibleHint, { date: donor.nextEligibleDate ?? '' })}
               </p>
             )}
           </div>
@@ -1038,11 +1360,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 rel="noreferrer"
                 className="flex-1 py-4 bg-slate-900 dark:bg-slate-100 hover:bg-rose-600 dark:hover:bg-rose-600 text-white dark:text-slate-900 dark:hover:text-white rounded-2xl text-xs font-black uppercase tracking-widest text-center transition-colors shadow-lg"
               >
-                WhatsApp Message
+                {s.whatsappMessage}
               </a>
             ) : (
               <span className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest text-center">
-                {!isDonorAvailableNow(donor) ? 'Not available right now' : 'Show number first'}
+                {!isDonorAvailableNow(donor) ? s.notAvailableRightNow : s.showNumberFirst}
               </span>
             )}
             {(isOwnProfile || revealedContact?.phone) ? (
@@ -1050,11 +1372,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 href={`tel:${isOwnProfile ? donor.phone : revealedContact?.phone}`}
                 className="px-8 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black uppercase tracking-widest text-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                Call
+                {s.call}
               </a>
             ) : (
               <span className="px-8 py-4 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black uppercase tracking-widest text-center text-slate-400">
-                {!isDonorAvailableNow(donor) ? 'Not available right now' : 'Show number first'}
+                {!isDonorAvailableNow(donor) ? s.notAvailableRightNow : s.showNumberFirst}
               </span>
             )}
           </div>
@@ -1154,6 +1476,7 @@ interface CompleteProfileModalProps {
 
 export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ donor, onCompleted }) => {
   const districts = useDistricts();
+  const { s } = useStrings(S);
   const [name, setName] = useState(donor.name || '');
   const [phone, setPhone] = useState('');
   const [bloodGroup, setBloodGroup] = useState<string>('');
@@ -1223,20 +1546,20 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Phone Number <span className="text-rose-600 dark:text-rose-400">*</span></label>
+            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.phoneNumber} <span className="text-rose-600 dark:text-rose-400">*</span></label>
             <input value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="01712345678" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Blood Group <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <select required value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400">
-                <option value="" disabled>Select blood group</option>
+                <option value="" disabled>{s.selectBloodGroup}</option>
                 {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">District <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold">
                 {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
               </select>
@@ -1244,12 +1567,12 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Area <span className="text-rose-600 dark:text-rose-400">*</span></label>
+            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.area} <span className="text-rose-600 dark:text-rose-400">*</span></label>
             <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold" />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Birth Year <span className="normal-case font-medium text-slate-400">(Optional)</span></label>
+            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.birthYear} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
             <input
               type="number"
               inputMode="numeric"
@@ -1257,18 +1580,18 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
               max={new Date().getFullYear()}
               value={birthYear}
               onChange={e => setBirthYear(e.target.value)}
-              placeholder="e.g. 1995"
+              placeholder={s.birthYearPlaceholder}
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
             />
           </div>
 
           <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer">
             <input type="checkbox" checked={isSmoker} onChange={e => setIsSmoker(e.target.checked)} className="accent-rose-600 w-4 h-4" />
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">I am a smoker (health note)</span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.smokerCheckbox}</span>
           </label>
 
           <button type="submit" disabled={saving} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
-            {saving ? 'Saving...' : 'Finish Setting Up My Profile'}
+            {saving ? s.saving :'Finish Setting Up My Profile'}
           </button>
         </form>
       </div>

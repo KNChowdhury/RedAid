@@ -3,6 +3,71 @@ import { motion } from 'motion/react';
 import React from 'react';
 import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline } from '../services/lifelineService';
 import { EmergencyRequest } from '../types';
+import { defineStrings, useStrings } from '../i18n';
+
+const S = defineStrings(
+  {
+    titleLine1: 'Every Drop',
+    titleLine2: 'Saves a Life.',
+    subtitle: 'Real-time emergency blood requests across Bangladesh hospitals.',
+    postUrgent: 'Post Urgent Request',
+    emptyTitle: 'No Active Emergency Requests',
+    emptyBody: 'All hospital requirements in this area are fulfilled.',
+    priorityCritical: 'Critical Priority',
+    priorityHigh: 'High Priority',
+    priorityMedium: 'Medium Priority',
+    priorityOther: '{urgency} Priority',
+    needed: 'Needed:',
+    patient: 'Patient: {name}.',
+    patientWithAge: 'Patient: {name} ({age}y).',
+    // Trailing space is deliberate: Bangla puts the verb after the bag count instead.
+    requirementFor: 'Requirement for ',
+    bags: '{count} Bags',
+    ofBlood: ' of {group} blood.',
+    compatibleNearby: '{count} Compatible Donors Nearby',
+    share: 'Share',
+    shareTitle: 'Forward this request on WhatsApp',
+    youOffered: '✓ You offered',
+    canDonate: 'I can donate',
+    canDonateTitle: 'Let the requester know you can donate',
+    gotBlood: 'Got blood',
+    gotBloodTitle: 'Record who donated',
+    edit: 'Edit',
+    editTitle: 'Edit your request',
+    detailsTitle: 'View Details / Share',
+    details: 'Details'
+  },
+  {
+    titleLine1: 'প্রতিটি ফোঁটা',
+    titleLine2: 'একটি জীবন বাঁচায়।',
+    subtitle: 'সারা বাংলাদেশের হাসপাতাল থেকে সরাসরি জরুরি রক্তের অনুরোধ।',
+    postUrgent: 'জরুরি অনুরোধ পোস্ট করুন',
+    emptyTitle: 'এখন কোনো জরুরি অনুরোধ নেই',
+    emptyBody: 'এই এলাকার সব হাসপাতালের চাহিদা পূরণ হয়েছে।',
+    priorityCritical: 'অতি জরুরি',
+    priorityHigh: 'জরুরি',
+    priorityMedium: 'সাধারণ',
+    priorityOther: '{urgency}',
+    needed: 'কখন লাগবে:',
+    patient: 'রোগী: {name}।',
+    patientWithAge: 'রোগী: {name} ({age} বছর)।',
+    requirementFor: '',
+    bags: '{count} ব্যাগ',
+    ofBlood: ' {group} রক্ত প্রয়োজন।',
+    compatibleNearby: 'কাছাকাছি {count} জন উপযুক্ত দাতা',
+    share: 'শেয়ার',
+    shareTitle: 'অনুরোধটি WhatsApp-এ ফরোয়ার্ড করুন',
+    youOffered: '✓ আপনি জানিয়েছেন',
+    canDonate: 'আমি দিতে পারব',
+    canDonateTitle: 'অনুরোধকারীকে জানান যে আপনি রক্ত দিতে পারবেন',
+    gotBlood: 'রক্ত পেয়েছি',
+    gotBloodTitle: 'কে রক্ত দিয়েছেন রেকর্ড করুন',
+    edit: 'এডিট',
+    editTitle: 'আপনার অনুরোধ এডিট করুন',
+    detailsTitle: 'বিস্তারিত দেখুন / শেয়ার',
+    details: 'বিস্তারিত'
+  }
+);
 
 interface EmergencyFeedProps {
   requests: EmergencyRequest[];
@@ -28,17 +93,26 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   onOfferToDonate,
   onMarkDonated
 }) => {
+  const { s, f } = useStrings(S);
+  // urgency is stored data ('Critical' | 'High' | 'Medium'); only the label is translated.
+  const priorityLabel = (urgency: string): string => {
+    if (urgency === 'Critical') return s.priorityCritical;
+    if (urgency === 'High') return s.priorityHigh;
+    if (urgency === 'Medium') return s.priorityMedium;
+    return f(s.priorityOther, { urgency });
+  };
+
   return (
     <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
       {/* Editorial Title Header */}
       <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-none mb-3">
-            Every Drop<br />
-            <span className="text-rose-600 dark:text-rose-400">Saves a Life.</span>
+            {s.titleLine1}<br />
+            <span className="text-rose-600 dark:text-rose-400">{s.titleLine2}</span>
           </h1>
           <p className="text-slate-400 font-bold max-w-lg uppercase text-[11px] tracking-widest">
-            Real-time emergency blood requests across Bangladesh hospitals.
+            {s.subtitle}
           </p>
         </div>
 
@@ -47,7 +121,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
           className="sm:hidden py-3 px-6 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-md flex items-center justify-center gap-2"
         >
           <AlertCircle className="w-4 h-4 animate-bounce" />
-          Post Urgent Request
+          {s.postUrgent}
         </button>
       </header>
 
@@ -56,8 +130,8 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
         {requests.length === 0 ? (
           <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/60 rounded-3xl border border-slate-100 dark:border-slate-800">
             <ShieldCheck className="w-12 h-12 text-emerald-500 mx-auto mb-3 animate-pulse" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Active Emergency Requests</h3>
-            <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">All hospital requirements in this area are fulfilled.</p>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{s.emptyTitle}</h3>
+            <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">{s.emptyBody}</p>
           </div>
         ) : (
           requests.map((req, idx) => {
@@ -96,7 +170,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                       <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-md ${
                         isCritical ? 'bg-rose-600 text-white animate-pulse' : 'bg-amber-100 dark:bg-amber-950/30 text-amber-800 dark:text-amber-400'
                       }`}>
-                        {req.urgency} Priority
+                        {priorityLabel(req.urgency)}
                       </span>
                     </div>
 
@@ -108,15 +182,14 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                       <span className="text-slate-300 dark:text-slate-600">•</span>
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        Needed: <span className="text-rose-600 dark:text-rose-400 font-extrabold">{formatRequestDeadline(req.neededByTime, req.createdAt)}</span>
+                        {s.needed} <span className="text-rose-600 dark:text-rose-400 font-extrabold">{formatRequestDeadline(req.neededByTime, req.createdAt)}</span>
                       </span>
                     </p>
                   </div>
                 </div>
 
                 <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 mb-6 font-semibold leading-relaxed">
-                  <span className="text-brand-ink dark:text-brand-green-light font-bold">Patient: {req.patientName}{req.age ? ` (${req.age}y)` : ''}.</span> Requirement for{' '}
-                  <span className="text-rose-600 dark:text-rose-400 font-black underline decoration-rose-300 decoration-2">{req.requiredBags} Bags</span> of {req.bloodGroup} blood. {req.reason}
+                  <span className="text-brand-ink dark:text-brand-green-light font-bold">{req.age ? f(s.patientWithAge, { name: req.patientName ?? '', age: req.age }) : f(s.patient, { name: req.patientName ?? '' })}</span> {s.requirementFor}<span className="text-rose-600 dark:text-rose-400 font-black underline decoration-rose-300 decoration-2">{f(s.bags, { count: req.requiredBags ?? '' })}</span>{f(s.ofBlood, { group: req.bloodGroup ?? '' })} {req.reason}
                 </p>
 
                 {/* Footer Meta & Quick Actions */}
@@ -124,7 +197,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                   <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
                     <span className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-900/50">
                       <Users className="w-3.5 h-3.5" />
-                      {req.matchedDonorsCount} Compatible Donors Nearby
+                      {f(s.compatibleNearby, { count: req.matchedDonorsCount ?? '' })}
                     </span>
                   </div>
 
@@ -143,24 +216,24 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-3 bg-[#25D366] hover:bg-[#1da851] text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors text-center"
-                        title="Forward this request on WhatsApp"
+                        title={s.shareTitle}
                       >
-                        Share
+                        {s.share}
                       </a>
 
                       {/* Donor side: offer to help. Hidden on your own request. */}
                       {onOfferToDonate && currentDonorId && req.requesterId !== currentDonorId && req.status !== 'Fulfilled' && (
                         offeredRequestIds.includes(req.id) ? (
                           <span className="px-4 py-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-[11px] font-black uppercase tracking-wider text-center flex items-center justify-center">
-                            ✓ You offered
+                            {s.youOffered}
                           </span>
                         ) : (
                           <button
                             onClick={() => onOfferToDonate(req)}
                             className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                            title="Let the requester know you can donate"
+                            title={s.canDonateTitle}
                           >
-                            I can donate
+                            {s.canDonate}
                           </button>
                         )
                       )}
@@ -170,9 +243,9 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                         <button
                           onClick={() => onMarkDonated(req)}
                           className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                          title="Record who donated"
+                          title={s.gotBloodTitle}
                         >
-                          Got blood
+                          {s.gotBlood}
                         </button>
                       )}
 
@@ -180,19 +253,19 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                         <button
                           onClick={() => onEditRequest(req)}
                           className="px-4 py-3 bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors"
-                          title="Edit your request"
+                          title={s.editTitle}
                         >
-                          Edit
+                          {s.edit}
                         </button>
                       )}
 
                       <button
                         onClick={() => onSelectRequest(req)}
                         className="px-4 py-3 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/50 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5"
-                        title="View Details / Share"
+                        title={s.detailsTitle}
                       >
                         <Share2 className="w-4 h-4" />
-                        <span className="sm:hidden">Details</span>
+                        <span className="sm:hidden">{s.details}</span>
                       </button>
                     </div>
                   </div>

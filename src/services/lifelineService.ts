@@ -5,7 +5,9 @@ import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem, RewardBad
 // Retained only as a migration key so old browser snapshots can be removed.
 const STORAGE_KEY = 'LIFELINE_BD_STATE_V3';
 
-export function formatRequestDeadline(value: string, createdAt: string): string {
+// `locale` undefined = the browser's default, which is what English mode has
+// always used; Bangla mode passes 'bn-BD'.
+export function formatRequestDeadline(value: string, createdAt: string, locale?: string): string {
   const match = value.match(/^(Today|Tomorrow|Tonight)(?:,\s*(.*))?$/i);
   if (!match) return value;
 
@@ -15,7 +17,7 @@ export function formatRequestDeadline(value: string, createdAt: string): string 
 
   const timeText = (match[2] || '').trim();
   if (!timeText) {
-    return baseDate.toLocaleDateString([], { dateStyle: 'medium' });
+    return baseDate.toLocaleDateString(locale, { dateStyle: 'medium' });
   }
 
   const timeMatch = timeText.match(/^(\d{1,2})(?:[:.]?(\d{2}))\s*(am|pm)$/i);
@@ -27,14 +29,45 @@ export function formatRequestDeadline(value: string, createdAt: string): string 
     if (meridiem === 'am' && hours === 12) hours = 0;
     if (hours <= 23 && minutes <= 59) {
       baseDate.setHours(hours, minutes, 0, 0);
-      return baseDate.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+      return baseDate.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
     }
   }
 
   const normalizedTime = timeText.replace(/\./g, ':');
   const deadline = new Date(`${baseDate.toDateString()} ${normalizedTime}`);
   if (Number.isNaN(deadline.getTime())) return value;
-  return deadline.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  return deadline.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+/**
+ * A request's deadline for display in the active language. Formats from the
+ * raw stored values at render time (mapDbRequestToRequest's neededByTime is
+ * pre-formatted once at fetch time, in the browser's language). English keeps
+ * the browser default it always used.
+ */
+export function formatRequestDeadlineFor(
+  req: Pick<EmergencyRequest, 'neededByAt' | 'neededByTime' | 'createdAt'>,
+  lang: 'en' | 'bn'
+): string {
+  const locale = lang === 'bn' ? 'bn-BD' : undefined;
+  if (req.neededByAt) {
+    const at = new Date(req.neededByAt);
+    if (!Number.isNaN(at.getTime())) return at.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
+  }
+  return formatRequestDeadline(req.neededByTime, req.createdAt, locale);
+}
+
+/**
+ * Generic stand-ins for missing names ("A patient" is what the public request
+ * directory stores; "a patient"/"A donor" are fallbacks below) are UI text,
+ * not data, so they follow the UI language. Real names pass through.
+ */
+export function displayName(name: string | null | undefined, lang: 'en' | 'bn'): string {
+  const value = name || '';
+  if (lang !== 'bn') return value;
+  if (/^a patient$/i.test(value.trim())) return 'একজন রোগী';
+  if (/^a donor$/i.test(value.trim())) return 'একজন রক্তদাতা';
+  return value;
 }
 
 export interface AppState {

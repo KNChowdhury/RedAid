@@ -14,9 +14,53 @@ import { ConfirmDonationBanner, MarkDonatedModal, ShareRequestModal } from './co
 import { SidebarStats } from './components/SidebarStats';
 import { createRequestInDb, deleteRequestFromDb, updateRequestInDb, offerToDonate, fetchMyOfferedRequestIds, fetchMyPendingConfirmations, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
+import { defineStrings, fmt, useStrings } from './i18n';
+
+const S = defineStrings(
+  {
+    offerFailed: 'Could not send your offer.',
+    availabilityFailed: 'Availability could not be saved. Please try again.',
+    postedTitle: 'Emergency request posted: {group}',
+    postedMessage: '{patient} at {hospital}, {area}.',
+    justNow: 'Just now',
+    alertTitle: '{group} blood needed',
+    alertTitleUrgent: '{group} blood needed — urgent',
+    alertBody: '{patient} at {hospital}. {bags} bag(s) needed.',
+    signedInAs: 'Signed in as',
+    requestBlood: 'Request blood',
+    guestIntro: 'Find blood donors across Bangladesh. Sign in to post a request or offer to donate.',
+    signIn: 'Sign in',
+    // Was "...when someone nearby needs your blood type", but alerts are not
+    // filtered by blood group or distance yet.
+    alertsPrompt: 'Get an on-screen alert when a new blood request is posted (while this site is open).',
+    turnOnAlerts: 'Turn on alerts'
+  },
+  {
+    offerFailed: 'আপনার প্রস্তাব পাঠানো যায়নি।',
+    availabilityFailed: 'আপনার অবস্থা সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
+    postedTitle: 'জরুরি অনুরোধ পোস্ট হয়েছে: {group}',
+    postedMessage: '{patient}, {hospital}, {area}।',
+    justNow: 'এইমাত্র',
+    alertTitle: '{group} রক্ত প্রয়োজন',
+    alertTitleUrgent: '{group} রক্ত প্রয়োজন — অতি জরুরি',
+    alertBody: '{patient}, {hospital}। {bags} ব্যাগ রক্ত লাগবে।',
+    signedInAs: 'সাইন ইন করেছেন',
+    requestBlood: 'রক্ত চাই',
+    guestIntro: 'সারা বাংলাদেশে রক্তদাতা খুঁজুন। অনুরোধ পোস্ট করতে বা রক্ত দিতে সাইন ইন করুন।',
+    signIn: 'সাইন ইন',
+    alertsPrompt: 'নতুন রক্তের অনুরোধ এলে স্ক্রিনে অ্যালার্ট পান (সাইটটি খোলা থাকলে)।',
+    turnOnAlerts: 'অ্যালার্ট চালু করুন'
+  }
+);
 
 export function App() {
   const [state, setState] = useState(getAppState);
+  const { s, f, lang } = useStrings(S);
+  // Callbacks below (refreshSharedData, handlers) read the current language
+  // through a ref, so switching language doesn't recreate them and re-run
+  // the effects that depend on them (which would refetch everything).
+  const i18nRef = useRef({ s, lang });
+  i18nRef.current = { s, lang };
   // Tab lives in the URL path (e.g. /success) so links are shareable and
   // the browser/Android back button moves between sections instead of
   // leaving the app on the first tap. The hash is left alone — Supabase's
@@ -126,6 +170,39 @@ export function App() {
     openRequestsTab
   );
 
+  const canReceiveRequestAlert = React.useCallback((donor: DonorProfile | null | undefined, request: EmergencyRequest | null | undefined) => {
+    if (!donor || !request) return false;
+    if (donor.id === request.requesterId) return false;
+    if (!donor.availableNow) return false;
+    if (donor.role !== 'donor') return false;
+
+    const compatibleGroups: Record<string, string[]> = {
+      'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+      'AB-': ['AB-', 'A-', 'B-', 'O-'],
+      'A+': ['A+', 'A-', 'O+', 'O-'],
+      'A-': ['A-', 'O-'],
+      'B+': ['B+', 'B-', 'O+', 'O-'],
+      'B-': ['B-', 'O-'],
+      'O+': ['O+', 'O-'],
+      'O-': ['O-']
+    };
+
+    if (!compatibleGroups[request.bloodGroup]?.includes(donor.bloodGroup)) return false;
+
+    if (donor.nextEligibleDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const eligibleDate = new Date(donor.nextEligibleDate + 'T00:00:00');
+      if (eligibleDate > today) return false;
+    }
+
+    if (request.urgency !== 'Critical' && request.district && donor.district && donor.district !== request.district) {
+      return false;
+    }
+
+    return true;
+  }, []);
+
   // Pulls the current truth from Supabase and replaces local state with it.
   // Real data always wins — we never fall back to stale/local/demo data just
   // because a fresh fetch came back empty (an empty table means empty, not
@@ -151,10 +228,13 @@ export function App() {
         knownRequestIdsRef.current = new Set(shared.requests.map(r => r.id));
         hasLoadedOnceRef.current = true;
 
+        const { s: t, lang: tLang } = i18nRef.current;
+        const currentDonor = currentUserRef.current;
         newlySeen.forEach(r => {
+          if (!canReceiveRequestAlert(currentDonor, r)) return;
           notify(
-            `${r.bloodGroup} blood needed${r.urgency === 'Critical' ? ' — urgent' : ''}`,
-            `${r.patientName} at ${r.hospitalName}. ${r.requiredBags} bag(s) needed.`,
+            fmt(r.urgency === 'Critical' ? t.alertTitleUrgent : t.alertTitle, { group: r.bloodGroup }, tLang),
+            fmt(t.alertBody, { patient: r.patientName, hospital: r.hospitalName, bags: r.requiredBags }, tLang),
             `request-${r.id}`
           );
         });
@@ -183,7 +263,7 @@ export function App() {
       if (refreshInFlightRef.current?.promise === refresh) refreshInFlightRef.current = null;
     });
     return refresh;
-  }, [notify]);
+  }, [canReceiveRequestAlert, notify]);
 
   // Restore Supabase auth session on startup, then load real data for that
   // login state (logged-in donors see full profiles; guests see the public view).
@@ -278,7 +358,7 @@ export function App() {
   const handleOfferToDonate = async (req: EmergencyRequest) => {
     const { ok, error } = await offerToDonate(req.id);
     if (!ok) {
-      window.alert(error || 'Could not send your offer.');
+      window.alert(error || i18nRef.current.s.offerFailed);
       return;
     }
     refreshLoopData(state.currentUser?.id);
@@ -408,10 +488,10 @@ export function App() {
       notifications: [
         {
           id: `notif-${Date.now()}`,
-          title: `Emergency request posted: ${savedReq.bloodGroup}`,
-          message: `${savedReq.patientName} at ${savedReq.hospitalName}, ${savedReq.area}.`,
+          title: f(s.postedTitle, { group: savedReq.bloodGroup ?? '' }),
+          message: f(s.postedMessage, { patient: savedReq.patientName ?? '', hospital: savedReq.hospitalName ?? '', area: savedReq.area ?? '' }),
           type: 'emergency',
-          time: 'Just now',
+          time: s.justNow,
           read: false
         },
         ...prev.notifications
@@ -466,7 +546,7 @@ export function App() {
         if (selectedProfileDonor?.id === updatedUser.id) {
           setSelectedProfileDonor(prev => prev ? { ...prev, availableNow: !updatedUser.availableNow } : prev);
         }
-        window.alert('Availability could not be saved. Please try again.');
+        window.alert(i18nRef.current.s.availabilityFailed);
       }
     });
   };
@@ -534,13 +614,13 @@ export function App() {
         {state.currentUser ? (
           <div className="rounded-2xl border border-rose-100 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/20 px-5 py-4 flex items-center justify-between gap-4">
             <p className="text-sm text-slate-700 dark:text-slate-300">
-              Signed in as <span className="font-bold text-brand-ink dark:text-brand-green-light">{state.currentUser.name}</span>
+              {s.signedInAs} <span className="font-bold text-brand-ink dark:text-brand-green-light">{state.currentUser.name}</span>
             </p>
             <button
               onClick={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
               className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold transition-colors"
             >
-              Request blood
+              {s.requestBlood}
             </button>
           </div>
         ) : (
@@ -548,13 +628,13 @@ export function App() {
              cards that carried no information and could not be acted on. */
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Find blood donors across Bangladesh. Sign in to post a request or offer to donate.
+              {s.guestIntro}
             </p>
             <button
               onClick={() => setIsAuthModalOpen(true)}
               className="shrink-0 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white rounded-xl text-sm font-bold transition-colors"
             >
-              Sign in
+              {s.signIn}
             </button>
           </div>
         )}
@@ -591,13 +671,13 @@ export function App() {
             {isLoggedIn && notifyPermission === 'default' && (
               <div className="mx-6 lg:mx-10 mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Get alerted on screen when someone nearby needs your blood type.
+                  {s.alertsPrompt}
                 </p>
                 <button
                   onClick={askNotifyPermission}
                   className="shrink-0 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white rounded-xl text-sm font-bold transition-colors"
                 >
-                  Turn on alerts
+                  {s.turnOnAlerts}
                 </button>
               </div>
             )}

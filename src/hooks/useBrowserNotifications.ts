@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
 /**
- * Desktop/mobile browser notifications for incoming blood requests.
+ * Browser notifications for matching blood requests.
  *
- * This is deliberately the simple version: it fires while LifelineBD is open in
- * a tab, including a backgrounded one. That covers the realistic case of a donor
- * with the site open on their phone or laptop, and needs no service worker, no
- * server keys and no third party.
- *
- * It is NOT true push — a fully closed browser won't wake up. Adding that needs
- * a service worker plus a server-side sender, which is a separate step.
+ * On modern Android Chrome the in-page Notification API works, but service-worker
+ * notifications are more reliable when the tab is in the background and the
+ * browser decides to wallpaper the notification itself. We prefer a service
+ * worker when available and fall back to a normal in-page notification.
  */
 
 export type NotifyPermission = 'unsupported' | 'default' | 'granted' | 'denied';
@@ -37,33 +34,47 @@ export function useBrowserNotifications(onNotificationClick?: () => void) {
     }
   }, []);
 
-  /**
-   * Shows a notification. Uses a tag so repeated alerts for the same request
-   * replace each other instead of stacking up.
-   */
   const notify = useCallback(
     (title: string, body: string, tag?: string) => {
-      if (currentPermission() !== 'granted') return;
-      try {
-        const n = new Notification(title, {
-          body,
-          tag,
-          // PNGs: Android Chrome won't render SVG notification images, and
-          // the badge must be a transparent silhouette (only alpha is used).
-          icon: '/icon-192.png',
-          badge: '/notification-badge.png',
-          // Blood requests are time-critical, so don't let the OS silently
-          // collapse them into a quiet group.
-          requireInteraction: false
-        });
-        n.onclick = () => {
-          window.focus();
-          onNotificationClick?.();
-          n.close();
-        };
-      } catch (err) {
-        console.error('Notification failed:', err);
+      const permissionState = currentPermission();
+      if (permissionState !== 'granted') return;
+
+      const notificationOptions = {
+        body,
+        tag,
+        icon: '/icon-192.png',
+        badge: '/notification-badge.png',
+        requireInteraction: false,
+        data: { url: '/' }
+      };
+
+      const showNativeNotification = () => {
+        try {
+          const n = new Notification(title, notificationOptions);
+          n.onclick = () => {
+            window.focus();
+            onNotificationClick?.();
+            n.close();
+          };
+        } catch (err) {
+          console.error('Notification failed:', err);
+        }
+      };
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready
+          .then(registration => {
+            registration.showNotification(title, notificationOptions).catch(() => {
+              showNativeNotification();
+            });
+          })
+          .catch(() => {
+            showNativeNotification();
+          });
+        return;
       }
+
+      showNativeNotification();
     },
     [onNotificationClick]
   );

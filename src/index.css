@@ -19,6 +19,18 @@
      brand-green  #006A4E  6.6:1 on white   -> "ROKTOBONDHU" wordmark (large text)
      brand-ink    #0B4F3C  9.6:1 on white   -> people's names (AAA at body size)
      brand-green-light #4FD1A5  9.4:1 on slate-900 -> both of the above in dark mode */
+/* Bangla typography, only when the UI language is Bangla (LanguageProvider
+   sets <html lang>). Bengali script is built from joined glyph clusters, so
+   the wide letter-spacing used on Latin caps labels pulls conjuncts apart,
+   and 9-11px labels sized for Latin capitals are unreadable in Bengali.
+   Unlayered, so these win over Tailwind's utility layer. */
+html[lang='bn'] [class*='tracking-wid'],
+html[lang='bn'] [class*='tracking-['] { letter-spacing: normal; }
+html[lang='bn'] .text-\[9px\],
+html[lang='bn'] .text-\[10px\] { font-size: 11px; }
+html[lang='bn'] .text-\[11px\] { font-size: 12px; }
+html[lang='bn'] .leading-none { line-height: 1.2; }
+
 @theme {
   --color-brand-green: #006A4E;
   --color-brand-ink: #0B4F3C;

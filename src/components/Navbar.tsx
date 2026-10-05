@@ -2,7 +2,67 @@ import { Bell, LogOut, Menu, Moon, Sun, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { DonorProfile } from '../types';
 import { useTheme } from '../hooks/useTheme';
+import { defineStrings, useLang, useStrings } from '../i18n';
 import { Avatar } from './Avatar';
+
+const S = defineStrings(
+  {
+    tagline: 'Save Life By Your Blood',
+    navNetwork: 'Network',
+    navRequests: 'Requests',
+    navSuccess: 'Success Stories',
+    navRewards: 'Rewards',
+    navFaq: 'FAQ',
+    navAdmin: 'Admin',
+    requestBlood: 'Request Blood',
+    toLight: 'Switch to light theme',
+    toDark: 'Switch to dark theme',
+    notifications: 'Notifications',
+    notificationsUnread: 'Notifications, {count} unread',
+    unreadSuffix: ' ({count})',
+    roleAdmin: 'Admin',
+    roleHospital: 'Hospital',
+    roleDonor: 'Donor',
+    signOutLabel: 'Sign out',
+    signOutTitle: 'Sign Out',
+    signIn: 'Sign In',
+    openMenu: 'Open navigation menu',
+    closeMenu: 'Close navigation menu',
+    emergencyRequest: '🚨 Emergency Blood Request',
+    registerOrLogin: 'Donor Registration / Login',
+    // Written in the OTHER language on purpose: someone who can't read the
+    // current one must still be able to find the switch.
+    switchLangButton: 'বাংলা',
+    switchLangLabel: 'বাংলায় দেখুন (Switch to Bangla)'
+  },
+  {
+    tagline: 'রক্ত দিন, জীবন বাঁচান',
+    navNetwork: 'রক্তদাতা',
+    navRequests: 'অনুরোধ',
+    navSuccess: 'সফলতার গল্প',
+    navRewards: 'পুরস্কার',
+    navFaq: 'প্রশ্নোত্তর',
+    navAdmin: 'অ্যাডমিন',
+    requestBlood: 'রক্ত চাই',
+    toLight: 'লাইট থিমে যান',
+    toDark: 'ডার্ক থিমে যান',
+    notifications: 'নোটিফিকেশন',
+    notificationsUnread: 'নোটিফিকেশন, {count}টি না-পড়া',
+    unreadSuffix: ' ({count})',
+    roleAdmin: 'অ্যাডমিন',
+    roleHospital: 'হাসপাতাল',
+    roleDonor: 'রক্তদাতা',
+    signOutLabel: 'সাইন আউট',
+    signOutTitle: 'সাইন আউট',
+    signIn: 'সাইন ইন',
+    openMenu: 'মেনু খুলুন',
+    closeMenu: 'মেনু বন্ধ করুন',
+    emergencyRequest: '🚨 জরুরি রক্তের অনুরোধ',
+    registerOrLogin: 'রক্তদাতা নিবন্ধন / সাইন ইন',
+    switchLangButton: 'English',
+    switchLangLabel: 'View in English (ইংরেজিতে দেখুন)'
+  }
+);
 
 interface NavbarProps {
   activeTab: string;
@@ -29,17 +89,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
+  const { toggleLang } = useLang();
+  const { s, f } = useStrings(S);
+  const themeLabel = isDark ? s.toLight : s.toDark;
 
   const baseNavItems = [
-    { id: 'network', label: 'Network' },
-    { id: 'requests', label: 'Requests' },
-    { id: 'success', label: 'Success Stories' },
-    { id: 'rewards', label: 'Rewards' },
-    { id: 'faq', label: 'FAQ' }
+    { id: 'network', label: s.navNetwork },
+    { id: 'requests', label: s.navRequests },
+    { id: 'success', label: s.navSuccess },
+    { id: 'rewards', label: s.navRewards },
+    { id: 'faq', label: s.navFaq }
   ];
 
   const navItems = currentUser?.role === 'admin'
-    ? [...baseNavItems, { id: 'admin', label: 'Admin' }]
+    ? [...baseNavItems, { id: 'admin', label: s.navAdmin }]
     : baseNavItems;
 
   const visibleNavItems = navItems;
@@ -73,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
           {/* Wraps to a second line and looks cramped below ~400px, so it's
               desktop/tablet-only; the wordmark alone reads fine on its own. */}
-          <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Save Life By Your Blood</span>
+          <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">{s.tagline}</span>
         </div>
       </a>
 
@@ -103,15 +166,26 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="hidden sm:flex items-center gap-2 px-4 py-2.5 blood-gradient text-white rounded-xl font-extrabold uppercase text-xs tracking-wider shadow-lg shadow-rose-500/25 hover:opacity-95 active:scale-95 transition-all"
         >
           <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-          Request Blood
+          {s.requestBlood}
+        </button>
+
+        {/* Language toggle: on phones too (not buried in the menu), since
+            most visitors are on mobile and some read only Bangla. */}
+        <button
+          onClick={toggleLang}
+          aria-label={s.switchLangLabel}
+          title={s.switchLangLabel}
+          className="px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-bold whitespace-nowrap transition-colors"
+        >
+          {s.switchLangButton}
         </button>
 
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          aria-label={themeLabel}
           className="hidden sm:block p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
-          title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          title={themeLabel}
         >
           {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
@@ -119,9 +193,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Notification Bell */}
         <button
           onClick={onOpenNotifications}
-          aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+          aria-label={unreadCount > 0 ? f(s.notificationsUnread, { count: unreadCount }) : s.notifications}
           className="relative hidden sm:block p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
-          title="Notifications"
+          title={s.notifications}
         >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
@@ -143,7 +217,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="hidden md:block xl:hidden 2xl:block text-right cursor-pointer" onClick={onOpenProfile}>
               <div className="flex items-center justify-end gap-1">
                 <p className="text-[10px] uppercase font-extrabold tracking-wider text-rose-600 dark:text-rose-400">
-                  {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'hospital' ? 'Hospital' : 'Donor'}
+                  {currentUser.role === 'admin' ? s.roleAdmin : currentUser.role === 'hospital' ? s.roleHospital : s.roleDonor}
                 </p>
               </div>
               <p className="text-sm font-bold text-brand-ink dark:text-brand-green-light leading-tight truncate max-w-[9rem] 2xl:max-w-[12rem]">{currentUser.name}</p>
@@ -161,9 +235,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={onLogout}
-              aria-label="Sign out"
+              aria-label={s.signOutLabel}
               className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors hidden sm:block"
-              title="Sign Out"
+              title={s.signOutTitle}
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -173,14 +247,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onOpenAuth}
             className="hidden sm:block px-3.5 sm:px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors"
           >
-            Sign In
+            {s.signIn}
           </button>
         )}
 
         {/* Hamburger Menu Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-label={mobileMenuOpen ? s.closeMenu : s.openMenu}
           className="xl:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -216,7 +290,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             className="w-full py-3.5 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest text-center shadow-lg sm:hidden"
           >
-            🚨 Emergency Blood Request
+            {s.emergencyRequest}
           </button>
 
           <div className="flex gap-3 sm:hidden">
@@ -227,11 +301,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold uppercase text-xs tracking-widest"
             >
-              Notifications{unreadCount > 0 ? ` (${unreadCount})` : ''}
+              {s.notifications}{unreadCount > 0 ? f(s.unreadSuffix, { count: unreadCount }) : ''}
             </button>
             <button
               onClick={toggleTheme}
-              aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-label={themeLabel}
               className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl flex items-center justify-center"
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -251,7 +325,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => { onLogout(); setMobileMenuOpen(false); }}
                 className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-100 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-400 rounded-lg text-xs font-bold uppercase"
               >
-                Sign Out
+                {s.signOutTitle}
               </button>
             </div>
           ) : (
@@ -259,7 +333,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => { onOpenAuth(); setMobileMenuOpen(false); }}
               className="w-full py-3 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white rounded-xl font-bold uppercase text-xs tracking-widest"
             >
-              Donor Registration / Login
+              {s.registerOrLogin}
             </button>
           )}
         </div>

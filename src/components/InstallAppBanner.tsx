@@ -1,6 +1,40 @@
 import { Download, Ellipsis, EllipsisVertical, Menu, Share, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getInstallPrompt, isNativeApp, onInstallPromptChange, promptInstall } from '../pwa';
+import { defineStrings, richText, useStrings } from '../i18n';
+
+// Browser menu item names ("Install app", "Add to Home Screen", "Open in
+// browser") stay in English: that's what the phone actually shows.
+const S = defineStrings(
+  {
+    regionLabel: 'Install the Roktobondhu app',
+    installTitle: 'Install as an app',
+    installBody: 'Free • No Play Store needed • Opens in one tap',
+    iosTitle: 'Add the app to your Home Screen',
+    iosBody: 'Open this page in Safari, tap {share}, then “Add to Home Screen”. After that it opens like a proper app.',
+    menuBody: 'From the browser’s {dots} or {bars} menu, tap “Install app” or “Add to Home screen”',
+    inAppTitle: 'Open in a browser to install the app',
+    inAppBody: 'From the {dots} or {ellipsis} menu at the top, tap “Open in browser”',
+    install: 'Install',
+    dismiss: 'Dismiss',
+    shareIcon: 'Share',
+    menuIcon: 'menu'
+  },
+  {
+    regionLabel: 'Roktobondhu অ্যাপ ইনস্টল করুন',
+    installTitle: 'অ্যাপ হিসেবে ইনস্টল করুন',
+    installBody: 'ফ্রি • Play Store লাগবে না • এক ট্যাপে খুলবে',
+    iosTitle: 'হোম স্ক্রিনে অ্যাপ যোগ করুন',
+    iosBody: 'Safari-এ এই পেজ খুলুন, {share} চাপুন, তারপর “Add to Home Screen” বাছুন। তারপর এটি অ্যাপের মত খুলবে।',
+    menuBody: 'ব্রাউজারের {dots} বা {bars} মেনু থেকে “Install app” বা “Add to Home screen” চাপুন',
+    inAppTitle: 'অ্যাপ ইনস্টল করতে ব্রাউজারে খুলুন',
+    inAppBody: 'উপরের {dots} বা {ellipsis} মেনু থেকে “Open in browser” চাপুন',
+    install: 'ইনস্টল',
+    dismiss: 'বন্ধ করুন',
+    shareIcon: 'শেয়ার',
+    menuIcon: 'মেনু'
+  }
+);
 
 // Mobile-only "install as app" banner. Install works differently per browser:
 //   prompt  - Chrome has fired beforeinstallprompt: our button opens the real dialog
@@ -40,6 +74,7 @@ export const InstallAppBanner: React.FC = () => {
   const [hasPrompt, setHasPrompt] = useState(() => !!getInstallPrompt());
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const { s } = useStrings(S);
 
   useEffect(() => onInstallPromptChange(() => setHasPrompt(!!getInstallPrompt())), []);
 
@@ -50,6 +85,11 @@ export const InstallAppBanner: React.FC = () => {
     : isIos() ? 'ios'
     : isAndroid() ? 'menu'
     : null;
+
+  // iOS Safari cannot trigger the web app install prompt. The only supported
+  // path is Safari's Share -> Add to Home Screen flow, so the banner's copy
+  // must explicitly tell users how to do that instead of promising an install
+  // prompt that will never appear.
 
   useEffect(() => {
     if (!variant) return;
@@ -73,53 +113,33 @@ export const InstallAppBanner: React.FC = () => {
     if (accepted) setDismissed(true);
   };
 
-  const copy = {
-    prompt: {
-      title: 'অ্যাপ হিসেবে ইনস্টল করুন',
-      body: 'ফ্রি • Play Store লাগবে না • এক ট্যাপে খুলবে'
-    },
-    menu: {
-      title: 'অ্যাপ হিসেবে ইনস্টল করুন',
-      body: null
-    },
-    ios: {
-      title: 'হোম স্ক্রিনে অ্যাপ যোগ করুন',
-      body: null
-    },
-    'in-app': {
-      title: 'অ্যাপ ইনস্টল করতে ব্রাউজারে খুলুন',
-      body: null
-    }
-  }[variant];
-
   // Glyphs like ⋮ render as ":" in Bengali fonts, so menu/share hints use icons.
   const iconClass = 'inline w-3.5 h-3.5 -mt-0.5';
+  const icons = {
+    share: <Share className={iconClass} aria-label={s.shareIcon} />,
+    dots: <EllipsisVertical className={iconClass} aria-label={s.menuIcon} />,
+    bars: <Menu className={iconClass} aria-label={s.menuIcon} />,
+    ellipsis: <Ellipsis className={iconClass} aria-label={s.menuIcon} />
+  };
+  const copy = {
+    prompt: { title: s.installTitle, body: s.installBody },
+    menu: { title: s.installTitle, body: richText(s.menuBody, icons) },
+    ios: { title: s.iosTitle, body: richText(s.iosBody, icons) },
+    'in-app': { title: s.inAppTitle, body: richText(s.inAppBody, icons) }
+  }[variant];
 
   return (
     <div
       role="region"
-      aria-label="Install the Roktobondhu app"
+      aria-label={s.regionLabel}
+      data-testid="install-banner"
       className="fixed inset-x-3 bottom-3 mb-[env(safe-area-inset-bottom)] z-30 animate-in slide-in-from-bottom-4 fade-in duration-300"
     >
       <div className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-xl shadow-slate-900/10">
         <img src="/logo-mark.svg" alt="" className="w-11 h-11 shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-brand-ink dark:text-brand-green-light leading-snug">{copy.title}</p>
-          {variant === 'ios' ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-              ব্রাউজারের <Share className={iconClass} aria-label="Share" /> চাপুন, তারপর “Add to Home Screen”
-            </p>
-          ) : variant === 'menu' ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-              ব্রাউজারের <EllipsisVertical className={iconClass} aria-label="menu" /> বা <Menu className={iconClass} aria-label="menu" /> মেনু থেকে “Install app” বা “Add to Home screen” চাপুন
-            </p>
-          ) : variant === 'in-app' ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-              উপরের <EllipsisVertical className={iconClass} aria-label="menu" /> বা <Ellipsis className={iconClass} aria-label="menu" /> মেনু থেকে “Open in browser” চাপুন
-            </p>
-          ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{copy.body}</p>
-          )}
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{copy.body}</p>
         </div>
         {variant === 'prompt' && (
           <button
@@ -127,12 +147,12 @@ export const InstallAppBanner: React.FC = () => {
             className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold transition-colors"
           >
             <Download className="w-4 h-4" />
-            Install
+            {s.install}
           </button>
         )}
         <button
           onClick={dismiss}
-          aria-label="Dismiss"
+          aria-label={s.dismiss}
           className="shrink-0 p-1.5 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <X className="w-4 h-4" />

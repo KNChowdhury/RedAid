@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useBrowserNotifications } from './hooks/useBrowserNotifications';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Footer } from './components/Footer';
+import { InstallAppBanner } from './components/InstallAppBanner';
 import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
 import { SuccessStories } from './components/SuccessStories';
@@ -648,6 +649,8 @@ export function App() {
       </main>
 
       <Footer onOpenFaq={() => setActiveTab('faq')} />
+
+      <InstallAppBanner />
 
       {/* Dialog Modals Overlay */}
       <ShareRequestModal

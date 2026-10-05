@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e11d48" />
+    <title>Offline · Roktobondhu Bangladesh</title>
+    <!-- Served by sw.js when there's no connection. Self-contained on
+         purpose: nothing else is cached. -->
+    <style>
+      :root { color-scheme: light dark; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --green: #006a4e; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --green: #4fd1a5; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--text);
+             font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Bengali", sans-serif; }
+      main { width: 100%; max-width: 380px; background: var(--card); border-radius: 24px; padding: 32px 24px; text-align: center;
+             box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
+      img { width: 64px; height: 64px; }
+      h1 { font-size: 20px; margin: 16px 0 8px; color: var(--green); }
+      p { margin: 0 0 6px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+      button { margin-top: 20px; width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #e11d48; color: #fff;
+               font-size: 15px; font-weight: 700; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/logo-mark.svg" alt="Roktobondhu Bangladesh" />
+      <h1>ইন্টারনেট সংযোগ নেই</h1>
+      <p>সংযোগ ফিরলে পেজটি নিজেই আবার খুলবে।</p>
+      <p>You're offline. This page reloads by itself when you're back online.</p>
+      <button type="button" onclick="location.reload()">আবার চেষ্টা করুন / Try again</button>
+    </main>
+    <script>
+      // 'online' can fire before the network actually works, and it fires
+      // only once, so a reload at that moment can land back here for good.
+      // Instead, probe the server and reload only when it really answers,
+      // on 'online' and every 5s.
+      var reloading = false;
+      function reloadIfReachable() {
+        if (reloading || !navigator.onLine) return;
+        fetch('/manifest.webmanifest', { method: 'HEAD', cache: 'no-store' })
+          .then(function (res) { if (res.ok && !reloading) { reloading = true; location.reload(); } })
+          .catch(function () { /* still offline */ });
+      }
+      window.addEventListener('online', reloadIfReachable);
+      setInterval(reloadIfReachable, 5000);
+    </script>
+  </body>
+</html>

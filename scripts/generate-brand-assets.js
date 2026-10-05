@@ -52,6 +52,12 @@ await png(svgDoc(180, `<rect width="180" height="180" fill="#FFFFFF"/>\n${mark(2
 await png(svgDoc(192, `<rect width="192" height="192" fill="#FFFFFF"/>\n${mark(20, 20, 152)}`), 192, 'public/icon-192.png');
 await png(svgDoc(96, mark(4, 4, 88)), 96, 'public/notification-badge.png');
 
+// PWA install icons (manifest.webmanifest). "maskable" lets Android crop
+// to circles/squircles, and only the central 80% is guaranteed visible,
+// so the mark sits well inside it.
+await png(svgDoc(512, `<rect width="512" height="512" fill="#FFFFFF"/>\n${mark(52, 52, 408)}`), 512, 'public/icon-512.png');
+await png(svgDoc(512, `<rect width="512" height="512" fill="#FFFFFF"/>\n${mark(102, 102, 308)}`), 512, 'public/icon-maskable-512.png');
+
 // Android adaptive icon: the launcher masks a 108-unit canvas to whatever
 // shape it likes and only guarantees the central 66 units, so keep the mark
 // inside that safe zone on a white background.

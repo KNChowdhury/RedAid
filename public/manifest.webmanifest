@@ -1,0 +1,19 @@
+{
+  "name": "Roktobondhu Bangladesh",
+  "short_name": "Roktobondhu",
+  "description": "Find blood donors and respond to urgent blood requests across Bangladesh.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#E11D48",
+  "lang": "en",
+  "categories": ["health", "medical", "social"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,14 +1,18 @@
-import { Download, Ellipsis, EllipsisVertical, Share, X } from 'lucide-react';
+import { Download, Ellipsis, EllipsisVertical, Menu, Share, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getInstallPrompt, isNativeApp, onInstallPromptChange, promptInstall } from '../pwa';
 
-// Mobile-only "install as app" banner. Three cases, because install works
-// differently on each:
-//   prompt  - Android Chrome/Edge/Samsung: our button opens the real install dialog
-//   ios     - iPhone/iPad Safari: no API, so we show the Share -> Add to Home Screen steps
+// Mobile-only "install as app" banner. Install works differently per browser:
+//   prompt  - Chrome has fired beforeinstallprompt: our button opens the real dialog
+//   menu    - Android, no prompt (yet): point at the browser menu's Install item.
+//             Chrome only fires the event after a tap and ~30s on the page, and
+//             Samsung/Mi/Opera/Custom Tabs often never do -- relying on it alone
+//             meant most phones saw no banner at all (reported 2026-10-05).
+//             If the event arrives later, the banner switches to `prompt`.
+//   ios     - iPhone/iPad (Safari, or Chrome/Edge on iOS 16.4+): Share -> Add to Home Screen
 //   in-app  - Facebook/Messenger/Instagram's built-in browser can't install;
 //             most of our visitors arrive from Facebook links, so tell them how to get out
-type Variant = 'prompt' | 'ios' | 'in-app';
+type Variant = 'prompt' | 'menu' | 'ios' | 'in-app';
 
 const DISMISS_KEY = 'installBannerDismissedAt';
 const DISMISS_DAYS = 14;
@@ -19,10 +23,8 @@ const isStandalone = () =>
 const isMobile = () =>
   window.matchMedia('(max-width: 767px)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const isInAppBrowser = () => /FBAN|FBAV|FB_IAB|Instagram|Messenger|Line\//i.test(navigator.userAgent);
-const isIosSafari = () => {
-  const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/i.test(ua) && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
-};
+const isIos = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isAndroid = () => /Android/i.test(navigator.userAgent);
 
 function recentlyDismissed(): boolean {
   try {
@@ -45,7 +47,8 @@ export const InstallAppBanner: React.FC = () => {
     ? null
     : hasPrompt ? 'prompt'
     : isInAppBrowser() ? 'in-app'
-    : isIosSafari() ? 'ios'
+    : isIos() ? 'ios'
+    : isAndroid() ? 'menu'
     : null;
 
   useEffect(() => {
@@ -75,6 +78,10 @@ export const InstallAppBanner: React.FC = () => {
       title: 'অ্যাপ হিসেবে ইনস্টল করুন',
       body: 'ফ্রি • Play Store লাগবে না • এক ট্যাপে খুলবে'
     },
+    menu: {
+      title: 'অ্যাপ হিসেবে ইনস্টল করুন',
+      body: null
+    },
     ios: {
       title: 'হোম স্ক্রিনে অ্যাপ যোগ করুন',
       body: null
@@ -100,7 +107,11 @@ export const InstallAppBanner: React.FC = () => {
           <p className="text-sm font-bold text-brand-ink dark:text-brand-green-light leading-snug">{copy.title}</p>
           {variant === 'ios' ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-              নিচের <Share className={iconClass} aria-label="Share" /> চাপুন, তারপর “Add to Home Screen”
+              ব্রাউজারের <Share className={iconClass} aria-label="Share" /> চাপুন, তারপর “Add to Home Screen”
+            </p>
+          ) : variant === 'menu' ? (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+              ব্রাউজারের <EllipsisVertical className={iconClass} aria-label="menu" /> বা <Menu className={iconClass} aria-label="menu" /> মেনু থেকে “Install app” বা “Add to Home screen” চাপুন
             </p>
           ) : variant === 'in-app' ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">

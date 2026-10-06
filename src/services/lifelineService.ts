@@ -111,8 +111,9 @@ export function calculateAge(birthYear: number | null | undefined): number | nul
 // A name must contain at least one real letter (any script) -- rejects
 // empty strings, whitespace, and symbol-only junk like "?" or "...", while
 // still allowing Bengali and other non-Latin names.
-export function isValidDonorName(name: string): boolean {
-  return /\p{L}/u.test(name);
+export function isValidDonorName(name: string | null | undefined): boolean {
+  if (typeof name !== 'string') return false;
+  return /\p{L}/u.test(name.trim());
 }
 
 // availableNow is a self-declared broadcast toggle a donor flips by hand; it
@@ -262,7 +263,7 @@ export function filterDonors(donors: DonorProfile[], filters: SearchFilters, cur
 }
 
 // Check compatible blood groups
-export function getCompatibleDonorGroups(recipientGroup: BloodGroup): BloodGroup[] {
+export function getCompatibleDonorGroups(recipientGroup: BloodGroup | null | undefined): BloodGroup[] {
   switch (recipientGroup) {
     case 'AB+': return ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
     case 'AB-': return ['AB-', 'A-', 'B-', 'O-'];
@@ -272,6 +273,7 @@ export function getCompatibleDonorGroups(recipientGroup: BloodGroup): BloodGroup
     case 'B-': return ['B-', 'O-'];
     case 'O+': return ['O+', 'O-'];
     case 'O-': return ['O-'];
+    default: return [];
   }
 }
 
@@ -536,13 +538,14 @@ export async function updateDonorProfile(
   return attachPrivateHealthInfo(mapDbDonorToProfile(data));
 }
 
-export async function fetchMyHealthInfo(donorId: string): Promise<Record<string, any>> {
-  if (!supabase || !donorId) return {};
+export async function fetchMyHealthInfo(donorId: string | null | undefined): Promise<Record<string, any>> {
+  const trimmedDonorId = typeof donorId === 'string' ? donorId.trim() : '';
+  if (!supabase || !trimmedDonorId) return {};
 
   const { data, error } = await supabase
     .from('donor_health')
     .select('*')
-    .eq('donor_id', donorId)
+    .eq('donor_id', trimmedDonorId)
     .maybeSingle();
 
   if (error || !data) {
@@ -565,7 +568,20 @@ export async function fetchMyHealthInfo(donorId: string): Promise<Record<string,
 }
 
 async function attachPrivateHealthInfo(profile: DonorProfile): Promise<DonorProfile> {
-  profile.healthInfo = { ...profile.healthInfo, ...(await fetchMyHealthInfo(profile.id)) } as DonorProfile['healthInfo'];
+  const healthInfo = profile.healthInfo ?? {
+    weightKg: 0,
+    bloodPressure: '',
+    hemoglobin: 0,
+    hasChronicDisease: false,
+    recentMedication: '',
+    hbsagStatus: 'Not Tested',
+    hcvStatus: 'Not Tested',
+    hivStatus: 'Not Tested',
+    syphilisStatus: 'Not Tested',
+    malariaStatus: 'Not Tested'
+  };
+
+  profile.healthInfo = { ...healthInfo, ...(await fetchMyHealthInfo(profile.id)) } as DonorProfile['healthInfo'];
   profile.screeningCompletionPublic = profile.shareScreeningCompletion && hasFullyNegativeScreening(profile.healthInfo);
   return profile;
 }

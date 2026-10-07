@@ -23,7 +23,7 @@ const S = defineStrings(
     availableNow: 'Available now',
     notAvailable: 'Not available',
     donatedTimes: ' · donated {count}×',
-    firstTime: ' · first-time donor',
+    noDonationHistory: ' · no donation history recorded',
     lastDonated: 'Last donated',
     availableFrom: 'Available from',
     screeningComplete: 'Screening complete · self-reported',
@@ -51,7 +51,7 @@ const S = defineStrings(
     availableNow: 'এখন দিতে পারবেন',
     notAvailable: 'এখন দিতে পারবেন না',
     donatedTimes: ' · {count} বার রক্ত দিয়েছেন',
-    firstTime: ' · প্রথমবার দাতা',
+    noDonationHistory: ' · রক্তদানের তথ্য নথিভুক্ত নেই',
     lastDonated: 'শেষ রক্তদান',
     availableFrom: 'দিতে পারবেন',
     screeningComplete: 'দাতার দেওয়া তথ্য অনুযায়ী স্ক্রিনিং সম্পন্ন',
@@ -117,6 +117,8 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
     setRevealedContacts(prev => ({ ...prev, [donorId]: contact || { phone: null, whatsapp: null } }));
     setRevealingDonorId(null);
   };
+
+  const hasDonatedBefore = (donor: DonorProfile) => Boolean(donor.lastDonationDate) || (typeof donor.donationCount === 'number' && donor.donationCount > 0);
 
   return (
     <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
@@ -209,9 +211,9 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                       ) : (
                         <span>{s.notAvailable}</span>
                       )}
-                      {donor.donationCount
-                        ? f(s.donatedTimes, { count: donor.donationCount })
-                        : s.firstTime}
+                      {hasDonatedBefore(donor)
+                        ? (donor.donationCount ? f(s.donatedTimes, { count: donor.donationCount }) : null)
+                        : s.noDonationHistory}
                     </p>
 
                     {donor.lastDonationDate && (

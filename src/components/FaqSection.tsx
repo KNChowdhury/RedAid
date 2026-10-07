@@ -70,7 +70,7 @@ const FAQ_GROUPS_BN: FaqGroup[] = [
       },
       {
         q: '"সর্বশেষ রক্তদানের তারিখ" দিলে কী হয়?',
-        a: 'সেই তারিখের ১২০ দিন পরের তারিখটি আপনার "পরবর্তী যোগ্য তারিখ" (Next Eligible) হিসেবে স্বয়ংক্রিয়ভাবে হিসাব হয়ে যায় — এটা নিজে হাতে বসাতে হয় না। খালি রাখলে আপনাকে "প্রথমবার দাতা" হিসেবে দেখানো হবে।',
+        a: 'সেই তারিখের ১২০ দিন পরের তারিখটি আপনার "পরবর্তী যোগ্য তারিখ" (Next Eligible) হিসেবে স্বয়ংক্রিয়ভাবে হিসাব হয়ে যায় — এটা নিজে হাতে বসাতে হয় না। তারিখটি খালি থাকলে সিস্টেমে আপনার আগের রক্তদানের তথ্য নথিভুক্ত নেই—এর মানে এই নয় যে আপনি আগে কখনো রক্ত দেননি। আগে রক্ত দিয়ে থাকলে সঠিক তারিখটি যোগ করুন, যাতে পরবর্তী যোগ্যতার সময় হিসাব করা যায়।',
       },
     ],
   },
@@ -179,7 +179,7 @@ const FAQ_GROUPS_EN: FaqGroup[] = [
       },
       {
         q: 'What happens when I enter my "last donation date"?',
-        a: 'Your "next eligible date" is worked out automatically as 120 days after that date — you don\'t have to enter it yourself. If you leave it blank, you\'ll be shown as a "first-time donor".',
+        a: 'Your "next eligible date" is worked out automatically as 120 days after that date — you don\'t have to enter it yourself. If the date is blank, the app has no previous donation recorded for you; that does not mean you have never donated. If you have donated before, add the correct date so the app can calculate when you are eligible again.',
       },
     ],
   },

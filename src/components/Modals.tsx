@@ -116,7 +116,8 @@ const S = defineStrings(
     errBirthYear: 'Please enter a year between 1900 and {year}.',
     errAlreadyRegistered: 'This email already has an account. Please sign in.',
     alreadyRegisteredTitle: 'You already have an account',
-    alreadyRegisteredBody: 'Sign in with your password.',
+    alreadyRegisteredBody: 'Sign in, or create an account with a new email.',
+    useNewEmail: 'Use a new email',
     errEmailNotConfirmed: 'Your email is not confirmed yet. Please click the link we sent to your inbox.',
     msgConfirmEmail: 'Almost done! We sent a link to your email. Click it, then sign in.',
     errRateLimit: 'Too many attempts. Please wait a few minutes and try again.',
@@ -294,7 +295,8 @@ const S = defineStrings(
     errBirthYear: '{year} সালের মধ্যে, ১৯০০ এর পরের সাল লিখুন।',
     errAlreadyRegistered: 'এই ইমেইলে আগেই অ্যাকাউন্ট আছে। সাইন ইন করুন।',
     alreadyRegisteredTitle: 'এই ইমেইলে আগেই অ্যাকাউন্ট আছে',
-    alreadyRegisteredBody: 'পাসওয়ার্ড দিয়ে সাইন ইন করুন।',
+    alreadyRegisteredBody: 'সাইন ইন করুন, অথবা নতুন ইমেইল দিয়ে অ্যাকাউন্ট খুলুন।',
+    useNewEmail: 'নতুন ইমেইল দিয়ে খুলুন',
     errEmailNotConfirmed: 'ইমেইল এখনো কনফার্ম হয়নি। ইনবক্সে পাঠানো লিংকে ক্লিক করুন।',
     msgConfirmEmail: 'প্রায় শেষ! আপনার ইমেইলে একটা লিংক পাঠানো হয়েছে। ওটাতে ক্লিক করে সাইন ইন করুন।',
     errRateLimit: 'অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।',
@@ -1092,9 +1094,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               <div className="text-sm">
                 <p className="font-bold text-slate-800 dark:text-slate-100">{s.alreadyRegisteredTitle}</p>
                 <p className="mt-0.5 text-slate-600 dark:text-slate-300">{s.alreadyRegisteredBody}</p>
-                <button type="button" onClick={() => switchView('reset')} className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline">
-                  {s.forgotPassword}
-                </button>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Back to the filled-in signup form with the email cleared and focused.
+                      switchView('register');
+                      setEmail('');
+                      requestAnimationFrame(() => document.getElementById('auth-email')?.focus());
+                    }}
+                    className="text-sky-700 dark:text-sky-400 hover:underline"
+                  >
+                    {s.useNewEmail}
+                  </button>
+                  <button type="button" onClick={() => switchView('reset')} className="text-rose-600 dark:text-rose-400 hover:underline">
+                    {s.forgotPassword}
+                  </button>
+                </div>
               </div>
             </div>
           )}

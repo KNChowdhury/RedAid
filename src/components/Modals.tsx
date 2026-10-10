@@ -115,9 +115,10 @@ const S = defineStrings(
     errAreaRequired: 'Please select your area.',
     errBirthYear: 'Please enter a year between 1900 and {year}.',
     errAlreadyRegistered: 'This email already has an account. Please sign in.',
-    alreadyRegisteredTitle: 'You already have an account',
-    alreadyRegisteredBody: 'Sign in, or create an account with a new email.',
-    useNewEmail: 'Use a new email',
+    alreadyRegisteredTitle: 'This email is already registered',
+    alreadyRegisteredBody: 'Sign in to your account, or sign up with a different email.',
+    signInInstead: 'Sign in',
+    useNewEmail: 'Use another email',
     errEmailNotConfirmed: 'Your email is not confirmed yet. Please click the link we sent to your inbox.',
     msgConfirmEmail: 'Almost done! We sent a link to your email. Click it, then sign in.',
     errRateLimit: 'Too many attempts. Please wait a few minutes and try again.',
@@ -295,8 +296,9 @@ const S = defineStrings(
     errBirthYear: '{year} সালের মধ্যে, ১৯০০ এর পরের সাল লিখুন।',
     errAlreadyRegistered: 'এই ইমেইলে আগেই অ্যাকাউন্ট আছে। সাইন ইন করুন।',
     alreadyRegisteredTitle: 'এই ইমেইলে আগেই অ্যাকাউন্ট আছে',
-    alreadyRegisteredBody: 'সাইন ইন করুন, অথবা নতুন ইমেইল দিয়ে অ্যাকাউন্ট খুলুন।',
-    useNewEmail: 'নতুন ইমেইল দিয়ে খুলুন',
+    alreadyRegisteredBody: 'সাইন ইন করুন, অথবা অন্য ইমেইল দিয়ে নতুন অ্যাকাউন্ট খুলুন।',
+    signInInstead: 'সাইন ইন করুন',
+    useNewEmail: 'অন্য ইমেইল দিন',
     errEmailNotConfirmed: 'ইমেইল এখনো কনফার্ম হয়নি। ইনবক্সে পাঠানো লিংকে ক্লিক করুন।',
     msgConfirmEmail: 'প্রায় শেষ! আপনার ইমেইলে একটা লিংক পাঠানো হয়েছে। ওটাতে ক্লিক করে সাইন ইন করুন।',
     errRateLimit: 'অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।',
@@ -912,9 +914,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       setLoading(false);
       if (error || !user) {
         if (error?.toLowerCase().includes('already registered')) {
-          // Keep email/password filled in so they can sign in straight away.
-          setView('login');
+          // Stay on the signup form (no surprise page switch) and show the
+          // notice under the email field with clear next steps.
           setAlreadyRegistered(true);
+          requestAnimationFrame(() => document.getElementById('auth-email-notice')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
           return;
         }
         if (error && /confirmation link|registration received/i.test(error)) {
@@ -988,8 +991,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
           {view !== 'new-password' && <div>
             <label htmlFor="auth-email" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.email} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-            <input id="auth-email" type="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => { setEmail(e.target.value); clearFieldError('email'); }} placeholder="you@example.com" aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined} className={authInputClass(!!fieldErrors.email)} />
+            <input id="auth-email" type="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => { setEmail(e.target.value); clearFieldError('email'); setAlreadyRegistered(false); }} placeholder="you@example.com" aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'auth-email-error' : alreadyRegistered ? 'auth-email-notice' : undefined} className={authInputClass(!!fieldErrors.email)} />
             <FieldError id="auth-email-error" message={fieldErrors.email} />
+            {alreadyRegistered && view === 'register' && (
+              <div id="auth-email-notice" role="status" className="mt-2 rounded-2xl border border-sky-200 dark:border-sky-900/60 bg-sky-50 dark:bg-sky-950/30 p-4 animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 dark:bg-sky-900/50">
+                    <User className="h-4 w-4 text-sky-700 dark:text-sky-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{s.alreadyRegisteredTitle}</p>
+                    <p className="mt-0.5 text-[13px] leading-snug text-slate-600 dark:text-slate-300">{s.alreadyRegisteredBody}</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => switchView('login')}
+                    className="rounded-xl bg-sky-600 hover:bg-sky-700 px-3 py-2.5 text-xs font-bold text-white transition-colors"
+                  >
+                    {s.signInInstead}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAlreadyRegistered(false);
+                      setEmail('');
+                      requestAnimationFrame(() => document.getElementById('auth-email')?.focus());
+                    }}
+                    className="rounded-xl border border-sky-200 dark:border-sky-800 bg-white dark:bg-slate-900 px-3 py-2.5 text-xs font-bold text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    {s.useNewEmail}
+                  </button>
+                </div>
+                <button type="button" onClick={() => switchView('reset')} className="mt-2.5 w-full text-center text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:underline">
+                  {s.forgotPassword}
+                </button>
+              </div>
+            )}
           </div>}
 
           {view !== 'reset' && (
@@ -1086,33 +1125,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.smokerCheckbox}</span>
               </label>
             </>
-          )}
-
-          {alreadyRegistered && view === 'login' && (
-            <div role="status" className="mt-4 flex items-start gap-3 p-4 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 rounded-xl">
-              <User className="w-5 h-5 mt-0.5 shrink-0 text-sky-600 dark:text-sky-400" />
-              <div className="text-sm">
-                <p className="font-bold text-slate-800 dark:text-slate-100">{s.alreadyRegisteredTitle}</p>
-                <p className="mt-0.5 text-slate-600 dark:text-slate-300">{s.alreadyRegisteredBody}</p>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // Back to the filled-in signup form with the email cleared and focused.
-                      switchView('register');
-                      setEmail('');
-                      requestAnimationFrame(() => document.getElementById('auth-email')?.focus());
-                    }}
-                    className="text-sky-700 dark:text-sky-400 hover:underline"
-                  >
-                    {s.useNewEmail}
-                  </button>
-                  <button type="button" onClick={() => switchView('reset')} className="text-rose-600 dark:text-rose-400 hover:underline">
-                    {s.forgotPassword}
-                  </button>
-                </div>
-              </div>
-            </div>
           )}
 
           {errorMsg && (

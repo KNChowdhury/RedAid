@@ -166,7 +166,8 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                 </div>
 
                 <div className="flex items-start gap-4 mb-4 pr-20">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 ${
+                  {/* Decorative; on phones the width goes to the hospital name instead. */}
+                  <div className={`hidden sm:flex w-14 h-14 rounded-2xl items-center justify-center shrink-0 ${
                     isCritical ? 'bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}>
                     <AlertCircle className="w-6 h-6" />
@@ -182,15 +183,17 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                       </span>
                     </div>
 
-                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
+                    {/* Phones: location and deadline on their own lines, in normal
+                        case, so the date doesn't break across three lines. */}
+                    <p className="text-slate-500 dark:text-slate-400 text-[13px] sm:text-xs font-semibold sm:uppercase sm:tracking-wider flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-x-2 mt-2 sm:mt-1">
                       <span className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                         {req.area}, {req.district}
                       </span>
-                      <span className="text-slate-300 dark:text-slate-600">•</span>
+                      <span aria-hidden="true" className="hidden sm:inline text-slate-300 dark:text-slate-600">•</span>
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        {s.needed} <span className="text-rose-600 dark:text-rose-400 font-extrabold">{formatRequestDeadline(req.neededByTime, req.createdAt)}</span>
+                        <span>{s.needed} <span className="text-rose-600 dark:text-rose-400 font-extrabold whitespace-nowrap">{formatRequestDeadline(req.neededByTime, req.createdAt)}</span></span>
                       </span>
                     </p>
                   </div>

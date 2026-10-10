@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, ShieldC
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { defineStrings, formatNumber, useStrings } from '../i18n';
+import { defineStrings, fmt, formatNumber, useStrings } from '../i18n';
 import { calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isDonorAvailableNow, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
@@ -27,6 +27,11 @@ function bdDigits(input: string): string {
 export function toBdDialing(input: string): string {
   const d = bdDigits(input);
   return d ? `+880${d}` : '';
+}
+
+/** Valid BD mobile: 01X-XXXXXXXX where X (operator) is 3-9. */
+function isValidBdMobile(input: string): boolean {
+  return /^1[3-9]\d{8}$/.test(bdDigits(input));
 }
 
 /** For wa.me links: 8801712345678 (no plus) */
@@ -94,11 +99,26 @@ const S = defineStrings(
     authSubReset: 'Enter your email to receive password reset instructions',
     authSubNewPassword: 'Choose a new password for your Roktobondhu Bangladesh account',
     authSubLogin: 'Sign in to your Roktobondhu Bangladesh account',
-    errInvalidEmail: 'Please enter a valid email address, for example: name@example.com.',
+    errInvalidEmail: 'Please enter a valid email, e.g. name@example.com',
     errPasswordLength: 'Password must be at least 6 characters.',
     resetLinkSent: 'If this email is registered, a reset link has been sent. Check your inbox and spam folder, and confirm the spelling.',
     errGeneric: 'Something went wrong. Please try again.',
-    errInvalidLogin: 'Invalid email or password.',
+    errInvalidLogin: 'Incorrect email or password. Please check and try again.',
+    errEmailRequired: 'Please enter your email.',
+    errPasswordRequired: 'Please enter your password.',
+    errPhoneRequired: 'Please enter your mobile number.',
+    errPhoneInvalid: 'Please enter a valid 11-digit mobile number, e.g. 01712345678',
+    errAreaRequired: 'Please select your area.',
+    errBirthYear: 'Please enter a year between 1900 and {year}.',
+    errAlreadyRegistered: 'This email already has an account. Please sign in, or tap "Forgot password?".',
+    errEmailNotConfirmed: 'Your email is not confirmed yet. Please click the link we sent to your inbox.',
+    msgConfirmEmail: 'Almost done! We sent a link to your email. Click it, then sign in.',
+    errRateLimit: 'Too many attempts. Please wait a few minutes and try again.',
+    errSamePassword: 'Your new password must be different from the old one.',
+    errSessionExpired: 'Your session has expired. Please refresh the page and sign in again.',
+    errNetwork: 'Connection problem. Please check your internet and try again.',
+    errEmailInvalidServer: 'This email doesn\'t look right. Please check it.',
+    errMagicLinkNeedsEmail: 'Enter your email above to get a sign-in link.',
     fullNamePlaceholder: 'e.g. John Doe',
     email: 'Email',
     password: 'Password',
@@ -249,11 +269,26 @@ const S = defineStrings(
     authSubReset: 'পাসওয়ার্ড রিসেটের নির্দেশনা পেতে আপনার ইমেইল দিন',
     authSubNewPassword: 'আপনার Roktobondhu Bangladesh অ্যাকাউন্টের নতুন পাসওয়ার্ড দিন',
     authSubLogin: 'আপনার Roktobondhu Bangladesh অ্যাকাউন্টে সাইন ইন করুন',
-    errInvalidEmail: 'সঠিক ইমেইল ঠিকানা দিন (যেমন: name@example.com)।',
-    errPasswordLength: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।',
+    errInvalidEmail: 'ইমেইলটা ঠিক নেই। যেমন: name@example.com',
+    errPasswordLength: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের দিন।',
     resetLinkSent: 'এই ইমেইল নিবন্ধিত থাকলে একটি রিসেট লিংক পাঠানো হয়েছে। ইনবক্স ও স্প্যাম ফোল্ডার দেখুন, আর ইমেইলের বানান ঠিক আছে কিনা মিলিয়ে নিন।',
     errGeneric: 'কোনো সমস্যা হয়েছে। আবার চেষ্টা করুন।',
-    errInvalidLogin: 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।',
+    errInvalidLogin: 'ইমেইল বা পাসওয়ার্ড মিলছে না। আবার দেখে দিন।',
+    errEmailRequired: 'ইমেইল লিখুন।',
+    errPasswordRequired: 'পাসওয়ার্ড লিখুন।',
+    errPhoneRequired: 'মোবাইল নম্বর লিখুন।',
+    errPhoneInvalid: '১১ ডিজিটের সঠিক মোবাইল নম্বর দিন। যেমন: 01712345678',
+    errAreaRequired: 'আপনার এলাকা বেছে নিন।',
+    errBirthYear: '{year} সালের মধ্যে, ১৯০০ এর পরের সাল লিখুন।',
+    errAlreadyRegistered: 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট আছে। সাইন ইন করুন, পাসওয়ার্ড ভুলে গেলে "পাসওয়ার্ড ভুলে গেছেন?" চাপুন।',
+    errEmailNotConfirmed: 'ইমেইল এখনো কনফার্ম হয়নি। ইনবক্সে পাঠানো লিংকে ক্লিক করুন।',
+    msgConfirmEmail: 'প্রায় শেষ! আপনার ইমেইলে একটা লিংক পাঠানো হয়েছে। ওটাতে ক্লিক করে সাইন ইন করুন।',
+    errRateLimit: 'অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।',
+    errSamePassword: 'নতুন পাসওয়ার্ড আগেরটার থেকে আলাদা হতে হবে।',
+    errSessionExpired: 'সেশন শেষ হয়ে গেছে। পেজ রিফ্রেশ করে আবার সাইন ইন করুন।',
+    errNetwork: 'ইন্টারনেট সংযোগে সমস্যা। একটু পরে আবার চেষ্টা করুন।',
+    errEmailInvalidServer: 'ইমেইলটা ঠিক নেই। আবার দেখে দিন।',
+    errMagicLinkNeedsEmail: 'লিংক পেতে আগে উপরে আপনার ইমেইল লিখুন।',
     fullNamePlaceholder: 'যেমন: রহিম উদ্দিন',
     email: 'ইমেইল',
     password: 'পাসওয়ার্ড',
@@ -610,6 +645,44 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
 
 /* ================= 2. AUTH REGISTRATION / LOGIN MODAL ================= */
+type AuthField = 'name' | 'email' | 'password' | 'phone' | 'bloodGroup' | 'area' | 'birthYear';
+type AuthFieldErrors = Partial<Record<AuthField, string>>;
+const AUTH_FIELD_ORDER: AuthField[] = ['name', 'email', 'password', 'phone', 'bloodGroup', 'area', 'birthYear'];
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type AuthStrings = (typeof S)['en'];
+
+/**
+ * Auth/server errors arrive in English. Turn the known ones into the current
+ * UI language and say which field they belong to; unknown ones fall back to a
+ * generic line instead of showing raw server text.
+ */
+function describeAuthError(message: string, s: AuthStrings): { field: AuthField | null; text: string } {
+  const m = message.toLowerCase();
+  if (m.includes('already registered')) return { field: null, text: s.errAlreadyRegistered };
+  if (m.includes('invalid login') || m.includes('invalid email or password') || m.includes('invalid credentials')) return { field: null, text: s.errInvalidLogin };
+  if (m.includes('email not confirmed')) return { field: null, text: s.errEmailNotConfirmed };
+  if (m.includes('confirmation link') || m.includes('registration received')) return { field: null, text: s.msgConfirmEmail };
+  if (m.includes('rate limit') || m.includes('too many')) return { field: null, text: s.errRateLimit };
+  if (m.includes('should be different') || m.includes('same password')) return { field: 'password', text: s.errSamePassword };
+  if (m.includes('password')) return { field: 'password', text: s.errPasswordLength };
+  if (m.includes('email')) return { field: 'email', text: s.errEmailInvalidServer };
+  if (m.includes('session') || m.includes('refresh')) return { field: null, text: s.errSessionExpired };
+  if (m.includes('network') || m.includes('fetch') || m.includes('not configured') || m.includes('not connected')) return { field: null, text: s.errNetwork };
+  return { field: null, text: s.errGeneric };
+}
+
+const authInputClass = (hasError: boolean) =>
+  `w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm font-semibold ${hasError ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`;
+
+const FieldError: React.FC<{ id: string; message?: string }> = ({ id, message }) =>
+  message ? (
+    <p id={id} role="alert" className="mt-1 flex items-start gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
+      <AlertCircle className="w-3.5 h-3.5 mt-px shrink-0" />
+      <span>{message}</span>
+    </p>
+  ) : null;
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -620,7 +693,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, passwordRecovery = false, onPasswordRecoveryComplete }) => {
   const districts = useDistricts();
-  const { s } = useStrings(S);
+  const { s, lang } = useStrings(S);
   const [view, setView] = useState<'login' | 'register' | 'reset' | 'new-password'>(passwordRecovery ? 'new-password' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -634,10 +707,70 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [isSmoker, setIsSmoker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [successMsg, setSuccessMsg] = useState('');
+
+  const clearFieldError = (field: AuthField) =>
+    setFieldErrors(prev => (prev[field] ? { ...prev, [field]: undefined } : prev));
+
+  const switchView = (next: 'login' | 'register' | 'reset' | 'new-password') => {
+    setView(next);
+    setErrorMsg('');
+    setFieldErrors({});
+    setSuccessMsg('');
+  };
+
+  const showFieldErrors = (errors: AuthFieldErrors) => {
+    setFieldErrors(errors);
+    const first = AUTH_FIELD_ORDER.find(f => errors[f]);
+    if (first) {
+      // Bring the first problem into view; on phones it can be off-screen.
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`auth-${first}`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.focus({ preventScroll: true });
+      });
+    }
+  };
+
+  /** Show a server error beside its field when we can tell which one it is about. */
+  const showServerError = (message: string) => {
+    const { field, text } = describeAuthError(message, s);
+    if (field && !(field === 'email' && view === 'new-password')) {
+      showFieldErrors({ [field]: text });
+    } else {
+      setErrorMsg(text);
+    }
+  };
+
+  const validate = (normalizedEmail: string): AuthFieldErrors => {
+    const errors: AuthFieldErrors = {};
+    if (view === 'register' && !isValidDonorName(name)) errors.name = s.errNameSymbols;
+    if (view !== 'new-password') {
+      if (!normalizedEmail) errors.email = s.errEmailRequired;
+      else if (!EMAIL_PATTERN.test(normalizedEmail)) errors.email = s.errInvalidEmail;
+    }
+    if (view !== 'reset') {
+      if (!password) errors.password = s.errPasswordRequired;
+      else if (view !== 'login' && password.length < 6) errors.password = s.errPasswordLength;
+    }
+    if (view === 'register') {
+      if (!phone.trim()) errors.phone = s.errPhoneRequired;
+      else if (!isValidBdMobile(phone)) errors.phone = s.errPhoneInvalid;
+      if (!bloodGroup) errors.bloodGroup = s.errSelectBloodGroup;
+      if (!area.trim()) errors.area = s.errAreaRequired;
+      if (birthYear) {
+        const year = Number(birthYear);
+        const thisYear = new Date().getFullYear();
+        if (!Number.isInteger(year) || year < 1900 || year > thisYear) errors.birthYear = fmt(s.errBirthYear, { year: thisYear }, lang);
+      }
+    }
+    return errors;
+  };
 
   React.useEffect(() => {
     setView(passwordRecovery ? 'new-password' : 'login');
+    setFieldErrors({});
     setErrorMsg('');
     setSuccessMsg('');
   }, [passwordRecovery]);
@@ -646,6 +779,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     if (isOpen) {
       setView(passwordRecovery ? 'new-password' : 'login');
       setErrorMsg('');
+      setFieldErrors({});
       setSuccessMsg('');
       setPassword('');
     }
@@ -662,32 +796,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setSuccessMsg('');
 
     const normalizedEmail = email.trim().toLowerCase();
-    if (view !== 'new-password' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setErrorMsg(s.errInvalidEmail);
+    const errors = validate(normalizedEmail);
+    if (Object.keys(errors).length > 0) {
+      showFieldErrors(errors);
       return;
     }
-
-    if ((view === 'register' || view === 'new-password') && password.length < 6) {
-      setErrorMsg(s.errPasswordLength);
-      return;
-    }
-
-    if (view === 'register' && !bloodGroup) {
-      setErrorMsg(s.errSelectBloodGroup);
-      return;
-    }
-
-    if (view === 'register' && !isValidDonorName(name)) {
-      setErrorMsg(s.errNameSymbols);
-      return;
-    }
+    setFieldErrors({});
 
     setLoading(true);
 
     if (view === 'new-password') {
       const error = await updatePassword(password);
       if (error) {
-        setErrorMsg(error);
+        showServerError(error);
         setLoading(false);
         return;
       }
@@ -705,7 +826,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       const { error } = await sendPasswordResetEmail(normalizedEmail);
       setLoading(false);
       if (error) {
-        setErrorMsg(error);
+        showServerError(error);
         return;
       }
       setSuccessMsg(s.resetLinkSent);
@@ -727,9 +848,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       setLoading(false);
       if (error || !user) {
         if (error?.toLowerCase().includes('already registered')) {
+          // Keep email/password filled in so they can sign in straight away.
           setView('login');
+          setErrorMsg(s.errAlreadyRegistered);
+          return;
         }
-        setErrorMsg(error || s.errGeneric);
+        if (error && /confirmation link|registration received/i.test(error)) {
+          // Not a failure: signup worked, the email just needs confirming.
+          setSuccessMsg(s.msgConfirmEmail);
+          return;
+        }
+        showServerError(error || 'unknown');
         return;
       }
       onLoginSuccess(user);
@@ -740,7 +869,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     const { user, error } = await signInDonor(normalizedEmail, password);
     setLoading(false);
     if (error || !user) {
-      setErrorMsg(error || s.errInvalidLogin);
+      setErrorMsg(error ? describeAuthError(error, s).text : s.errInvalidLogin);
       return;
     }
     onLoginSuccess(user);
@@ -757,14 +886,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     const { error } = await signInWithGoogle();
     if (error) {
       setLoading(false);
-      setErrorMsg(error);
+      setErrorMsg(describeAuthError(error, s).text);
     }
   };
 
   return (
-    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
-        <button onClick={onClose} aria-label={s.closeAuthDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
+    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
+      {/* Full screen on phones so the form scrolls as one page and errors stay in view. */}
+      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-16 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-md sm:max-h-[90vh] overflow-y-auto sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
+        <button onClick={onClose} aria-label={s.closeAuthDialog} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
 
@@ -783,56 +913,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             : s.authSubLogin}
         </p>
 
-        {errorMsg && (
-          <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400">
-            {errorMsg}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
           {view === 'register' && (
             <div>
-              <label htmlFor="auth-full-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.fullName} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-              <input id="auth-full-name" name="name" required value={name} onChange={e => setName(e.target.value)} placeholder={s.fullNamePlaceholder} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+              <label htmlFor="auth-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.fullName} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <input id="auth-name" name="name" autoComplete="name" value={name} onChange={e => { setName(e.target.value); clearFieldError('name'); }} placeholder={s.fullNamePlaceholder} aria-invalid={!!fieldErrors.name} aria-describedby={fieldErrors.name ? 'auth-name-error' : undefined} className={authInputClass(!!fieldErrors.name)} />
+              <FieldError id="auth-name-error" message={fieldErrors.name} />
             </div>
           )}
 
           {view !== 'new-password' && <div>
             <label htmlFor="auth-email" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.email} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-            <input id="auth-email" required type="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+            <input id="auth-email" type="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => { setEmail(e.target.value); clearFieldError('email'); }} placeholder="you@example.com" aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined} className={authInputClass(!!fieldErrors.email)} />
+            <FieldError id="auth-email-error" message={fieldErrors.email} />
           </div>}
 
           {view !== 'reset' && (
             <div>
               <label htmlFor="auth-password" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.password} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <div className="relative">
-                <input id="auth-password" required type={showPassword ? 'text' : 'password'} name="password" autoComplete={view === 'login' ? 'current-password' : 'new-password'} minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder={s.passwordPlaceholder} className="w-full px-4 py-3 pr-11 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+                <input id="auth-password" type={showPassword ? 'text' : 'password'} name="password" autoComplete={view === 'login' ? 'current-password' : 'new-password'} value={password} onChange={e => { setPassword(e.target.value); clearFieldError('password'); }} placeholder={s.passwordPlaceholder} aria-invalid={!!fieldErrors.password} aria-describedby={fieldErrors.password ? 'auth-password-error' : undefined} className={`${authInputClass(!!fieldErrors.password)} pr-11`} />
                 <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" aria-label={showPassword ? s.hidePassword : s.showPassword} tabIndex={-1}>
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <FieldError id="auth-password-error" message={fieldErrors.password} />
             </div>
           )}
 
           {view === 'login' && (
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
-              <button type="button" onClick={() => { setView('reset'); setErrorMsg(''); setSuccessMsg(''); }} className="text-rose-600 dark:text-rose-400 hover:underline">
+              <button type="button" onClick={() => switchView('reset')} className="text-rose-600 dark:text-rose-400 hover:underline">
                 {s.forgotPassword}
               </button>
               <button type="button" onClick={async () => {
                 setErrorMsg('');
                 setSuccessMsg('');
-                setLoading(true);
                 const normalizedEmail = email.trim().toLowerCase();
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-                  setLoading(false);
-                  setErrorMsg(s.errMagicLinkEmail);
+                if (!EMAIL_PATTERN.test(normalizedEmail)) {
+                  showFieldErrors({ email: s.errMagicLinkNeedsEmail });
                   return;
                 }
+                setLoading(true);
                 const { error } = await sendMagicLink(normalizedEmail);
                 setLoading(false);
                 if (error) {
-                  setErrorMsg(error);
+                  showServerError(error);
                 } else {
                   setSuccessMsg(s.magicLinkSent);
                 }
@@ -845,17 +971,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           {view === 'register' && (
             <>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.phoneNumber} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-                <input required value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="01712345678" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+                <label htmlFor="auth-phone" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.phoneNumber} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+                <input id="auth-phone" name="phone" type="tel" autoComplete="tel" value={phone} onChange={e => { setPhone(e.target.value); clearFieldError('phone'); }} inputMode="numeric" placeholder="01712345678" aria-invalid={!!fieldErrors.phone} aria-describedby={fieldErrors.phone ? 'auth-phone-error' : undefined} className={authInputClass(!!fieldErrors.phone)} />
+                <FieldError id="auth-phone-error" message={fieldErrors.phone} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-                  <select required value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400">
+                  <select id="auth-bloodGroup" value={bloodGroup} onChange={e => { setBloodGroup(e.target.value); clearFieldError('bloodGroup'); }} aria-invalid={!!fieldErrors.bloodGroup} aria-describedby={fieldErrors.bloodGroup ? 'auth-bloodGroup-error' : undefined} className={`w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400 ${fieldErrors.bloodGroup ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}>
                     <option value="" disabled>{s.selectBloodGroup}</option>
                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
+                  <FieldError id="auth-bloodGroup-error" message={fieldErrors.bloodGroup} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
@@ -867,7 +995,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.area} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-                <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold" />
+                <AreaField id="auth-area" areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={value => { setArea(value); clearFieldError('area'); }} className={`w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-semibold ${fieldErrors.area ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`} />
+                <FieldError id="auth-area-error" message={fieldErrors.area} />
               </div>
 
               <div>
@@ -877,11 +1006,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                   inputMode="numeric"
                   min={1900}
                   max={new Date().getFullYear()}
+                  id="auth-birthYear"
                   value={birthYear}
-                  onChange={e => setBirthYear(e.target.value)}
+                  onChange={e => { setBirthYear(e.target.value); clearFieldError('birthYear'); }}
                   placeholder={s.birthYearPlaceholder}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
+                  aria-invalid={!!fieldErrors.birthYear}
+                  aria-describedby={fieldErrors.birthYear ? 'auth-birthYear-error' : undefined}
+                  className={authInputClass(!!fieldErrors.birthYear)}
                 />
+                <FieldError id="auth-birthYear-error" message={fieldErrors.birthYear} />
               </div>
 
               <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer">
@@ -889,6 +1022,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.smokerCheckbox}</span>
               </label>
             </>
+          )}
+
+          {errorMsg && (
+            <div role="alert" className="mt-4 flex items-start gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
           )}
 
           <button type="submit" disabled={loading} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
@@ -928,11 +1068,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
           <button
             type="button"
-            onClick={() => {
-              setErrorMsg('');
-              setSuccessMsg('');
-              setView(view === 'register' ? 'login' : 'register');
-            }}
+            onClick={() => switchView(view === 'register' ? 'login' : 'register')}
             className="w-full text-center py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer block"
           >
             {view === 'register' ? s.switchToLogin : s.switchToRegister}

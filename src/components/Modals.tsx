@@ -114,7 +114,9 @@ const S = defineStrings(
     errPhoneInvalid: 'Please enter a valid 11-digit mobile number, e.g. 01712345678',
     errAreaRequired: 'Please select your area.',
     errBirthYear: 'Please enter a year between 1900 and {year}.',
-    errAlreadyRegistered: 'This email already has an account. Please sign in, or tap "Forgot password?".',
+    errAlreadyRegistered: 'This email already has an account. Please sign in.',
+    alreadyRegisteredTitle: 'You already have an account',
+    alreadyRegisteredBody: 'Sign in with your password.',
     errEmailNotConfirmed: 'Your email is not confirmed yet. Please click the link we sent to your inbox.',
     msgConfirmEmail: 'Almost done! We sent a link to your email. Click it, then sign in.',
     errRateLimit: 'Too many attempts. Please wait a few minutes and try again.',
@@ -290,7 +292,9 @@ const S = defineStrings(
     errPhoneInvalid: '১১ ডিজিটের সঠিক মোবাইল নম্বর দিন। যেমন: 01712345678',
     errAreaRequired: 'আপনার এলাকা বেছে নিন।',
     errBirthYear: '{year} সালের মধ্যে, ১৯০০ এর পরের সাল লিখুন।',
-    errAlreadyRegistered: 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট আছে। সাইন ইন করুন, পাসওয়ার্ড ভুলে গেলে "পাসওয়ার্ড ভুলে গেছেন?" চাপুন।',
+    errAlreadyRegistered: 'এই ইমেইলে আগেই অ্যাকাউন্ট আছে। সাইন ইন করুন।',
+    alreadyRegisteredTitle: 'এই ইমেইলে আগেই অ্যাকাউন্ট আছে',
+    alreadyRegisteredBody: 'পাসওয়ার্ড দিয়ে সাইন ইন করুন।',
     errEmailNotConfirmed: 'ইমেইল এখনো কনফার্ম হয়নি। ইনবক্সে পাঠানো লিংকে ক্লিক করুন।',
     msgConfirmEmail: 'প্রায় শেষ! আপনার ইমেইলে একটা লিংক পাঠানো হয়েছে। ওটাতে ক্লিক করে সাইন ইন করুন।',
     errRateLimit: 'অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।',
@@ -764,6 +768,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [errorMsg, setErrorMsg] = useState('');
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [successMsg, setSuccessMsg] = useState('');
+  // Signup hit an existing account: shown as a friendly notice, not an error.
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
 
   const clearFieldError = (field: AuthField) =>
     setFieldErrors(prev => (prev[field] ? { ...prev, [field]: undefined } : prev));
@@ -773,6 +779,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setErrorMsg('');
     setFieldErrors({});
     setSuccessMsg('');
+    setAlreadyRegistered(false);
   };
 
   const showFieldErrors = (errors: AuthFieldErrors) => {
@@ -830,6 +837,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       setFieldErrors({});
       setSuccessMsg('');
       setPassword('');
+      setAlreadyRegistered(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -848,6 +856,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setErrorMsg('');
     setSuccessMsg('');
 
+    setAlreadyRegistered(false);
     const normalizedEmail = email.trim().toLowerCase();
     const errors = validate(normalizedEmail);
     if (Object.keys(errors).length > 0) {
@@ -903,7 +912,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         if (error?.toLowerCase().includes('already registered')) {
           // Keep email/password filled in so they can sign in straight away.
           setView('login');
-          setErrorMsg(s.errAlreadyRegistered);
+          setAlreadyRegistered(true);
           return;
         }
         if (error && /confirmation link|registration received/i.test(error)) {
@@ -1075,6 +1084,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.smokerCheckbox}</span>
               </label>
             </>
+          )}
+
+          {alreadyRegistered && view === 'login' && (
+            <div role="status" className="mt-4 flex items-start gap-3 p-4 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 rounded-xl">
+              <User className="w-5 h-5 mt-0.5 shrink-0 text-sky-600 dark:text-sky-400" />
+              <div className="text-sm">
+                <p className="font-bold text-slate-800 dark:text-slate-100">{s.alreadyRegisteredTitle}</p>
+                <p className="mt-0.5 text-slate-600 dark:text-slate-300">{s.alreadyRegisteredBody}</p>
+                <button type="button" onClick={() => switchView('reset')} className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline">
+                  {s.forgotPassword}
+                </button>
+              </div>
+            </div>
           )}
 
           {errorMsg && (

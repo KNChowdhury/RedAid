@@ -15,6 +15,7 @@ import { SidebarStats } from './components/SidebarStats';
 import { createRequestInDb, deleteRequestFromDb, updateRequestInDb, offerToDonate, fetchMyOfferedRequestIds, fetchMyPendingConfirmations, fetchMyNotifications, filterDonors, fetchSharedData, getAppState, saveAppState, getCurrentDonorFromSession, mapDbNotificationToNotification, markMyNotificationsRead, signOutDonor, subscribeToAuthState, subscribeToLiveUpdates, subscribeToNotifications, toggleDonorVerification, updateDonorAvailability } from './services/lifelineService';
 import { DonorProfile, EmergencyRequest, SearchFilters } from './types';
 import { defineStrings, fmt, useStrings } from './i18n';
+import { useFeedback } from './components/Feedback';
 
 const S = defineStrings(
   {
@@ -61,6 +62,7 @@ export function App() {
   // the effects that depend on them (which would refetch everything).
   const i18nRef = useRef({ s, lang });
   i18nRef.current = { s, lang };
+  const { toast } = useFeedback();
   // Tab lives in the URL path (e.g. /success) so links are shareable and
   // the browser/Android back button moves between sections instead of
   // leaving the app on the first tap. The hash is left alone — Supabase's
@@ -360,7 +362,7 @@ export function App() {
   const handleOfferToDonate = async (req: EmergencyRequest) => {
     const { ok, error } = await offerToDonate(req.id);
     if (!ok) {
-      window.alert(error || i18nRef.current.s.offerFailed);
+      toast(error || i18nRef.current.s.offerFailed, 'error');
       return;
     }
     refreshLoopData(state.currentUser?.id);
@@ -548,7 +550,7 @@ export function App() {
         if (selectedProfileDonor?.id === updatedUser.id) {
           setSelectedProfileDonor(prev => prev ? { ...prev, availableNow: !updatedUser.availableNow } : prev);
         }
-        window.alert(i18nRef.current.s.availabilityFailed);
+        toast(i18nRef.current.s.availabilityFailed, 'error');
       }
     });
   };

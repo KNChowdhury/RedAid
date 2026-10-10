@@ -1,6 +1,6 @@
 import { AlertCircle, Clock, MapPin, Share2, ShieldCheck, Users } from 'lucide-react';
 import { motion } from 'motion/react';
-import React from 'react';
+import React, { useState } from 'react';
 import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline } from '../services/lifelineService';
 import { EmergencyRequest } from '../types';
 import { defineStrings, useStrings } from '../i18n';
@@ -12,6 +12,7 @@ const S = defineStrings(
     subtitle: 'Real-time emergency blood requests across Bangladesh hospitals.',
     postUrgent: 'Post Urgent Request',
     emptyTitle: 'No Active Emergency Requests',
+    showMore: 'Show {count} more requests',
     emptyBody: 'All hospital requirements in this area are fulfilled.',
     priorityCritical: 'Critical Priority',
     priorityHigh: 'High Priority',
@@ -43,6 +44,7 @@ const S = defineStrings(
     subtitle: 'সারা বাংলাদেশের হাসপাতাল থেকে সরাসরি জরুরি রক্তের অনুরোধ।',
     postUrgent: 'জরুরি অনুরোধ পোস্ট করুন',
     emptyTitle: 'এখন কোনো জরুরি অনুরোধ নেই',
+    showMore: 'আরো {count}টি অনুরোধ দেখুন',
     emptyBody: 'এই এলাকার সব হাসপাতালের চাহিদা পূরণ হয়েছে।',
     priorityCritical: 'অতি জরুরি',
     priorityHigh: 'জরুরি',
@@ -94,6 +96,10 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   onMarkDonated
 }) => {
   const { s, f } = useStrings(S);
+  // A page at a time keeps the phone feed short. Not reset on change: the
+  // feed updates live, and collapsing it under someone mid-scroll is worse.
+  const PAGE_SIZE = 8;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   // urgency is stored data ('Critical' | 'High' | 'Medium'); only the label is translated.
   const priorityLabel = (urgency: string): string => {
     if (urgency === 'Critical') return s.priorityCritical;
@@ -134,7 +140,7 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
             <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">{s.emptyBody}</p>
           </div>
         ) : (
-          requests.map((req, idx) => {
+          requests.slice(0, visibleCount).map((req, idx) => {
             const isCritical = req.urgency === 'Critical';
             return (
               <motion.div
@@ -273,6 +279,15 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
               </motion.div>
             );
           })
+        )}
+        {requests.length > visibleCount && (
+          <button
+            type="button"
+            onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+            className="mt-6 w-full sm:w-auto sm:mx-auto sm:flex sm:px-10 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-700 dark:text-slate-200 hover:border-rose-300 hover:text-rose-600 transition-colors"
+          >
+            {f(s.showMore, { count: Math.min(PAGE_SIZE, requests.length - visibleCount) })}
+          </button>
         )}
       </div>
     </section>

@@ -16,6 +16,7 @@ const S = defineStrings(
     loadFailedHelp: "Check your internet connection. We'll keep trying automatically.",
     tryAgain: 'Try again',
     emptyTitle: 'No Donors Match Your Current Filters',
+    showMore: 'Show {count} more donors',
     emptyHelp: 'Try widening your distance radius, removing specific health constraints, or posting an emergency request to broadcast across all districts.',
     broadcast: '🚨 Broadcast Emergency Request',
     ageShort: '{age}y',
@@ -44,6 +45,7 @@ const S = defineStrings(
     loadFailedHelp: 'ইন্টারনেট সংযোগ দেখুন। আমরা নিজে থেকেই আবার চেষ্টা করছি।',
     tryAgain: 'আবার চেষ্টা করুন',
     emptyTitle: 'এই ফিল্টারে কোনো রক্তদাতা মেলেনি',
+    showMore: 'আরো {count} জন রক্তদাতা দেখুন',
     emptyHelp: 'ফিল্টার একটু কমিয়ে দেখুন, অথবা একটি জরুরি অনুরোধ পোস্ট করুন যাতে সব জেলার মানুষ দেখতে পান।',
     broadcast: '🚨 জরুরি অনুরোধ পোস্ট করুন',
     ageShort: '{age} বছর',
@@ -86,6 +88,12 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   onRequireAuth
 }) => {
   const { s, f, lang } = useStrings(S);
+  // Render a page at a time: 28+ full cards made the phone page ~9 screens
+  // tall. Reset to the first page whenever the filtered set changes.
+  const PAGE_SIZE = 12;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const donorSetKey = donors.map(d => d.id).join(',');
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [donorSetKey]);
   const [revealedContacts, setRevealedContacts] = useState<Record<string, { phone: string | null; whatsapp: string | null }>>({});
   const [revealingDonorId, setRevealingDonorId] = useState<string | null>(null);
   const isMountedRef = useRef(true);
@@ -175,7 +183,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {donors.map((donor, idx) => (
+            {donors.slice(0, visibleCount).map((donor, idx) => (
               <motion.div
                 key={donor.id}
                 initial={{ opacity: 0, y: 16 }}
@@ -283,6 +291,15 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
               </motion.div>
             ))}
           </div>
+        )}
+        {donors.length > visibleCount && (
+          <button
+            type="button"
+            onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+            className="mt-6 w-full sm:w-auto sm:mx-auto sm:flex sm:px-10 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-700 dark:text-slate-200 hover:border-rose-300 hover:text-rose-600 transition-colors"
+          >
+            {f(s.showMore, { count: Math.min(PAGE_SIZE, donors.length - visibleCount) })}
+          </button>
         )}
       </div>
     </section>

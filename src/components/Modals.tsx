@@ -101,6 +101,10 @@ const S = defineStrings(
     authSubLogin: 'Sign in to your Roktobondhu Bangladesh account',
     errInvalidEmail: 'Please enter a valid email, e.g. name@example.com',
     errPasswordLength: 'Password must be at least 6 characters.',
+    errPasswordWeak: 'Please use a stronger password: mix capital and small letters, a number and a symbol (e.g. Milad@2420).',
+    errPasswordCommon: 'This password is too common and easy to guess. Please choose a different one.',
+    errPasswordRejected: 'This password cannot be used. Please try a different one.',
+    confirmDiscard: 'Close this form? What you typed will be lost.',
     resetLinkSent: 'If this email is registered, a reset link has been sent. Check your inbox and spam folder, and confirm the spelling.',
     errGeneric: 'Something went wrong. Please try again.',
     errInvalidLogin: 'Incorrect email or password. Please check and try again.',
@@ -273,6 +277,10 @@ const S = defineStrings(
     authSubLogin: 'আপনার Roktobondhu Bangladesh অ্যাকাউন্টে সাইন ইন করুন',
     errInvalidEmail: 'ইমেইলটা ঠিক নেই। যেমন: name@example.com',
     errPasswordLength: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের দিন।',
+    errPasswordWeak: 'আরেকটু শক্ত পাসওয়ার্ড দিন: বড় হাতের ও ছোট হাতের অক্ষর, সংখ্যা আর একটা চিহ্ন মিলিয়ে (যেমন: Milad@2420)।',
+    errPasswordCommon: 'এই পাসওয়ার্ডটা খুব কমন, সহজে আন্দাজ করা যায়। অন্য একটা দিন।',
+    errPasswordRejected: 'এই পাসওয়ার্ডটা নেওয়া যাচ্ছে না। অন্য একটা দিন।',
+    confirmDiscard: 'ফর্মটা বন্ধ করবেন? যা লিখেছেন সব মুছে যাবে।',
     resetLinkSent: 'এই ইমেইল নিবন্ধিত থাকলে একটি রিসেট লিংক পাঠানো হয়েছে। ইনবক্স ও স্প্যাম ফোল্ডার দেখুন, আর ইমেইলের বানান ঠিক আছে কিনা মিলিয়ে নিন।',
     errGeneric: 'কোনো সমস্যা হয়েছে। আবার চেষ্টা করুন।',
     errInvalidLogin: 'ইমেইল বা পাসওয়ার্ড মিলছে না। আবার দেখে দিন।',
@@ -444,7 +452,12 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
   const isEditMode = !!editingRequest;
 
-  useDismissable(isOpen, onClose);
+
+  // Tracks whether the user has typed anything, so a stray back / Escape /
+  // backdrop click asks before throwing the input away.
+  const [dirty, setDirty] = useState(false);
+  React.useEffect(() => { setDirty(false); }, [isOpen]);
+  const requestClose = useDismissable(isOpen, onClose, dirty ? s.confirmDiscard : null);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -510,7 +523,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const areasList = selectedDistObj ? selectedDistObj.areas : [];
 
   return (
-    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 lg:p-10 max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scroll my-auto">
         <button onClick={onClose} aria-label={s.closeRequestDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
@@ -526,7 +539,7 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="space-y-4">
           {submitError && (
             <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-400">
               {submitError}
@@ -669,7 +682,13 @@ function describeAuthError(message: string, s: AuthStrings): { field: AuthField 
   if (m.includes('confirmation link') || m.includes('registration received')) return { field: null, text: s.msgConfirmEmail };
   if (m.includes('rate limit') || m.includes('too many')) return { field: null, text: s.errRateLimit };
   if (m.includes('should be different') || m.includes('same password')) return { field: 'password', text: s.errSamePassword };
-  if (m.includes('password')) return { field: 'password', text: s.errPasswordLength };
+  // Only claim "too short" when the server actually says so: Supabase also
+  // rejects passwords for strength rules ("should contain at least one
+  // character of each...") and leaked/weak passwords, which are a different fix.
+  if (m.includes('password') && (m.includes('should contain') || m.includes('one character of each'))) return { field: 'password', text: s.errPasswordWeak };
+  if (m.includes('password') && (m.includes('weak') || m.includes('easy to guess') || m.includes('pwned') || m.includes('leaked'))) return { field: 'password', text: s.errPasswordCommon };
+  if (m.includes('password') && m.includes('at least') && m.includes('character')) return { field: 'password', text: s.errPasswordLength };
+  if (m.includes('password')) return { field: 'password', text: s.errPasswordRejected };
   if (m.includes('email')) return { field: 'email', text: s.errEmailInvalidServer };
   if (m.includes('session') || m.includes('refresh')) return { field: null, text: s.errSessionExpired };
   if (m.includes('network') || m.includes('fetch') || m.includes('not configured') || m.includes('not connected')) return { field: null, text: s.errNetwork };
@@ -815,7 +834,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  useDismissable(isOpen && !passwordRecovery, onClose);
+  // Tracks whether the user has typed anything, so a stray back / Escape /
+  // backdrop click asks before throwing the input away.
+  const [dirty, setDirty] = useState(false);
+  React.useEffect(() => { setDirty(false); }, [isOpen, view]);
+  // Only the signup form has enough typed input to be worth protecting.
+  const requestClose = useDismissable(isOpen && !passwordRecovery, onClose, view === 'register' && dirty ? s.confirmDiscard : null);
 
   if (!isOpen) return null;
 
@@ -920,7 +944,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   };
 
   return (
-    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
+    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
       {/* Full screen on phones so the form scrolls as one page and errors stay in view. */}
       <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-16 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-md sm:max-h-[90vh] overflow-y-auto sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
         <button onClick={onClose} aria-label={s.closeAuthDialog} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
@@ -942,7 +966,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             : s.authSubLogin}
         </p>
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
+        <form onSubmit={handleSubmit} onChange={() => setDirty(true)} noValidate className="space-y-3.5">
           {view === 'register' && (
             <div>
               <label htmlFor="auth-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.fullName} <span className="text-rose-600 dark:text-rose-400">*</span></label>
@@ -1200,7 +1224,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     }
   }, [donor]);
 
-  useDismissable(!!donor, onClose);
+  // Tracks whether the user has typed anything, so a stray back / Escape /
+  // backdrop click asks before throwing the input away.
+  const [dirty, setDirty] = useState(false);
+  React.useEffect(() => { setDirty(false); }, [isEditing, donor]);
+  const requestClose = useDismissable(!!donor, onClose, isEditing && dirty ? s.confirmDiscard : null);
 
   if (!donor) return null;
 
@@ -1278,8 +1306,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const statusLabel = (value: string) => STATUS_LABEL[value] ?? value;
 
   return (
-    <div onClick={backdropClose(onClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 lg:p-10 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto custom-scroll">
+    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 lg:p-10 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto custom-scroll">
         <button onClick={onClose} aria-label={s.closeProfileDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>

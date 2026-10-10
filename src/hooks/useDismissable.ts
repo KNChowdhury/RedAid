@@ -12,8 +12,13 @@ import { useEffect, useRef } from 'react';
  * It works by pushing one history entry when the overlay opens and restoring
  * the previous one when it closes, so the back stack stays balanced no
  * matter how the overlay was dismissed.
+ *
+ * `confirmDiscard`: pass a message while the overlay holds unsaved input.
+ * Back / Escape / the returned `requestClose` then ask before closing, so a
+ * stray mouse back-button or swipe doesn't silently throw away a half-filled
+ * form. Pass null when there is nothing to lose.
  */
-export function useDismissable(isOpen: boolean, onClose: () => void) {
+export function useDismissable(isOpen: boolean, onClose: () => void, confirmDiscard: string | null = null) {
   // Callers pass an inline `() => ...}` that's a new reference every render.
   // Keeping the latest one in a ref (instead of the effect below depending on
   // `onClose` directly) means an unrelated re-render while the overlay is
@@ -22,6 +27,8 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
   // listeners on every render, not just on real open/close transitions.
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const confirmRef = useRef(confirmDiscard);
+  confirmRef.current = confirmDiscard;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -35,12 +42,22 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
     let closedByBack = false;
 
     const onPopState = () => {
+      const message = confirmRef.current;
+      if (message && !window.confirm(message)) {
+        // Stay open: the browser already popped our marker, so put it back
+        // to keep the back stack balanced for the next back press.
+        window.history.pushState(marker, '');
+        return;
+      }
       closedByBack = true;
       onCloseRef.current();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
+      if (e.key !== 'Escape') return;
+      const message = confirmRef.current;
+      if (message && !window.confirm(message)) return;
+      onCloseRef.current();
     };
 
     const previousOverflow = document.body.style.overflow;
@@ -73,6 +90,13 @@ export function useDismissable(isOpen: boolean, onClose: () => void) {
       }
     };
   }, [isOpen]);
+
+  /** Close from a backdrop click etc., asking first if there is unsaved input. */
+  return () => {
+    const message = confirmRef.current;
+    if (message && !window.confirm(message)) return;
+    onCloseRef.current();
+  };
 }
 
 /**

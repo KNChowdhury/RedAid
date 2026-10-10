@@ -672,6 +672,17 @@ function describeAuthError(message: string, s: AuthStrings): { field: AuthField 
   return { field: null, text: s.errGeneric };
 }
 
+/** Scroll the first invalid field (ids are `${prefix}-${field}`) into view and focus it. */
+function focusFirstFieldError(prefix: string, errors: AuthFieldErrors) {
+  const first = AUTH_FIELD_ORDER.find(f => errors[f]);
+  if (!first) return;
+  requestAnimationFrame(() => {
+    const el = document.getElementById(`${prefix}-${first}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.focus({ preventScroll: true });
+  });
+}
+
 const authInputClass = (hasError: boolean) =>
   `w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm font-semibold ${hasError ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`;
 
@@ -722,15 +733,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
   const showFieldErrors = (errors: AuthFieldErrors) => {
     setFieldErrors(errors);
-    const first = AUTH_FIELD_ORDER.find(f => errors[f]);
-    if (first) {
-      // Bring the first problem into view; on phones it can be off-screen.
-      requestAnimationFrame(() => {
-        const el = document.getElementById(`auth-${first}`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el?.focus({ preventScroll: true });
-      });
-    }
+    // Bring the first problem into view; on phones it can be off-screen.
+    focusFirstFieldError('auth', errors);
   };
 
   /** Show a server error beside its field when we can tell which one it is about. */
@@ -1648,7 +1652,7 @@ interface CompleteProfileModalProps {
 
 export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ donor, onCompleted }) => {
   const districts = useDistricts();
-  const { s } = useStrings(S);
+  const { s, lang } = useStrings(S);
   const [name, setName] = useState(donor.name || '');
   const [phone, setPhone] = useState('');
   const [bloodGroup, setBloodGroup] = useState<string>('');
@@ -1658,21 +1662,29 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
   const [isSmoker, setIsSmoker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
+
+  const clearFieldError = (field: AuthField) =>
+    setFieldErrors(prev => (prev[field] ? { ...prev, [field]: undefined } : prev));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!isValidDonorName(name)) {
-      setErrorMsg('Please enter your name (not just symbols).');
-      return;
+    const errors: AuthFieldErrors = {};
+    if (!isValidDonorName(name)) errors.name = s.errNameSymbols;
+    if (!phone.trim()) errors.phone = s.errPhoneRequired;
+    else if (!isValidBdMobile(phone)) errors.phone = s.errPhoneInvalid;
+    if (!bloodGroup) errors.bloodGroup = s.errSelectBloodGroup;
+    if (!area.trim()) errors.area = s.errAreaRequired;
+    if (birthYear) {
+      const year = Number(birthYear);
+      const thisYear = new Date().getFullYear();
+      if (!Number.isInteger(year) || year < 1900 || year > thisYear) errors.birthYear = fmt(s.errBirthYear, { year: thisYear }, lang);
     }
-    if (!bloodGroup) {
-      setErrorMsg('Please select your blood group.');
-      return;
-    }
-    if (!phone.trim()) {
-      setErrorMsg('Please enter your phone number.');
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      focusFirstFieldError('complete', errors);
       return;
     }
 
@@ -1690,45 +1702,43 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
     setSaving(false);
 
     if (!profile) {
-      setErrorMsg(error || 'Could not save your profile. Please try again.');
+      setErrorMsg(error ? describeAuthError(error, s).text : s.errGeneric);
       return;
     }
     onCompleted(profile);
   };
 
   return (
-    <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 lg:p-10 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto custom-scroll">
+    <div className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
+      {/* Full screen on phones, same as AuthModal. */}
+      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-10 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-md sm:max-h-[90vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
         <img src="/logo-mark.svg" alt="RBB — Roktobondhu Bangladesh" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
         <h2 className="editorial-title text-2xl sm:text-3xl font-black">One Last Step</h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
           A few required details to finish setting up your donor profile
         </p>
 
-        {errorMsg && (
-          <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400">
-            {errorMsg}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">Full Name <span className="text-rose-600 dark:text-rose-400">*</span></label>
-            <input value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+            <label htmlFor="complete-name" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.fullName} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+            <input id="complete-name" autoComplete="name" value={name} onChange={e => { setName(e.target.value); clearFieldError('name'); }} aria-invalid={!!fieldErrors.name} aria-describedby={fieldErrors.name ? 'complete-name-error' : undefined} className={authInputClass(!!fieldErrors.name)} />
+            <FieldError id="complete-name-error" message={fieldErrors.name} />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.phoneNumber} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} inputMode="numeric" placeholder="01712345678" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
+            <label htmlFor="complete-phone" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.phoneNumber} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+            <input id="complete-phone" type="tel" autoComplete="tel" value={phone} onChange={e => { setPhone(e.target.value); clearFieldError('phone'); }} inputMode="numeric" placeholder="01712345678" aria-invalid={!!fieldErrors.phone} aria-describedby={fieldErrors.phone ? 'complete-phone-error' : undefined} className={authInputClass(!!fieldErrors.phone)} />
+            <FieldError id="complete-phone-error" message={fieldErrors.phone} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-              <select required value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400">
+              <label htmlFor="complete-bloodGroup" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+              <select id="complete-bloodGroup" value={bloodGroup} onChange={e => { setBloodGroup(e.target.value); clearFieldError('bloodGroup'); }} aria-invalid={!!fieldErrors.bloodGroup} aria-describedby={fieldErrors.bloodGroup ? 'complete-bloodGroup-error' : undefined} className={`w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400 ${fieldErrors.bloodGroup ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}>
                 <option value="" disabled>{s.selectBloodGroup}</option>
                 {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
               </select>
+              <FieldError id="complete-bloodGroup-error" message={fieldErrors.bloodGroup} />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
@@ -1740,7 +1750,8 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
 
           <div>
             <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.area} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-            <AreaField areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={setArea} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold" />
+            <AreaField id="complete-area" areas={districts.find(d => d.name === district)?.areas || []} value={area} onChange={value => { setArea(value); clearFieldError('area'); }} className={`w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-semibold ${fieldErrors.area ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`} />
+            <FieldError id="complete-area-error" message={fieldErrors.area} />
           </div>
 
           <div>
@@ -1750,17 +1761,28 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
               inputMode="numeric"
               min={1900}
               max={new Date().getFullYear()}
+              id="complete-birthYear"
               value={birthYear}
-              onChange={e => setBirthYear(e.target.value)}
+              onChange={e => { setBirthYear(e.target.value); clearFieldError('birthYear'); }}
               placeholder={s.birthYearPlaceholder}
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
+              aria-invalid={!!fieldErrors.birthYear}
+              aria-describedby={fieldErrors.birthYear ? 'complete-birthYear-error' : undefined}
+              className={authInputClass(!!fieldErrors.birthYear)}
             />
+            <FieldError id="complete-birthYear-error" message={fieldErrors.birthYear} />
           </div>
 
           <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer">
             <input type="checkbox" checked={isSmoker} onChange={e => setIsSmoker(e.target.checked)} className="accent-rose-600 w-4 h-4" />
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{s.smokerCheckbox}</span>
           </label>
+
+          {errorMsg && (
+            <div role="alert" className="mt-4 flex items-start gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
           <button type="submit" disabled={saving} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
             {saving ? s.saving :'Finish Setting Up My Profile'}

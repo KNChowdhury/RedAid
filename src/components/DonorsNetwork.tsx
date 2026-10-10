@@ -22,9 +22,7 @@ const S = defineStrings(
     ageShort: '{age}y',
     locationNotSet: 'Location not set',
     availableNow: 'Available now',
-    notAvailable: 'Not available',
-    donatedTimes: ' · donated {count}×',
-    noDonationHistory: ' · no donation history recorded',
+    donatedTimes: 'Donated {count}×',
     lastDonated: 'Last donated',
     availableFrom: 'Available from',
     screeningComplete: 'Screening complete · self-reported',
@@ -51,9 +49,7 @@ const S = defineStrings(
     ageShort: '{age} বছর',
     locationNotSet: 'এলাকা দেওয়া নেই',
     availableNow: 'এখন দিতে পারবেন',
-    notAvailable: 'এখন দিতে পারবেন না',
-    donatedTimes: ' · {count} বার রক্ত দিয়েছেন',
-    noDonationHistory: ' · রক্তদানের তথ্য নথিভুক্ত নেই',
+    donatedTimes: '{count} বার রক্ত দিয়েছেন',
     lastDonated: 'শেষ রক্তদান',
     availableFrom: 'দিতে পারবেন',
     screeningComplete: 'দাতার দেওয়া তথ্য অনুযায়ী স্ক্রিনিং সম্পন্ন',
@@ -213,16 +209,21 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                       {[donor.area, donor.district].filter(Boolean).join(', ') || s.locationNotSet}
                     </p>
 
-                    <p className="text-xs text-slate-400 mt-1.5">
-                      {isDonorAvailableNow(donor) ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{s.availableNow}</span>
-                      ) : (
-                        <span>{s.notAvailable}</span>
-                      )}
-                      {hasDonatedBefore(donor)
-                        ? (donor.donationCount ? f(s.donatedTimes, { count: donor.donationCount }) : null)
-                        : s.noDonationHistory}
-                    </p>
+                    {/* Only facts that help someone decide who to call. "Not
+                        available" is already the button below, and "no donation
+                        history recorded" was on most cards and said nothing. */}
+                    {(isDonorAvailableNow(donor) || (hasDonatedBefore(donor) && !!donor.donationCount)) && (
+                      <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5">
+                        {isDonorAvailableNow(donor) && (
+                          <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            {s.availableNow}
+                          </span>
+                        )}
+                        {isDonorAvailableNow(donor) && hasDonatedBefore(donor) && !!donor.donationCount && <span aria-hidden="true">·</span>}
+                        {hasDonatedBefore(donor) && !!donor.donationCount && <span>{f(s.donatedTimes, { count: donor.donationCount })}</span>}
+                      </p>
+                    )}
 
                     {donor.lastDonationDate && (
                       <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-1.5">
@@ -233,11 +234,15 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                     {!isDonorAvailableNow(donor) && donor.nextEligibleDate && (
                       <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5 mt-1.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-lg px-2 py-1 w-fit">
                         <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        {lang === 'bn' ? (
-                          <><span className="font-black">{formatDate(donor.nextEligibleDate, lang)}</span> থেকে {s.availableFrom}</>
-                        ) : (
-                          <>{s.availableFrom} <span className="font-black">{donor.nextEligibleDate}</span></>
-                        )}
+                        {/* One text node: as separate flex children the date and
+                            the words were laid out as two columns. */}
+                        <span>
+                          {lang === 'bn' ? (
+                            <><span className="font-black">{formatDate(donor.nextEligibleDate, lang)}</span> থেকে {s.availableFrom}</>
+                          ) : (
+                            <>{s.availableFrom} <span className="font-black">{donor.nextEligibleDate}</span></>
+                          )}
+                        </span>
                       </p>
                     )}
                   </div>

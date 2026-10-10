@@ -2,7 +2,7 @@ import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, ShieldC
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
-import { defineStrings, fmt, formatNumber, useStrings } from '../i18n';
+import { defineStrings, fmt, formatNumber, useStrings, type Lang } from '../i18n';
 import { calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isDonorAvailableNow, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
 import { Avatar } from './Avatar';
@@ -119,6 +119,8 @@ const S = defineStrings(
     errNetwork: 'Connection problem. Please check your internet and try again.',
     errEmailInvalidServer: 'This email doesn\'t look right. Please check it.',
     errMagicLinkNeedsEmail: 'Enter your email above to get a sign-in link.',
+    errFixFieldsOne: 'One field needs fixing. Tap here to see it.',
+    errFixFieldsMany: '{count} fields need fixing. Tap here to see them.',
     fullNamePlaceholder: 'e.g. John Doe',
     email: 'Email',
     password: 'Password',
@@ -289,6 +291,8 @@ const S = defineStrings(
     errNetwork: 'ইন্টারনেট সংযোগে সমস্যা। একটু পরে আবার চেষ্টা করুন।',
     errEmailInvalidServer: 'ইমেইলটা ঠিক নেই। আবার দেখে দিন।',
     errMagicLinkNeedsEmail: 'লিংক পেতে আগে উপরে আপনার ইমেইল লিখুন।',
+    errFixFieldsOne: 'একটা ঘরে ভুল আছে। দেখতে এখানে চাপুন।',
+    errFixFieldsMany: '{count}টা ঘরে ভুল আছে। দেখতে এখানে চাপুন।',
     fullNamePlaceholder: 'যেমন: রহিম উদ্দিন',
     email: 'ইমেইল',
     password: 'পাসওয়ার্ড',
@@ -683,6 +687,27 @@ function focusFirstFieldError(prefix: string, errors: AuthFieldErrors) {
   });
 }
 
+/**
+ * Shown right above the submit button whenever a field has an error. On phones
+ * the invalid field is often scrolled off-screen, so without this the button
+ * seems to do nothing. Tapping it jumps to the first problem.
+ */
+const FieldErrorSummary: React.FC<{ prefix: string; errors: AuthFieldErrors; one: string; many: string; lang: Lang }> = ({ prefix, errors, one, many, lang }) => {
+  const count = AUTH_FIELD_ORDER.filter(f => errors[f]).length;
+  if (count === 0) return null;
+  return (
+    <button
+      type="button"
+      role="alert"
+      onClick={() => focusFirstFieldError(prefix, errors)}
+      className="mt-4 w-full flex items-start gap-2 p-3 text-left bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400"
+    >
+      <AlertCircle className="w-4 h-4 shrink-0" />
+      <span>{count === 1 ? one : fmt(many, { count }, lang)}</span>
+    </button>
+  );
+};
+
 const authInputClass = (hasError: boolean) =>
   `w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border rounded-xl text-sm font-semibold ${hasError ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`;
 
@@ -1034,6 +1059,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               <span>{errorMsg}</span>
             </div>
           )}
+
+          <FieldErrorSummary prefix="auth" errors={fieldErrors} one={s.errFixFieldsOne} many={s.errFixFieldsMany} lang={lang} />
 
           <button type="submit" disabled={loading} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
             {loading ? s.pleaseWait : view === 'register' ? s.createSecureProfile : view === 'reset' ? s.sendResetEmail : view === 'new-password' ? s.updatePassword : s.signIn}
@@ -1783,6 +1810,8 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
               <span>{errorMsg}</span>
             </div>
           )}
+
+          <FieldErrorSummary prefix="complete" errors={fieldErrors} one={s.errFixFieldsOne} many={s.errFixFieldsMany} lang={lang} />
 
           <button type="submit" disabled={saving} className="w-full py-4 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl cursor-pointer mt-4 disabled:opacity-60">
             {saving ? s.saving :'Finish Setting Up My Profile'}

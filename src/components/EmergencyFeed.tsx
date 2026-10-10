@@ -1,8 +1,8 @@
 import { AlertCircle, Clock, MapPin, Share2, ShieldCheck, Users } from 'lucide-react';
 import { motion } from 'motion/react';
-import React, { useState } from 'react';
-import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline } from '../services/lifelineService';
-import { EmergencyRequest } from '../types';
+import React, { useMemo, useState } from 'react';
+import { buildRequestShareText, buildWhatsAppShareUrl, formatRequestDeadline, getCompatibleDonorGroups, isDonorAvailableNow } from '../services/lifelineService';
+import { DonorProfile, EmergencyRequest } from '../types';
 import { defineStrings, useStrings } from '../i18n';
 
 const S = defineStrings(
@@ -25,7 +25,9 @@ const S = defineStrings(
     requirementFor: 'Requirement for ',
     bags: '{count} Bags',
     ofBlood: ' of {group} blood.',
-    compatibleNearby: '{count} Compatible Donors Nearby',
+    compatibleNearby: '{count} matching donors available in {district}',
+    compatibleNearbyOne: '1 matching donor available in {district}',
+    noMatchYet: 'No matching donor in {district} yet. Share to find one.',
     share: 'Share',
     shareTitle: 'Forward this request on WhatsApp',
     youOffered: '✓ You offered',
@@ -56,7 +58,9 @@ const S = defineStrings(
     requirementFor: '',
     bags: '{count} ব্যাগ',
     ofBlood: ' {group} রক্ত প্রয়োজন।',
-    compatibleNearby: 'কাছাকাছি {count} জন উপযুক্ত দাতা',
+    compatibleNearby: '{district}-এ {count} জন উপযুক্ত দাতা এখন দিতে পারবেন',
+    compatibleNearbyOne: '{district}-এ ১ জন উপযুক্ত দাতা এখন দিতে পারবেন',
+    noMatchYet: '{district}-এ এখনো উপযুক্ত দাতা নেই। শেয়ার করে খুঁজুন।',
     share: 'শেয়ার',
     shareTitle: 'অনুরোধটি WhatsApp-এ ফরোয়ার্ড করুন',
     youOffered: '✓ আপনি জানিয়েছেন',
@@ -83,7 +87,12 @@ interface EmergencyFeedProps {
   onOfferToDonate?: (req: EmergencyRequest) => void;
   /** Requester marks which donor actually gave blood. */
   onMarkDonated?: (req: EmergencyRequest) => void;
+  /** Loaded donor directory, used to count matching donors per request. */
+  donors?: DonorProfile[];
 }
+
+// Stable default so the match-count memo isn't invalidated every render.
+const NO_DONORS: DonorProfile[] = [];
 
 export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   requests,
@@ -93,13 +102,35 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   onEditRequest,
   offeredRequestIds = [],
   onOfferToDonate,
-  onMarkDonated
+  onMarkDonated,
+  donors = NO_DONORS
 }) => {
   const { s, f } = useStrings(S);
   // A page at a time keeps the phone feed short. Not reset on change: the
   // feed updates live, and collapsing it under someone mid-scroll is worse.
   const PAGE_SIZE = 8;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Matching donors per request: compatible blood group, same district,
+  // available today, not the requester. Computed live from the donor list the
+  // page already has. The stored matched_donors_count column was never
+  // written by anything (always 0), so every card claimed "0 donors nearby".
+  const matchCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const req of requests) {
+      const groups = getCompatibleDonorGroups(req.bloodGroup);
+      let n = 0;
+      for (const d of donors) {
+        if (d.id === req.requesterId) continue;
+        if (d.district !== req.district) continue;
+        if (!groups.includes(d.bloodGroup)) continue;
+        if (!isDonorAvailableNow(d)) continue;
+        n++;
+      }
+      counts.set(req.id, n);
+    }
+    return counts;
+  }, [requests, donors]);
   // urgency is stored data ('Critical' | 'High' | 'Medium'); only the label is translated.
   const priorityLabel = (urgency: string): string => {
     if (urgency === 'Critical') return s.priorityCritical;
@@ -206,10 +237,23 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
                 {/* Footer Meta & Quick Actions */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                    <span className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-900/50">
-                      <Users className="w-3.5 h-3.5" />
-                      {f(s.compatibleNearby, { count: req.matchedDonorsCount ?? '' })}
-                    </span>
+                    {(() => {
+                      const count = matchCounts.get(req.id) ?? 0;
+                      if (count === 0) {
+                        return (
+                          <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold">
+                            <Users className="w-3.5 h-3.5 shrink-0" />
+                            {f(s.noMatchYet, { district: req.district })}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-900/50">
+                          <Users className="w-3.5 h-3.5 shrink-0" />
+                          {count === 1 ? f(s.compatibleNearbyOne, { district: req.district }) : f(s.compatibleNearby, { count, district: req.district })}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex flex-col gap-2.5 w-full sm:flex-row sm:flex-wrap sm:items-center sm:w-auto">

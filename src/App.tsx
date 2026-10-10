@@ -705,6 +705,7 @@ export function App() {
               onEditRequest={req => { setEditingRequest(req); setIsRequestModalOpen(true); }}
               onSelectRequest={req => setJustPostedRequest(req)}
               onRequestBlood={() => { setEditingRequest(null); setIsRequestModalOpen(true); }}
+              donors={state.donors}
             />
             </>
           )}

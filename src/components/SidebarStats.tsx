@@ -1,4 +1,4 @@
-import { Award, Filter, Heart, MapPin } from 'lucide-react';
+import { Award, ChevronDown, Filter, Heart, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
@@ -28,6 +28,7 @@ const S = defineStrings(
     availableNow: 'Available right now',
     donatedBefore: 'Has donated before',
     clear: 'Clear filters',
+    locationFilter: 'Location & more',
     eligibility: 'Eligibility Status',
     readyNow: 'Ready Now!',
     // Was "...lives this year...", but livesSaved is an all-time total.
@@ -54,6 +55,7 @@ const S = defineStrings(
     availableNow: 'এখন দিতে পারবেন',
     donatedBefore: 'আগে রক্ত দিয়েছেন',
     clear: 'ফিল্টার মুছুন',
+    locationFilter: 'এলাকা ও আরো',
     eligibility: 'রক্তদানের যোগ্যতা',
     readyNow: 'এখনই দিতে পারবেন!',
     savedSoFar: 'Roktobondhu Bangladesh-এ আপনি এখন পর্যন্ত {count}টি জীবন বাঁচিয়েছেন।'
@@ -86,6 +88,9 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
   const areasList = selectedDistrictObj ? selectedDistrictObj.areas : [];
 
   const [showMore, setShowMore] = useState(false);
+  // Phones only: district/area/extra filters fold behind one button so the
+  // donor list starts on the first screen. Desktop always shows them.
+  const [locationOpen, setLocationOpen] = useState(false);
 
   // Only offer "clear" when there is something to clear, so the control isn't
   // sitting there implying the list is filtered when it isn't.
@@ -97,9 +102,11 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
     filters.regularOnly;
 
   return (
-    <aside className="lg:border-r border-slate-200/80 dark:border-slate-800 p-6 lg:p-8 flex flex-col gap-8 bg-slate-50/70 dark:bg-slate-900/70 min-w-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto custom-scroll">
-      {/* Impact Score Section */}
-      <section>
+    <aside className={`${!currentUser && !showFilters ? 'hidden lg:flex' : 'flex'} lg:border-r border-slate-200/80 dark:border-slate-800 px-4 py-5 sm:p-6 lg:p-8 flex-col gap-6 lg:gap-8 bg-slate-50/70 dark:bg-slate-900/70 min-w-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto custom-scroll`}>
+      {/* Impact Score Section. For guests it's only a placeholder repeating
+          the sign-in banner above, so on phones it is hidden to let real
+          content reach the first screen. */}
+      <section className={currentUser ? '' : 'hidden lg:block'}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300">{s.yourImpact}</h2>
         </div>
@@ -151,12 +158,14 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
               and hunt through. One tap, and you can see all options at once. */}
           <div>
             <p className="block text-xs font-semibold text-slate-500 mb-2">{s.bloodGroup}</p>
-            <div className="grid grid-cols-3 gap-2">
+            {/* Phones: one swipeable row instead of a 3x3 block. Desktop: grid. */}
+            <div className="-mx-4 px-4 flex gap-2 overflow-x-auto no-scrollbar sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:overflow-visible">
               {['ALL', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => (
                 <button
                   key={group}
                   onClick={() => setFilters(prev => ({ ...prev, bloodGroup: group }))}
-                  className={`py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                  aria-pressed={filters.bloodGroup === group}
+                  className={`shrink-0 min-w-[3.5rem] px-3 py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
                     filters.bloodGroup === group
                       ? 'bg-rose-600 text-white'
                       : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-rose-300 dark:hover:border-rose-700'
@@ -168,6 +177,22 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
             </div>
           </div>
 
+          <button
+            type="button"
+            onClick={() => setLocationOpen(v => !v)}
+            aria-expanded={locationOpen}
+            className="sm:hidden w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-300"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <MapPin className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+              <span className="truncate">
+                {filters.district === 'ALL' ? s.locationFilter : `${filters.district}${filters.area !== 'ALL' ? `, ${filters.area}` : ''}`}
+              </span>
+            </span>
+            <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${locationOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <div className={`${locationOpen ? 'block' : 'hidden'} sm:block space-y-4`}>
           <div>
             <label htmlFor="filter-district" className="block text-xs font-semibold text-slate-500 mb-2">{s.district}</label>
             <CompactSelect
@@ -245,6 +270,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
               {s.clear}
             </button>
           )}
+          </div>
         </div>
       </section>
 

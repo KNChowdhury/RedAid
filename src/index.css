@@ -71,3 +71,11 @@ html[lang='bn'] .leading-none { line-height: 1.2; }
   }
 }
 
+
+/* Horizontal chip rows on phones: swipeable, without a visible scrollbar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

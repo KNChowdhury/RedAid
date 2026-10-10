@@ -109,22 +109,24 @@ export const EmergencyFeed: React.FC<EmergencyFeedProps> = ({
   };
 
   return (
-    <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
+    <section className="px-4 py-5 sm:p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
       {/* Editorial Title Header */}
-      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* Phones: a compact heading so the "post request" action and the first
+          request are on the first screen; the big editorial title is desktop-only. */}
+      <header className="mb-5 sm:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-none mb-3">
+          <h1 className="editorial-title text-[1.75rem] sm:text-6xl text-slate-900 dark:text-slate-100 leading-tight sm:leading-none mb-1 sm:mb-3">
             {s.titleLine1}<br />
             <span className="text-rose-600 dark:text-rose-400">{s.titleLine2}</span>
           </h1>
-          <p className="text-slate-400 font-bold max-w-lg uppercase text-[11px] tracking-widest">
+          <p className="hidden sm:block text-slate-400 font-bold max-w-lg uppercase text-[11px] tracking-widest">
             {s.subtitle}
           </p>
         </div>
 
         <button
           onClick={onRequestBlood}
-          className="sm:hidden py-3 px-6 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-md flex items-center justify-center gap-2"
+          className="sm:hidden py-3.5 px-6 blood-gradient text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-md flex items-center justify-center gap-2"
         >
           <AlertCircle className="w-4 h-4 animate-bounce" />
           {s.postUrgent}

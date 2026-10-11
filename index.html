@@ -23,6 +23,31 @@
     <!-- Browser tab icon + mobile home-screen icon. Generated from
          public/brand/rbb-icon.svg by scripts/generate-brand-assets.js.
          iOS ignores SVG touch icons, hence the PNG. -->
+    <!-- Google Analytics 4 (G-QJMFLXSYTK). Privacy rules, keep them:
+         - Never load on auth landing URLs: magic-link / password-reset links
+           carry access_token / code / type=recovery in the URL, and GA would
+           send the full URL to Google.
+         - page_location is sent without query string or hash.
+         - Production host only, so local/preview traffic isn't counted.
+         - "Outbound clicks" must stay OFF in GA's Enhanced measurement:
+           donor call/WhatsApp links contain phone numbers (tel:/wa.me). -->
+    <script>
+      (function () {
+        var url = location.search + location.hash;
+        var isAuthUrl = /access_token|refresh_token|[?&#]code=|type=recovery|error_description/.test(url);
+        var isProd = location.hostname === 'rokto-bondhu-bangladesh.vercel.app' || /(^|\.)roktobondhu\.com$/.test(location.hostname);
+        if (isAuthUrl || !isProd) return;
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { dataLayer.push(arguments); };
+        gtag('js', new Date());
+        gtag('config', 'G-QJMFLXSYTK', { page_location: location.origin + location.pathname });
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-QJMFLXSYTK';
+        document.head.appendChild(s);
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

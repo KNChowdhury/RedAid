@@ -1,5 +1,49 @@
 # LifelineBD Codebase Review
 
+## Update 2026-10-11: Full-product audit (4 parallel read-only reviews + hand verification)
+
+**Scope.** Security/RLS/RPCs (patch_03..28 read in order to get the *effective* state), service layer (`lifelineService.ts`), React lifecycle/realtime/auth transitions, and user-facing forms/i18n. Nothing was run against the live database: **every DB finding is from the repo + Postgres semantics; each says what to run to confirm or disprove it.** Items marked ✔ were re-checked by hand in the code after the reviewers reported them.
+
+### Critical
+- **C1 ✔ Privilege guard has always been a no-op.** `patch_09` `guard_donor_privileged_fields()` is `SECURITY DEFINER`; inside it `current_user` is the owner, so `if current_user not in ('authenticated','anon') then return new` always returns before any reset. Impact: any signed-in user can `update donors set role='admin'` on their own row via REST → `is_admin()` → every donor's phone/WhatsApp and `donor_health` (HIV/HBsAg), all requests, all notifications; or fake `impact_score`/`is_verified` published publicly. Fix: `patch_29_fix_privilege_guard_noop.sql` (SECURITY INVOKER), **written, not yet applied**. Verify: patch_29 section 0 (who is already privileged) and section 2 (rolled-back escalation attempt as `authenticated`, expect `role=donor`).
+
+### High
+- **H1 ✔ `confirm_my_donation` double-credit race.** `patch_07`: plain `select` (no `FOR UPDATE`), `if rec.credited then return`, then `update ... where id = p_donation_id` (no `and not credited`). Two concurrent calls → +300 points, +2 lives for one donation. Fix: `update ... where id = $1 and not credited returning *`, return early if not found.
+- **H2 ✔ `record_donation` has no uniqueness / response check.** No unique index on `donation_records(request_id, donor_id)` anywhere in the repo; the function only checks requester ownership. Two colluding accounts can farm unlimited points (A records, B confirms, repeat); also a notification-spam channel. Fix: unique index + require an existing `request_responses` row + eligibility check. Verify: `select request_id, donor_id, count(*) from donation_records group by 1,2 having count(*)>1;`
+- **H3 `verify_donation` source still not in repo** (open since the earlier review). Called from `lifelineService.ts` ~1065, doc says "+150 points". Possible second crediting path; worse combined with C1 (self-made `hospital`). Verify: `select pg_get_functiondef('public.verify_donation(uuid,uuid,integer)'::regprocedure);`
+- **H4 Writes blocked by RLS are reported as success.** `updateDonorAvailability`, `toggleDonorVerification`, `deleteRequestFromDb`, `markMyNotificationsRead` only check `error`; RLS-filtered writes affect 0 rows with no error. UI shows deleted/verified/toggled, reverts on refresh. Fix: `.select('id')`, treat empty as failure.
+- **H5 ✔ Failed health/screening save still says "Profile updated".** `lifelineService.ts` ~518: `if (healthError) console.error(...)` then continues. HIV/HBsAg/screening edits silently lost; feeds the public screening badge. Fix: return an error.
+- **H6 Request form: past/stale deadline, leaked state, unvalidated phone.** RequestBloodModal: `neededBy` default only set at mount; reset branch skips most fields; phone only truthiness-checked. Emergency requests can go out with an expired deadline, a previous edit's group/district, or an unreachable phone. Fix: reset all fields on open, deadline `min` + submit check, `isValidBdMobile`.
+- **H7 Profile edit saves invalid phone / empty area / any birth year.** `ProfileModal.handleSave` only checks the name. Fix: same validation as CompleteProfileModal.
+- **H8 Tab-visible → full profile + health + shared-data refetch, bypassing the 30s throttle.** auth-js `_onVisibilityChanged` emits `SIGNED_IN`; `subscribeToAuthState` re-resolves the donor on every session event; App's refresh dedupe is 500ms. Request bursts on every app switch on phones. Fix: only re-resolve when the auth user id changes / real sign-in.
+
+### Medium
+- **M1 ✔ Request insert validation bypassed.** `requests_insert_authenticated` (patch_05, owner check only) was never dropped, so patch_12's `requests_insert_valid_owner` (blood group / non-blank / bags>0) is ORed away. Verify: `select policyname, with_check from pg_policies where tablename='requests' and cmd='INSERT';` Fix: drop the old policy (+ CHECK constraints).
+- **M2 Contact-reveal limit gaps.** The 10/7-day limit is race-safe (advisory lock), but denied attempts are never logged (insert then `raise` rolls back), and `get_responder_contact` (patch_22, unused by the app) is a second reveal path outside the weekly limit.
+- **M3 Screening badge is self-reported.** Donors can write their own `*_status` and get a public "screened" badge.
+- **M4 Phone numbers can reach the browser console.** Several `console.error('...', error)` log full PostgREST errors; a 23505 `details` contains the phone value. Log `code`/`message` only.
+- **M5 Session can come back after sign-out** (hypothesis). No generation guard on in-flight session restores in `subscribeToAuthState` / `restoreSessionAndLoad`.
+- **M6 Bangladesh midnight off-by-one.** `toISOString().split('T')[0]` (UTC) in `isDonorAvailableNow` and the profile date `max`: from 00:00 to 06:00 BST a donor eligible today shows unavailable, and today's donation date can't be entered.
+- **M7 useDismissable leaves an extra history entry per closed overlay.** `replaceState(previousState)` copies rather than removes, so extra back presses "do nothing". Introduced by the 2026-09-17 race fix.
+- **M8 Duplicate rules.** Blood-compatibility table and eligibility check implemented twice (App.tsx `canReceiveRequestAlert` vs `getCompatibleDonorGroups` / `isDonorAvailableNow`), with different timezone handling.
+- **M9** patch_28 `set search_path to 'public, pg_temp'` is one quoted schema name, not two (hardening not in effect). **M10** patch_20 would break the DB if re-run after 25–28 (needs a guard header).
+- **M11 Not translated.** HospitalPortal has no i18n; several strings in Modals/AreaField; raw ISO date in English "Available from"; stored default request reason is English.
+- **M12** Donation units accept negatives/huge values (client); request age unbounded; signup with an existing email silently discards the newly entered profile; signup insert timeout doesn't abort.
+
+### Low
+Startup restores the session twice; `refreshSharedData` fires OS alerts before its stale check; notifications fetch can overwrite a realtime insert; `useDistricts` caches a failed load forever; rapid availability toggles roll back to the wrong value; request modal X button skips the discard confirm; ProfileModal edit inputs lack labels; public views expose `role`; 1000-row default cap (directory truncation once donors > 1000).
+
+### Verified OK
+Anon has no base-table access to donors/requests; `request_directory_public` hides `requester_id` from anon; trigger functions have EXECUTE revoked; `get_donor_contact` grants correct; update policies have WITH CHECK; `request_responses` can't be forged; realtime channel cleanup; Feedback/timer cleanup; no double-submit on the main forms.
+
+### Fix order
+1. **C1 now** (apply patch_29, run its checks, review section 0 for already-escalated accounts).
+2. H1, H2, M1 as one DB patch (crediting + request validation), then read `verify_donation` (H3).
+3. H4, H5 (false success), M4 (PII in console).
+4. H6, H7 (form validation), M6 (timezone).
+5. H8, M5, M7 (auth/refetch/history), then i18n and the Low list.
+
+
 ## Update 2026-09-17 (2) — Critical: live request feed was broken for everyone; and two auth-race bugs found testing Google Sign-In
 
 **1. CRITICAL, confirmed live, now fixed: `request_directory_public` had no grants — the request feed was broken for every guest and signed-in user.** Caught while regression-testing the Google Sign-In work below, via a direct anon-key REST probe unrelated to that testing (`GET /rest/v1/request_directory_public` → `42501 permission denied`). Root cause: `patch_25_public_data_privacy.sql`'s donor-directory section references `donor_directory_public.is_smoker`, a column `patch_26_remove_public_smoker_status.sql` later dropped. Re-running `patch_25` in full (to try to fix the grants) failed partway through with `column "is_smoker" does not exist` — and since that script has no transaction wrapper, the SQL Editor commits each statement as it runs, so everything after the failure point — including the entire request-feed section — never executed. Fixed with a new `patch_27_fix_request_directory_public_grants.sql`: exactly `patch_25`'s request-feed section (lines 118-243) copied standalone, nothing touching `is_smoker`/`donor_directory_public`. **Verified fixed live via the actual REST endpoints the app uses** (not just `has_table_privilege`, which reported `false` for the *base table* — expected, since that grant is column-level and the app only ever queries the views): `GET /rest/v1/v_public_requests` as anon → `200` with real data; `GET /rest/v1/v_authenticated_requests` as an authenticated user → `200` with `requester_id` included.

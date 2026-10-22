@@ -1356,8 +1356,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const statusLabel = (value: string) => STATUS_LABEL[value] ?? value;
 
   return (
-    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 lg:p-10 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto custom-scroll">
+    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center sm:p-4 animate-in fade-in duration-200">
+      {/* Full-screen on phones, wide on desktop (same pattern as the auth
+          dialog) -- the old max-w-xl box made the long edit form cramped. */}
+      <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-14 pb-8 sm:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-3xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
         {/* Zero-height sticky rail keeps the close button visible while the
             profile scrolls, so users don't have to scroll back up to close. */}
         <div className="sticky top-0 z-10 h-0">

@@ -179,7 +179,7 @@ export function normalizeWhatsAppNumber(value: string | null | undefined): strin
 // window.location.origin: inside the Android app that is https://localhost.
 // Was hard-coded to lifelinebd.vercel.app, which died with the 2026-09 domain
 // move, so every shared request pointed at a dead site until 2026-10-04.
-export const PUBLIC_SITE_URL = 'https://redaid-rose.vercel.app';
+export const PUBLIC_SITE_URL = 'https://redaidbd.vercel.app';
 
 export function buildRequestShareText(req: {
   bloodGroup: string;

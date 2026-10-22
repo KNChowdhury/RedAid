@@ -35,7 +35,7 @@
       (function () {
         var url = location.search + location.hash;
         var isAuthUrl = /access_token|refresh_token|[?&#]code=|type=recovery|error_description/.test(url);
-        var isProd = location.hostname === 'redaid-rose.vercel.app';
+        var isProd = location.hostname === 'redaidbd.vercel.app';
         if (isAuthUrl || !isProd) return;
         window.dataLayer = window.dataLayer || [];
         window.gtag = function () { dataLayer.push(arguments); };
@@ -60,13 +60,13 @@
     <meta name="description" content="RedAid connects blood donors with urgent blood requests across Bangladesh. Find compatible donors, share emergency requests, and help save lives." />
     <meta name="keywords" content="blood donor Bangladesh, blood donation, রক্তদাতা বাংলাদেশ, জরুরি রক্ত, blood request" />
     <meta name="theme-color" content="#e11d48" />
-    <link rel="canonical" href="https://redaid-rose.vercel.app/" />
+    <link rel="canonical" href="https://redaidbd.vercel.app/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RedAid" />
     <meta property="og:title" content="RedAid - Save Life By Your Blood" />
     <meta property="og:description" content="Find blood donors and respond to urgent blood requests across Bangladesh." />
-    <meta property="og:url" content="https://redaid-rose.vercel.app/" />
+    <meta property="og:url" content="https://redaidbd.vercel.app/" />
     <meta property="og:locale" content="en_BD" />
     <meta property="og:locale:alternate" content="bn_BD" />
 
@@ -79,7 +79,7 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "RedAid",
-        "url": "https://redaid-rose.vercel.app/",
+        "url": "https://redaidbd.vercel.app/",
         "description": "A blood donor network connecting people with urgent blood requests across Bangladesh.",
         "applicationCategory": "HealthApplication",
         "operatingSystem": "Web",

@@ -7,7 +7,7 @@ import { defineStrings, richText, useStrings } from '../i18n';
 // browser") stay in English: that's what the phone actually shows.
 const S = defineStrings(
   {
-    regionLabel: 'Install the Roktobondhu app',
+    regionLabel: 'Install the RedAid app',
     installTitle: 'Install as an app',
     installBody: 'Free • No Play Store needed • Opens in one tap',
     iosTitle: 'Add the app to your Home Screen',
@@ -21,7 +21,7 @@ const S = defineStrings(
     menuIcon: 'menu'
   },
   {
-    regionLabel: 'Roktobondhu অ্যাপ ইনস্টল করুন',
+    regionLabel: 'RedAid অ্যাপ ইনস্টল করুন',
     installTitle: 'অ্যাপ হিসেবে ইনস্টল করুন',
     installBody: 'ফ্রি • Play Store লাগবে না • এক ট্যাপে খুলবে',
     iosTitle: 'হোম স্ক্রিনে অ্যাপ যোগ করুন',

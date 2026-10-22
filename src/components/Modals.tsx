@@ -91,14 +91,14 @@ const S = defineStrings(
 
     // 2. Auth modal
     closeAuthDialog: 'Close authentication dialog',
-    authTitleRegister: 'Join Roktobondhu Bangladesh',
+    authTitleRegister: 'Join RedAid',
     authTitleReset: 'Reset Password',
     authTitleNewPassword: 'Set New Password',
     authTitleLogin: 'Welcome Back Hero',
     authSubRegister: 'Register as a verified whole blood donor',
     authSubReset: 'Enter your email to receive password reset instructions',
-    authSubNewPassword: 'Choose a new password for your Roktobondhu Bangladesh account',
-    authSubLogin: 'Sign in to your Roktobondhu Bangladesh account',
+    authSubNewPassword: 'Choose a new password for your RedAid account',
+    authSubLogin: 'Sign in to your RedAid account',
     errInvalidEmail: 'Please enter a valid email, e.g. name@example.com',
     errPasswordLength: 'Password must be at least 6 characters.',
     errPasswordWeak: 'Please use a stronger password: mix capital and small letters, a number and a symbol (e.g. Milad@2420).',
@@ -271,14 +271,14 @@ const S = defineStrings(
 
     // 2. Auth modal
     closeAuthDialog: 'সাইন ইন ফর্ম বন্ধ করুন',
-    authTitleRegister: 'Roktobondhu Bangladesh-এ যোগ দিন',
+    authTitleRegister: 'RedAid-এ যোগ দিন',
     authTitleReset: 'পাসওয়ার্ড রিসেট',
     authTitleNewPassword: 'নতুন পাসওয়ার্ড দিন',
     authTitleLogin: 'আবারও স্বাগতম',
     authSubRegister: 'ভেরিফায়েড রক্তদাতা হিসেবে নিবন্ধন করুন',
     authSubReset: 'পাসওয়ার্ড রিসেটের নির্দেশনা পেতে আপনার ইমেইল দিন',
-    authSubNewPassword: 'আপনার Roktobondhu Bangladesh অ্যাকাউন্টের নতুন পাসওয়ার্ড দিন',
-    authSubLogin: 'আপনার Roktobondhu Bangladesh অ্যাকাউন্টে সাইন ইন করুন',
+    authSubNewPassword: 'আপনার RedAid অ্যাকাউন্টের নতুন পাসওয়ার্ড দিন',
+    authSubLogin: 'আপনার RedAid অ্যাকাউন্টে সাইন ইন করুন',
     errInvalidEmail: 'ইমেইলটা ঠিক নেই। যেমন: name@example.com',
     errPasswordLength: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের দিন।',
     errPasswordWeak: 'আরেকটু শক্ত পাসওয়ার্ড দিন: বড় হাতের ও ছোট হাতের অক্ষর, সংখ্যা আর একটা চিহ্ন মিলিয়ে (যেমন: Milad@2420)।',
@@ -965,7 +965,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           <X className="w-5 h-5" />
         </button>
 
-        <img src="/logo-mark.svg" alt="RBB — Roktobondhu Bangladesh" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
+        <img src="/logo-mark.svg" alt="RedAid" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
 
         <h2 className="editorial-title text-3xl font-black">
           {view === 'register' ? s.authTitleRegister : view === 'reset' ? s.authTitleReset : view === 'new-password' ? s.authTitleNewPassword : s.authTitleLogin}
@@ -1817,7 +1817,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
     <div className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
       {/* Full screen on phones, same as AuthModal. */}
       <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-10 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-md sm:max-h-[90vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
-        <img src="/logo-mark.svg" alt="RBB — Roktobondhu Bangladesh" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
+        <img src="/logo-mark.svg" alt="RedAid" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
         <h2 className="editorial-title text-2xl sm:text-3xl font-black">One Last Step</h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
           A few required details to finish setting up your donor profile

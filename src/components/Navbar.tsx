@@ -127,12 +127,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       >
         <img
           src="/logo-mark.svg"
-          alt="Roktobondhu Bangladesh"
+          alt="RedAid"
           className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform"
         />
         <div className="flex flex-col min-w-0">
           <span className="block truncate text-sm sm:text-2xl font-black tracking-tighter uppercase text-brand-green dark:text-brand-green-light leading-none">
-            Roktobondhu<span className="text-rose-600 dark:text-rose-400"> Bangladesh</span>
+            Red<span className="text-rose-600 dark:text-rose-400">Aid</span>
           </span>
           {/* Wraps to a second line and looks cramped below ~400px, so it's
               desktop/tablet-only; the wordmark alone reads fine on its own. */}

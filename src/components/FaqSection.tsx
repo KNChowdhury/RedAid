@@ -17,13 +17,13 @@ const S = defineStrings(
   {
     titleLead: 'How It',
     titleAccent: 'Works.',
-    subtitle: 'Frequently asked questions about Roktobondhu Bangladesh',
+    subtitle: 'Frequently asked questions about RedAid',
     notFound: "Can't find your answer here? Email us at the address in the footer."
   },
   {
     titleLead: 'কীভাবে',
     titleAccent: 'কাজ করে?',
-    subtitle: 'Roktobondhu Bangladesh সম্পর্কে সবচেয়ে বেশি জিজ্ঞাসিত প্রশ্ন',
+    subtitle: 'RedAid সম্পর্কে সবচেয়ে বেশি জিজ্ঞাসিত প্রশ্ন',
     notFound: 'আপনার প্রশ্নের উত্তর এখানে না পেলে ফুটারে দেওয়া ইমেইলে যোগাযোগ করুন।'
   }
 );
@@ -44,7 +44,7 @@ const FAQ_GROUPS_BN: FaqGroup[] = [
     title: 'শুরু করা',
     items: [
       {
-        q: 'Roktobondhu Bangladesh আসলে কী?',
+        q: 'RedAid আসলে কী?',
         a: 'এটি একটি ওয়েবসাইট যা রক্তদাতা এবং রক্তের প্রয়োজন যাদের, তাদের সরাসরি একে অপরের সাথে যুক্ত করে। কোনো মধ্যস্থতাকারী নেই — আপনি নিজে দাতা খুঁজে তার সাথে সরাসরি যোগাযোগ করতে পারেন, অথবা একটি অনুরোধ পোস্ট করতে পারেন। পোস্ট করা অনুরোধ "অনুরোধ" পেজে সবাই দেখতে পান, আর এক ট্যাপেই সেটি WhatsApp গ্রুপে শেয়ার করা যায়।',
       },
       {
@@ -62,11 +62,11 @@ const FAQ_GROUPS_BN: FaqGroup[] = [
     items: [
       {
         q: 'প্রোফাইলে কোন কোন তথ্য দিতে হয়?',
-        a: 'নাম, ফোন নম্বর, ব্লাড গ্রুপ, জেলা ও এলাকা, জন্মসাল (ঐচ্ছিক), সর্বশেষ কবে রক্ত দিয়েছেন (ঐচ্ছিক), এবং একটি সংক্ষিপ্ত স্বাস্থ্য স্ক্রিনিং সেকশন — HBsAg, Anti-HCV, Anti-HIV, VDRL (সিফিলিস), MP (ম্যালেরিয়া)। প্রতিটির ডিফল্ট মান "Not Tested" (পরীক্ষা করা হয়নি) — এগুলো সম্পূর্ণ স্ব-ঘোষিত তথ্য, Roktobondhu Bangladesh এগুলো ল্যাবের মাধ্যমে যাচাই করে না।',
+        a: 'নাম, ফোন নম্বর, ব্লাড গ্রুপ, জেলা ও এলাকা, জন্মসাল (ঐচ্ছিক), সর্বশেষ কবে রক্ত দিয়েছেন (ঐচ্ছিক), এবং একটি সংক্ষিপ্ত স্বাস্থ্য স্ক্রিনিং সেকশন — HBsAg, Anti-HCV, Anti-HIV, VDRL (সিফিলিস), MP (ম্যালেরিয়া)। প্রতিটির ডিফল্ট মান "Not Tested" (পরীক্ষা করা হয়নি) — এগুলো সম্পূর্ণ স্ব-ঘোষিত তথ্য, RedAid এগুলো ল্যাবের মাধ্যমে যাচাই করে না।',
       },
       {
         q: 'আমার স্বাস্থ্য তথ্য কে দেখতে পারবে?',
-        a: 'শুধু আপনি নিজে, আর Roktobondhu Bangladesh-এর অ্যাডমিন। অন্য কোনো ব্যবহারকারী — সাইন ইন করা বা না করা কেউই — আপনার HBsAg/HCV/HIV/VDRL/MP তথ্য দেখতে পারবে না। ডেটাবেজেও এটি আলাদাভাবে সুরক্ষিত রাখা আছে — শুধু আপনার নিজের অ্যাকাউন্ট এবং অ্যাডমিন অ্যাকাউন্ট এই তথ্য পড়তে পারে।',
+        a: 'শুধু আপনি নিজে, আর RedAid-এর অ্যাডমিন। অন্য কোনো ব্যবহারকারী — সাইন ইন করা বা না করা কেউই — আপনার HBsAg/HCV/HIV/VDRL/MP তথ্য দেখতে পারবে না। ডেটাবেজেও এটি আলাদাভাবে সুরক্ষিত রাখা আছে — শুধু আপনার নিজের অ্যাকাউন্ট এবং অ্যাডমিন অ্যাকাউন্ট এই তথ্য পড়তে পারে।',
       },
       {
         q: '"সর্বশেষ রক্তদানের তারিখ" দিলে কী হয়?',
@@ -121,7 +121,7 @@ const FAQ_GROUPS_BN: FaqGroup[] = [
       },
       {
         q: 'একটি নিশ্চিত দানে কী পাই?',
-        a: '+১৫০ Roktobondhu পয়েন্ট, জীবন বাঁচানোর সংখ্যায় +১, আপনার সর্বশেষ রক্তদানের তারিখ সেই দানের তারিখে সেট হয়ে যায়, এবং আপনার "এখন দিতে পারবেন" সুইচ স্বয়ংক্রিয়ভাবে বন্ধ হয়ে যায়। ১২০ দিন পার হওয়ার পর আবার রক্ত দিতে প্রস্তুত হলে সুইচটি নিজে অন করে দিন।',
+        a: '+১৫০ RedAid পয়েন্ট, জীবন বাঁচানোর সংখ্যায় +১, আপনার সর্বশেষ রক্তদানের তারিখ সেই দানের তারিখে সেট হয়ে যায়, এবং আপনার "এখন দিতে পারবেন" সুইচ স্বয়ংক্রিয়ভাবে বন্ধ হয়ে যায়। ১২০ দিন পার হওয়ার পর আবার রক্ত দিতে প্রস্তুত হলে সুইচটি নিজে অন করে দিন।',
       },
       {
         q: 'হাসপাতাল বা অ্যাডমিন কি সরাসরি দান নিশ্চিত করতে পারে?',
@@ -134,7 +134,7 @@ const FAQ_GROUPS_BN: FaqGroup[] = [
     items: [
       {
         q: '"পুরস্কার" ট্যাবে কী আছে?',
-        a: 'আপনার মোট Roktobondhu পয়েন্ট, অর্জিত ব্যাজসমূহ, এবং সবচেয়ে বেশি অবদান রাখা দাতাদের লিডারবোর্ড। পয়েন্ট বাড়ার সাথে সাথে নতুন ব্যাজ আনলক হয়।',
+        a: 'আপনার মোট RedAid পয়েন্ট, অর্জিত ব্যাজসমূহ, এবং সবচেয়ে বেশি অবদান রাখা দাতাদের লিডারবোর্ড। পয়েন্ট বাড়ার সাথে সাথে নতুন ব্যাজ আনলক হয়।',
       },
       {
         q: '"সফলতার গল্প" ট্যাবে কী দেখা যায়?',
@@ -153,7 +153,7 @@ const FAQ_GROUPS_EN: FaqGroup[] = [
     title: 'Getting started',
     items: [
       {
-        q: 'What is Roktobondhu Bangladesh, exactly?',
+        q: 'What is RedAid, exactly?',
         a: "It's a website that connects blood donors directly with people who need blood. There's no middleman — you can find a donor yourself and contact them directly, or post a request. A posted request is visible to everyone on the Requests page, and you can share it to WhatsApp groups in one tap.",
       },
       {
@@ -171,11 +171,11 @@ const FAQ_GROUPS_EN: FaqGroup[] = [
     items: [
       {
         q: 'What information goes on my profile?',
-        a: 'Your name, phone number, blood group, district and area, birth year (optional), when you last donated (optional), and a short health screening section — HBsAg, Anti-HCV, Anti-HIV, VDRL (syphilis), MP (malaria). Each one defaults to "Not Tested". These are entirely self-reported; Roktobondhu Bangladesh does not verify them with a lab.',
+        a: 'Your name, phone number, blood group, district and area, birth year (optional), when you last donated (optional), and a short health screening section — HBsAg, Anti-HCV, Anti-HIV, VDRL (syphilis), MP (malaria). Each one defaults to "Not Tested". These are entirely self-reported; RedAid does not verify them with a lab.',
       },
       {
         q: 'Who can see my health information?',
-        a: "Only you, and Roktobondhu Bangladesh's admins. No other user — signed in or not — can see your HBsAg/HCV/HIV/VDRL/MP information. It's also protected separately in the database — only your own account and admin accounts can read it.",
+        a: "Only you, and RedAid's admins. No other user — signed in or not — can see your HBsAg/HCV/HIV/VDRL/MP information. It's also protected separately in the database — only your own account and admin accounts can read it.",
       },
       {
         q: 'What happens when I enter my "last donation date"?',
@@ -230,7 +230,7 @@ const FAQ_GROUPS_EN: FaqGroup[] = [
       },
       {
         q: 'What do I get for a confirmed donation?',
-        a: '+150 Roktobondhu points, +1 to your lives saved count, your last donation date is set to that donation\'s date, and your "Available Now" switch turns off automatically. Once 120 days have passed and you\'re ready to donate again, turn the switch back on.',
+        a: '+150 RedAid points, +1 to your lives saved count, your last donation date is set to that donation\'s date, and your "Available Now" switch turns off automatically. Once 120 days have passed and you\'re ready to donate again, turn the switch back on.',
       },
       {
         q: 'Can a hospital or admin confirm a donation directly?',
@@ -243,7 +243,7 @@ const FAQ_GROUPS_EN: FaqGroup[] = [
     items: [
       {
         q: "What's in the Rewards tab?",
-        a: 'Your total Roktobondhu points, the badges you\'ve earned, and a leaderboard of the donors who have contributed the most. New badges unlock as your points grow.',
+        a: 'Your total RedAid points, the badges you\'ve earned, and a leaderboard of the donors who have contributed the most. New badges unlock as your points grow.',
       },
       {
         q: 'What does the Success Stories tab show?',

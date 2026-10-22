@@ -9,7 +9,7 @@ import { CompactSelect } from './CompactSelect';
 const S = defineStrings(
   {
     yourImpact: 'Your impact',
-    points: 'Roktobondhu points',
+    points: 'RedAid points',
     livesOne: '{count} life saved',
     livesMany: '{count} lives saved',
     regular: ' · regular donor',
@@ -32,11 +32,11 @@ const S = defineStrings(
     eligibility: 'Eligibility Status',
     readyNow: 'Ready Now!',
     // Was "...lives this year...", but livesSaved is an all-time total.
-    savedSoFar: "You've saved {count} lives on Roktobondhu Bangladesh."
+    savedSoFar: "You've saved {count} lives on RedAid."
   },
   {
     yourImpact: 'আপনার অবদান',
-    points: 'Roktobondhu পয়েন্ট',
+    points: 'RedAid পয়েন্ট',
     livesOne: '{count}টি জীবন বাঁচিয়েছেন',
     livesMany: '{count}টি জীবন বাঁচিয়েছেন',
     regular: ' · নিয়মিত দাতা',
@@ -58,7 +58,7 @@ const S = defineStrings(
     locationFilter: 'এলাকা ও আরো',
     eligibility: 'রক্তদানের যোগ্যতা',
     readyNow: 'এখনই দিতে পারবেন!',
-    savedSoFar: 'Roktobondhu Bangladesh-এ আপনি এখন পর্যন্ত {count}টি জীবন বাঁচিয়েছেন।'
+    savedSoFar: 'RedAid-এ আপনি এখন পর্যন্ত {count}টি জীবন বাঁচিয়েছেন।'
   }
 );
 

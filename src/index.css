@@ -16,7 +16,7 @@
 /* Brand greens, taken from the logo's hands (public/brand/rbb-icon.svg).
    Red stays Tailwind's rose-600/400 and means urgency/actions, so names
    and the wordmark use green instead. Contrast (WCAG):
-     brand-green  #006A4E  6.6:1 on white   -> "ROKTOBONDHU" wordmark (large text)
+     brand-green  #006A4E  6.6:1 on white   -> "REDAID" wordmark (large text)
      brand-ink    #0B4F3C  9.6:1 on white   -> people's names (AAA at body size)
      brand-green-light #4FD1A5  9.4:1 on slate-900 -> both of the above in dark mode */
 /* Bangla typography, only when the UI language is Bangla (LanguageProvider

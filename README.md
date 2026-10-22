@@ -1,14 +1,14 @@
 
 
-# Roktobondhu Bangladesh
+# RedAid
 
 সংক্ষিপ্ত বর্ণনা (বাংলা):
 
-Roktobondhu Bangladesh একটি ছোট React + TypeScript অ্যাপ যা Supabase ব্যবহার করে ব্যবহারকারী authentication এবং ডেটা ফেচ করে — রক্তদাতা/রিসিভারের নেটওয়ার্ক প্রদর্শন করে এবং জরুরী অনুরোধ/নোটিফিকেশন পরিচালনা করে।
+RedAid একটি ছোট React + TypeScript অ্যাপ যা Supabase ব্যবহার করে ব্যবহারকারী authentication এবং ডেটা ফেচ করে — রক্তদাতা/রিসিভারের নেটওয়ার্ক প্রদর্শন করে এবং জরুরী অনুরোধ/নোটিফিকেশন পরিচালনা করে।
 
 Brief description (English):
 
-Roktobondhu Bangladesh is a Vite + React + TypeScript frontend that integrates with Supabase for authentication, realtime data access, and storage. It provides features for donors, hospitals, and emergency requests.
+RedAid is a Vite + React + TypeScript frontend that integrates with Supabase for authentication, realtime data access, and storage. It provides features for donors, hospitals, and emergency requests.
 
 ## Quick Start
 

@@ -1,4 +1,4 @@
-// Roktobondhu service worker: makes the site installable and shows a
+// RedAid service worker: makes the site installable and shows a
 // friendly page when there's no connection.
 //
 // It deliberately does NOT cache the app shell or any data. Donor and

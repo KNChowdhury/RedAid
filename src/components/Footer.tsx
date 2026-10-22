@@ -5,7 +5,7 @@ import { defineStrings, useStrings } from '../i18n';
 // Names (founder, foundation) stay as written in both languages.
 const S = defineStrings(
   {
-    logoAlt: 'RBB — Roktobondhu Bangladesh',
+    logoAlt: 'RedAid',
     tagline: 'Save Life By Your Blood',
     about: 'Connecting blood donors with the people who need them, across Bangladesh.',
     help: 'Help',
@@ -14,10 +14,10 @@ const S = defineStrings(
     founderRole: 'Founder, Shahnaz and Manik Foundation',
     emergency: 'Emergency',
     urgentOnly: 'For urgent help only',
-    privacyNote: '© {year} Roktobondhu Bangladesh · Donor contact details are shared only with signed-in users, and health information stays private to each donor.'
+    privacyNote: '© {year} RedAid · Donor contact details are shared only with signed-in users, and health information stays private to each donor.'
   },
   {
-    logoAlt: 'RBB — Roktobondhu Bangladesh',
+    logoAlt: 'RedAid',
     tagline: 'রক্ত দিন, জীবন বাঁচান',
     about: 'সারা বাংলাদেশে রক্তদাতাদের সাথে রক্তের প্রয়োজনে থাকা মানুষদের যুক্ত করছি।',
     help: 'সাহায্য',
@@ -26,7 +26,7 @@ const S = defineStrings(
     founderRole: 'প্রতিষ্ঠাতা, Shahnaz and Manik Foundation',
     emergency: 'জরুরি',
     urgentOnly: 'শুধু জরুরি প্রয়োজনে',
-    privacyNote: '© {year} Roktobondhu Bangladesh · রক্তদাতার যোগাযোগের তথ্য শুধু সাইন ইন করা ব্যবহারকারীরা দেখতে পান, আর স্বাস্থ্য তথ্য প্রত্যেক রক্তদাতার কাছেই গোপন থাকে।'
+    privacyNote: '© {year} RedAid · রক্তদাতার যোগাযোগের তথ্য শুধু সাইন ইন করা ব্যবহারকারীরা দেখতে পান, আর স্বাস্থ্য তথ্য প্রত্যেক রক্তদাতার কাছেই গোপন থাকে।'
   }
 );
 
@@ -52,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenFaq }) => {
               <img src="/logo-mark.svg" alt={s.logoAlt} className="w-10 h-10 rounded-xl shrink-0" />
               <div>
                 <p className="font-black text-brand-green dark:text-brand-green-light">
-                  Roktobondhu<span className="text-rose-600 dark:text-rose-400"> Bangladesh</span>
+                  Red<span className="text-rose-600 dark:text-rose-400">Aid</span>
                 </p>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-rose-500">{s.tagline}</p>
               </div>

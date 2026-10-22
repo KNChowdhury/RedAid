@@ -960,7 +960,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   return (
     <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
       {/* Full screen on phones so the form scrolls as one page and errors stay in view. */}
-      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-16 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-md sm:max-h-[90vh] overflow-y-auto sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
+      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-16 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[94vh] overflow-y-auto custom-scroll sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
         <button onClick={onClose} aria-label={s.closeAuthDialog} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
@@ -1822,7 +1822,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
   return (
     <div className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
       {/* Full screen on phones, same as AuthModal. */}
-      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-10 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-md sm:max-h-[90vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
+      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-10 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
         <img src="/logo-mark.svg" alt="RedAid" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
         <h2 className="editorial-title text-2xl sm:text-3xl font-black">One Last Step</h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">

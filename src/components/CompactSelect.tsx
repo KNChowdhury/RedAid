@@ -11,7 +11,11 @@ interface CompactSelectProps {
 
 export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, onChange, className = '', id }) => {
   const [open, setOpen] = useState(false);
+  // Where the list fits: below by default, above when the visible space
+  // below (window or the nearest scrolling ancestor, e.g. the sidebar) is short.
+  const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number }>({ up: false, maxHeight: 288 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
 
   useEffect(() => {
@@ -22,12 +26,40 @@ export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, on
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
+  const toggle = () => {
+    if (!open && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      let top = 0;
+      let bottom = window.innerHeight;
+      for (let el = containerRef.current.parentElement; el; el = el.parentElement) {
+        if (/(auto|scroll|hidden)/.test(getComputedStyle(el).overflowY)) {
+          const r = el.getBoundingClientRect();
+          top = Math.max(top, r.top);
+          bottom = Math.min(bottom, r.bottom);
+        }
+      }
+      const below = bottom - rect.bottom - 12;
+      const above = rect.top - top - 12;
+      const up = below < 200 && above > below;
+      setPlacement({ up, maxHeight: Math.max(144, Math.min(288, up ? above : below)) });
+    }
+    setOpen(current => !current);
+  };
+
+  // Show the selected option without scrolling the page.
+  useEffect(() => {
+    if (!open) return;
+    const list = listRef.current;
+    const active = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (list && active) list.scrollTop = active.offsetTop - list.clientHeight / 2 + active.clientHeight / 2;
+  }, [open]);
+
   return (
     <div ref={containerRef} className="relative">
       <button
         id={id}
         type="button"
-        onClick={() => setOpen(current => !current)}
+        onClick={toggle}
         className={`w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-800 dark:text-slate-200 outline-hidden focus:border-rose-500 transition-colors cursor-pointer flex items-center justify-between gap-3 ${className}`}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -36,7 +68,12 @@ export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, on
         <ChevronDown className={`w-4 h-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-30 max-h-56 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-xl" role="listbox">
+        <div
+          ref={listRef}
+          style={{ maxHeight: placement.maxHeight }}
+          className={`absolute left-0 right-0 z-30 overflow-y-auto overscroll-contain custom-scroll ${placement.up ? 'bottom-full mb-1' : 'top-full mt-1'} rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-xl`}
+          role="listbox"
+        >
           {options.map(option => (
             <button
               key={option.value}

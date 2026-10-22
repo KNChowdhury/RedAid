@@ -1,7 +1,8 @@
-import { Activity, AlertTriangle, BarChart3, CheckCircle2, FileText, Shield, Trash2, UserCheck, Users } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, CheckCircle2, FileText, KeyRound, Shield, Trash2, UserCheck, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { defineStrings, formatNumber, useStrings } from '../i18n';
 import { formatRequestDeadline } from '../services/lifelineService';
+import { supabase } from '../services/supabaseClient';
 import { DonorProfile, EmergencyRequest } from '../types';
 import { Avatar } from './Avatar';
 
@@ -36,7 +37,18 @@ const S = defineStrings(
     urgencyCritical: 'Critical',
     urgencyHigh: 'High',
     urgencyMedium: 'Medium',
-    deleteRequest: 'Remove Spam / Expired Request'
+    deleteRequest: 'Remove Spam / Expired Request',
+    tabAccess: '🔑 Phone access',
+    accessHeading: 'Activate / reset an imported donor',
+    accessHelp: 'For donors imported from offline lists. Sets the password they sign in with using their phone number. Share it with the donor privately.',
+    accessPhone: 'Donor phone (01XXXXXXXXX)',
+    accessPassword: 'New password (min 8 characters)',
+    accessSubmit: 'Set password',
+    accessCreated: 'Account activated. The donor can now sign in with their phone and this password.',
+    accessReset: 'Password updated.',
+    accessNotFound: 'No imported donor with this phone number.',
+    accessInvalid: 'Enter a valid BD mobile number and a password of 8–72 characters.',
+    accessFailed: 'Could not set the password. Please try again.'
   },
   {
     controlPlane: 'সিস্টেম নিয়ন্ত্রণ',
@@ -67,7 +79,18 @@ const S = defineStrings(
     urgencyCritical: 'অতি জরুরি',
     urgencyHigh: 'জরুরি',
     urgencyMedium: 'সাধারণ',
-    deleteRequest: 'স্প্যাম / মেয়াদোত্তীর্ণ অনুরোধ মুছুন'
+    deleteRequest: 'স্প্যাম / মেয়াদোত্তীর্ণ অনুরোধ মুছুন',
+    tabAccess: '🔑 ফোন অ্যাক্সেস',
+    accessHeading: 'ইমপোর্ট করা দাতার অ্যাকাউন্ট চালু / পাসওয়ার্ড রিসেট',
+    accessHelp: 'অফলাইন তালিকা থেকে ইমপোর্ট করা দাতাদের জন্য। ফোন নম্বর দিয়ে লগইনের পাসওয়ার্ড সেট করে। পাসওয়ার্ডটি দাতাকে ব্যক্তিগতভাবে জানান।',
+    accessPhone: 'দাতার ফোন (01XXXXXXXXX)',
+    accessPassword: 'নতুন পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)',
+    accessSubmit: 'পাসওয়ার্ড সেট করুন',
+    accessCreated: 'অ্যাকাউন্ট চালু হয়েছে। দাতা এখন ফোন নম্বর ও এই পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।',
+    accessReset: 'পাসওয়ার্ড আপডেট হয়েছে।',
+    accessNotFound: 'এই ফোন নম্বরে কোনো ইমপোর্ট করা দাতা নেই।',
+    accessInvalid: 'সঠিক বাংলাদেশি মোবাইল নম্বর এবং ৮–৭২ অক্ষরের পাসওয়ার্ড দিন।',
+    accessFailed: 'পাসওয়ার্ড সেট করা যায়নি। আবার চেষ্টা করুন।'
   }
 );
 
@@ -84,7 +107,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onDeleteRequest,
   onToggleVerifyUser
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'users' | 'requests'>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'users' | 'requests' | 'access'>('overview');
+  const [accessPhone, setAccessPhone] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
+  const [accessBusy, setAccessBusy] = useState(false);
+  const [accessMsg, setAccessMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const { s, f, lang } = useStrings(S);
 
   // English keeps exactly the digits it showed before (no added grouping);
@@ -95,6 +122,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     Critical: s.urgencyCritical,
     High: s.urgencyHigh,
     Medium: s.urgencyMedium
+  };
+
+  const handleSetDonorPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase || accessBusy) return;
+    setAccessBusy(true);
+    setAccessMsg(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-set-donor-password', {
+        body: { phone: accessPhone.trim(), password: accessPassword }
+      });
+      if (error) {
+        // Non-2xx: the function's JSON body carries a stable error code.
+        let code = '';
+        try { code = (await (error as { context?: Response }).context?.json())?.error ?? ''; } catch { /* not JSON */ }
+        const text = code === 'no_imported_donor' ? s.accessNotFound
+          : code === 'invalid_phone' || code === 'password_length' ? s.accessInvalid
+          : s.accessFailed;
+        setAccessMsg({ ok: false, text });
+        return;
+      }
+      setAccessMsg({ ok: true, text: data?.action === 'account_created' ? s.accessCreated : s.accessReset });
+      setAccessPassword('');
+    } catch {
+      setAccessMsg({ ok: false, text: s.accessFailed });
+    } finally {
+      setAccessBusy(false);
+    }
   };
 
   const fulfilledRequests = requests.filter(r => r.status === 'Fulfilled').length;
@@ -142,6 +197,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }`}
           >
             {f(s.tabRequests, { count: num(requests.length) })}
+          </button>
+          <button
+            onClick={() => setActiveSubTab('access')}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+              activeSubTab === 'access' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500'
+            }`}
+          >
+            {s.tabAccess}
           </button>
         </div>
       </header>
@@ -257,6 +320,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           ))}
         </div>
+      )}
+
+      {/* Phone-account access for imported donors */}
+      {activeSubTab === 'access' && (
+        <form onSubmit={handleSetDonorPassword} className="max-w-md space-y-4 animate-in fade-in duration-200">
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-rose-600 dark:text-rose-400" /> {s.accessHeading}
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{s.accessHelp}</p>
+          <label className="block space-y-1">
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{s.accessPhone}</span>
+            <input
+              type="tel" inputMode="tel" autoComplete="off" required
+              value={accessPhone} onChange={e => setAccessPhone(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{s.accessPassword}</span>
+            <input
+              type="text" autoComplete="new-password" required minLength={8} maxLength={72}
+              value={accessPassword} onChange={e => setAccessPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono"
+            />
+          </label>
+          {accessMsg && (
+            <p role="status" className={`text-sm font-semibold ${accessMsg.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+              {accessMsg.text}
+            </p>
+          )}
+          <button
+            type="submit" disabled={accessBusy}
+            className="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-sm font-black cursor-pointer"
+          >
+            {s.accessSubmit}
+          </button>
+        </form>
       )}
     </section>
   );

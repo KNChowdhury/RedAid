@@ -34,6 +34,13 @@ function isValidBdMobile(input: string): boolean {
   return /^1[3-9]\d{8}$/.test(bdDigits(input));
 }
 
+/** Donors imported from offline lists have no real email; their login is
+ *  this internal address (see patch_30). Returns null if input isn't a phone. */
+function phoneLoginEmail(input: string): string | null {
+  if (input.includes('@') || !isValidBdMobile(input)) return null;
+  return `880${bdDigits(input)}@phone.redaid.invalid`;
+}
+
 /** For wa.me links: 8801712345678 (no plus) */
 export function toBdWhatsapp(input: string): string {
   const d = bdDigits(input);
@@ -108,6 +115,9 @@ const S = defineStrings(
     resetLinkSent: 'If this email is registered, a reset link has been sent. Check your inbox and spam folder, and confirm the spelling.',
     errGeneric: 'Something went wrong. Please try again.',
     errInvalidLogin: 'Incorrect email or password. Please check and try again.',
+    emailOrPhone: 'Email or phone number',
+    errPhoneLoginFailed: 'Wrong password, or this number has no account yet. To reset your password or get access, contact the RedAid admin.',
+    phoneResetViaAdmin: 'Accounts with a phone number cannot be reset by SMS or email. Please contact the RedAid admin to set a new password.',
     errEmailRequired: 'Please enter your email.',
     errPasswordRequired: 'Please enter your password.',
     errPhoneRequired: 'Please enter your mobile number.',
@@ -288,6 +298,9 @@ const S = defineStrings(
     resetLinkSent: 'এই ইমেইল নিবন্ধিত থাকলে একটি রিসেট লিংক পাঠানো হয়েছে। ইনবক্স ও স্প্যাম ফোল্ডার দেখুন, আর ইমেইলের বানান ঠিক আছে কিনা মিলিয়ে নিন।',
     errGeneric: 'কোনো সমস্যা হয়েছে। আবার চেষ্টা করুন।',
     errInvalidLogin: 'ইমেইল বা পাসওয়ার্ড মিলছে না। আবার দেখে দিন।',
+    emailOrPhone: 'ইমেইল বা ফোন নম্বর',
+    errPhoneLoginFailed: 'পাসওয়ার্ড ভুল, অথবা এই নম্বরে এখনো অ্যাকাউন্ট চালু হয়নি। পাসওয়ার্ড রিসেট বা অ্যাক্সেসের জন্য RedAid অ্যাডমিনের সাথে যোগাযোগ করুন।',
+    phoneResetViaAdmin: 'ফোন নম্বরের অ্যাকাউন্ট SMS বা ইমেইলে রিসেট হয় না। নতুন পাসওয়ার্ডের জন্য RedAid অ্যাডমিনের সাথে যোগাযোগ করুন।',
     errEmailRequired: 'ইমেইল লিখুন।',
     errPasswordRequired: 'পাসওয়ার্ড লিখুন।',
     errPhoneRequired: 'মোবাইল নম্বর লিখুন।',
@@ -876,7 +889,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setSuccessMsg('');
 
     setAlreadyRegistered(false);
-    const normalizedEmail = email.trim().toLowerCase();
+    // Login and reset also accept a phone number (bulk-imported donors).
+    const phoneEmail = view === 'login' || view === 'reset' ? phoneLoginEmail(email.trim()) : null;
+    const normalizedEmail = phoneEmail ?? email.trim().toLowerCase();
     const errors = validate(normalizedEmail);
     if (Object.keys(errors).length > 0) {
       showFieldErrors(errors);
@@ -900,6 +915,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       setLoading(false);
       onPasswordRecoveryComplete?.();
       onClose();
+      return;
+    }
+
+    if (view === 'reset' && phoneEmail) {
+      // No SMS and no real mailbox: an admin sets the password.
+      setLoading(false);
+      setErrorMsg(s.phoneResetViaAdmin);
       return;
     }
 
@@ -951,7 +973,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     const { user, error } = await signInDonor(normalizedEmail, password);
     setLoading(false);
     if (error || !user) {
-      setErrorMsg(error ? describeAuthError(error, s).text : s.errInvalidLogin);
+      const text = error ? describeAuthError(error, s).text : s.errInvalidLogin;
+      setErrorMsg(phoneEmail && text === s.errInvalidLogin ? s.errPhoneLoginFailed : text);
       return;
     }
     onLoginSuccess(user);
@@ -1005,8 +1028,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           )}
 
           {view !== 'new-password' && <div>
-            <label htmlFor="auth-email" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.email} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-            <input id="auth-email" type="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => { setEmail(e.target.value); clearFieldError('email'); setAlreadyRegistered(false); }} placeholder="you@example.com" aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'auth-email-error' : alreadyRegistered ? 'auth-email-notice' : undefined} className={authInputClass(!!fieldErrors.email)} />
+            <label htmlFor="auth-email" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{view === 'login' || view === 'reset' ? s.emailOrPhone : s.email} <span className="text-rose-600 dark:text-rose-400">*</span></label>
+            <input id="auth-email" type={view === 'login' || view === 'reset' ? 'text' : 'email'} inputMode="email" name="email" autoComplete={view === 'login' ? 'username' : 'email'} value={email} onChange={e => { setEmail(e.target.value); clearFieldError('email'); setAlreadyRegistered(false); }} placeholder="you@example.com" aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'auth-email-error' : alreadyRegistered ? 'auth-email-notice' : undefined} className={authInputClass(!!fieldErrors.email)} />
             <FieldError id="auth-email-error" message={fieldErrors.email} />
             {alreadyRegistered && view === 'register' && (
               <div id="auth-email-notice" role="status" className="mt-2 rounded-2xl border border-sky-200 dark:border-sky-900/60 bg-sky-50 dark:bg-sky-950/30 p-4 animate-in fade-in duration-200">

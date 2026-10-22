@@ -1,5 +1,5 @@
 import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
 import { defineStrings, fmt, formatNumber, useStrings, type Lang } from '../i18n';
@@ -531,8 +531,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
   const areasList = selectedDistObj ? selectedDistObj.areas : [];
 
   return (
-    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 lg:p-10 max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scroll my-auto">
+    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 bg-white dark:bg-slate-900 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] overflow-y-auto custom-scroll relative text-slate-900 dark:text-slate-100 px-5 sm:px-[max(2.5rem,calc((100vw-56rem)/2))] pb-10 pt-16">
         <button onClick={onClose} aria-label={s.closeRequestDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
@@ -549,9 +549,11 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
 
         <form onSubmit={handleSubmit} onChange={() => setDirty(true)} className="space-y-4">
           {submitError && (
+            <ScrollIntoViewOnShow trigger={submitError}>
             <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-400">
               {submitError}
             </div>
+            </ScrollIntoViewOnShow>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -713,6 +715,19 @@ function focusFirstFieldError(prefix: string, errors: AuthFieldErrors) {
     el?.focus({ preventScroll: true });
   });
 }
+
+/**
+ * Scrolls a modal-level error into view when it appears or changes. Errors sit
+ * at the top of long forms, so after tapping submit at the bottom the user
+ * otherwise sees nothing happen and has to scroll up to find out why.
+ */
+const ScrollIntoViewOnShow: React.FC<{ trigger: string; children: React.ReactNode }> = ({ trigger, children }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (trigger) ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [trigger]);
+  return <div ref={ref}>{children}</div>;
+};
 
 /**
  * Shown right above the submit button whenever a field has an error. On phones
@@ -958,9 +973,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   };
 
   return (
-    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
+    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 bg-white dark:bg-slate-900 animate-in fade-in duration-200">
       {/* Full screen on phones so the form scrolls as one page and errors stay in view. */}
-      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-16 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-4xl sm:max-h-[94vh] overflow-y-auto custom-scroll sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
+      <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] overflow-y-auto custom-scroll relative text-slate-900 dark:text-slate-100 px-5 sm:px-[max(2.5rem,calc((100vw-56rem)/2))] pb-10 pt-16">
         <button onClick={onClose} aria-label={s.closeAuthDialog} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
@@ -1128,10 +1143,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           )}
 
           {errorMsg && (
+            <ScrollIntoViewOnShow trigger={errorMsg}>
             <div role="alert" className="mt-4 flex items-start gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
+            </ScrollIntoViewOnShow>
           )}
 
           <FieldErrorSummary prefix="auth" errors={fieldErrors} one={s.errFixFieldsOne} many={s.errFixFieldsMany} lang={lang} />
@@ -1356,10 +1373,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const statusLabel = (value: string) => STATUS_LABEL[value] ?? value;
 
   return (
-    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center sm:p-4 animate-in fade-in duration-200">
+    <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 bg-white dark:bg-slate-900 animate-in fade-in duration-200">
       {/* Full-screen on phones, wide on desktop (same pattern as the auth
           dialog) -- the old max-w-xl box made the long edit form cramped. */}
-      <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-14 pb-8 sm:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-4xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
+      <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 w-full h-[100dvh] overflow-y-auto custom-scroll relative text-slate-900 dark:text-slate-100 px-5 sm:px-[max(2.5rem,calc((100vw-56rem)/2))] pb-10 pt-14">
         {/* Zero-height sticky rail keeps the close button visible while the
             profile scrolls, so users don't have to scroll back up to close. */}
         <div className="sticky top-0 z-10 h-0">
@@ -1593,9 +1610,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             )}
 
             {saveErrorMsg && (
+              <ScrollIntoViewOnShow trigger={saveErrorMsg}>
               <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400">
                 {saveErrorMsg}
               </div>
+              </ScrollIntoViewOnShow>
             )}
 
             <div className="flex gap-3 pt-2">
@@ -1820,9 +1839,9 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
   };
 
   return (
-    <div className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900 animate-in fade-in duration-200">
       {/* Full screen on phones, same as AuthModal. */}
-      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-10 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-4xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
+      <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] overflow-y-auto custom-scroll relative text-slate-900 dark:text-slate-100 px-5 sm:px-[max(2.5rem,calc((100vw-56rem)/2))] pb-10 pt-12">
         <img src="/logo-mark.svg" alt="RedAid" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
         <h2 className="editorial-title text-2xl sm:text-3xl font-black">One Last Step</h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
@@ -1889,10 +1908,12 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
           </label>
 
           {errorMsg && (
+            <ScrollIntoViewOnShow trigger={errorMsg}>
             <div role="alert" className="mt-4 flex items-start gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-400">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
+            </ScrollIntoViewOnShow>
           )}
 
           <FieldErrorSummary prefix="complete" errors={fieldErrors} one={s.errFixFieldsOne} many={s.errFixFieldsMany} lang={lang} />

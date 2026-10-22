@@ -1358,9 +1358,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   return (
     <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 lg:p-10 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto custom-scroll">
-        <button onClick={onClose} aria-label={s.closeProfileDialog} className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
-          <X className="w-5 h-5" />
-        </button>
+        {/* Zero-height sticky rail keeps the close button visible while the
+            profile scrolls, so users don't have to scroll back up to close. */}
+        <div className="sticky top-0 z-10 h-0">
+          <button onClick={onClose} aria-label={s.closeProfileDialog} className="absolute -top-2 -right-2 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 shadow-sm">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         <div className="flex items-center gap-5 pb-6 border-b border-slate-100 dark:border-slate-800">
           <Avatar name={donor.name} src={donor.avatar} className="w-20 h-20" textClassName="text-2xl" />

@@ -960,7 +960,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   return (
     <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
       {/* Full screen on phones so the form scrolls as one page and errors stay in view. */}
-      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-16 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[94vh] overflow-y-auto custom-scroll sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
+      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-16 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-4xl sm:max-h-[94vh] overflow-y-auto custom-scroll sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100">
         <button onClick={onClose} aria-label={s.closeAuthDialog} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400">
           <X className="w-5 h-5" />
         </button>
@@ -1079,7 +1079,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <FieldError id="auth-phone-error" message={fieldErrors.phone} />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                   <select id="auth-bloodGroup" value={bloodGroup} onChange={e => { setBloodGroup(e.target.value); clearFieldError('bloodGroup'); }} aria-invalid={!!fieldErrors.bloodGroup} aria-describedby={fieldErrors.bloodGroup ? 'auth-bloodGroup-error' : undefined} className={`w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400 ${fieldErrors.bloodGroup ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}>
@@ -1359,7 +1359,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
     <div onClick={backdropClose(requestClose)} className="fixed inset-0 z-50 glass-dark flex items-center justify-center sm:p-4 animate-in fade-in duration-200">
       {/* Full-screen on phones, wide on desktop (same pattern as the auth
           dialog) -- the old max-w-xl box made the long edit form cramped. */}
-      <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-14 pb-8 sm:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-3xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
+      <div onChange={() => setDirty(true)} className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-14 pb-8 sm:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-4xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
         {/* Zero-height sticky rail keeps the close button visible while the
             profile scrolls, so users don't have to scroll back up to close. */}
         <div className="sticky top-0 z-10 h-0">
@@ -1399,7 +1399,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
         {!isEditing ? (
           <>
-            <div className="my-6 grid grid-cols-2 gap-3 text-xs font-bold">
+            <div className="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold">
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <span className="text-[10px] text-slate-400 block">{s.phoneCaps}</span>
                 <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.phone || s.notProvided) : revealedContact?.phone || (revealedContact ? s.notAvailableRightNow : s.hiddenUntilRevealed)}</span>
@@ -1422,7 +1422,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
 
             {isOwnProfile ? <div className="my-6 space-y-4">
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">{s.healthTelemetry}</h4>
-              <div className="grid grid-cols-3 gap-3 font-mono text-xs text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs text-center">
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] text-slate-400 font-sans block font-bold">{s.hemoglobin}</span>
                   <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">{donor.healthInfo?.hemoglobin ? `${donor.healthInfo.hemoglobin} g/dL` : s.notAvailable}</span>
@@ -1438,7 +1438,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </div>
 
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">{s.donationRecord}</h4>
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                   <span className="block text-[9px] font-bold uppercase text-slate-400">{s.timesDonated}</span>
                   <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-lg">{formatNumber(donor.donationCount ?? 0, lang)}</span>
@@ -1454,7 +1454,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               </div>
 
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">{s.ttiScreening}</h4>
-              <div className="grid grid-cols-5 gap-2 font-mono text-[10px] text-center">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 font-mono text-[10px] text-center">
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                   <span className="text-[9px] text-slate-400 font-sans block font-bold">HBsAg</span>
                   <span className={`font-black ${statusColor(donor.healthInfo?.hbsagStatus || 'Not Tested')}`}>{statusLabel(donor.healthInfo?.hbsagStatus || 'Not Tested')}</span>
@@ -1508,7 +1508,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
               <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.whatsappNumber} <span className="normal-case font-medium text-slate-400">{s.optional}</span></label>
               <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <select value={bloodGroup} onChange={e => setBloodGroup(e.target.value as BloodGroup)} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400">
@@ -1529,7 +1529,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
                 <select value={district} onChange={e => { setDistrict(e.target.value); setArea(''); }} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold">
@@ -1557,7 +1557,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             </div>
 
             <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2">{s.screeningEntered}</h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { label: s.testHbsag, value: hbsagStatus, setter: setHbsagStatus },
                 { label: s.testHcv, value: hcvStatus, setter: setHcvStatus },
@@ -1822,7 +1822,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
   return (
     <div className="fixed inset-0 z-50 glass-dark flex items-stretch sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
       {/* Full screen on phones, same as AuthModal. */}
-      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-10 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
+      <div className="bg-white dark:bg-slate-900 sm:rounded-[2.5rem] px-5 pt-10 pb-8 sm:p-8 lg:p-10 w-full h-[100dvh] sm:h-auto sm:max-w-4xl sm:max-h-[94vh] sm:border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-slate-100 overflow-y-auto custom-scroll">
         <img src="/logo-mark.svg" alt="RedAid" className="w-12 h-12 rounded-2xl shadow-lg shadow-rose-500/20 mb-4" />
         <h2 className="editorial-title text-2xl sm:text-3xl font-black">One Last Step</h2>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1 mb-6">
@@ -1842,7 +1842,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
             <FieldError id="complete-phone-error" message={fieldErrors.phone} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="complete-bloodGroup" className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.bloodGroup} <span className="text-rose-600 dark:text-rose-400">*</span></label>
               <select id="complete-bloodGroup" value={bloodGroup} onChange={e => { setBloodGroup(e.target.value); clearFieldError('bloodGroup'); }} aria-invalid={!!fieldErrors.bloodGroup} aria-describedby={fieldErrors.bloodGroup ? 'complete-bloodGroup-error' : undefined} className={`w-full p-3 bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono font-bold text-rose-600 dark:text-rose-400 ${fieldErrors.bloodGroup ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}>

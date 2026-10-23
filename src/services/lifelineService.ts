@@ -1154,7 +1154,7 @@ export function subscribeToLiveUpdates(handlers: {
   }
 
   const channel: RealtimeChannel = supabase
-    .channel('lifelinebd-live')
+    .channel(`lifelinebd-live-${Math.random().toString(36).slice(2)}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, () => {
       handlers.onRequestsChange?.();
     })

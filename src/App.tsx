@@ -355,9 +355,12 @@ export function App() {
     setPendingConfirmations(pending);
   }, []);
 
+  // Refresh when any request is added, removed or changes status, not just
+  // when the count changes.
+  const requestsKey = state.requests.map(r => `${r.id}:${r.status}`).join(',');
   useEffect(() => {
     refreshLoopData(state.currentUser?.id);
-  }, [state.currentUser?.id, state.requests.length, refreshLoopData]);
+  }, [state.currentUser?.id, requestsKey, refreshLoopData]);
 
   const handleOfferToDonate = async (req: EmergencyRequest) => {
     const { ok, error } = await offerToDonate(req.id);
@@ -410,7 +413,7 @@ export function App() {
         liveRefreshTimerRef.current = null;
       }
     };
-  }, [isLoggedIn, state.currentUser?.id]);
+  }, [isLoggedIn, refreshSharedData]);
 
   // Nothing has loaded yet and the last attempt failed: keep retrying while
   // the page is visible. 'online' doesn't fire when the device thinks it's
@@ -443,7 +446,10 @@ export function App() {
     const unsubscribe = subscribeToNotifications(donorId, row => {
       if (cancelled || !isMountedRef.current) return;
       const notification = mapDbNotificationToNotification(row);
-      setState(prev => ({ ...prev, notifications: [notification, ...prev.notifications] }));
+      // The initial fetch and this insert can both deliver the same row.
+      setState(prev => prev.notifications.some(n => n.id === notification.id)
+        ? prev
+        : { ...prev, notifications: [notification, ...prev.notifications] });
     });
     return () => {
       cancelled = true;

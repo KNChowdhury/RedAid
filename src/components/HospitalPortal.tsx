@@ -74,8 +74,9 @@ export const HospitalPortal: React.FC<HospitalPortalProps> = ({
       return;
     }
 
-    const refreshed = await fetchHospitalStats();
+    const [refreshed, list] = await Promise.all([fetchHospitalStats(), fetchRequestResponders(requestId)]);
     setHospitals(refreshed);
+    setResponders(prev => ({ ...prev, [requestId]: list }));
     onDataChanged?.();
   };
 

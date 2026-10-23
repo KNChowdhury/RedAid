@@ -280,7 +280,7 @@ export const FaqSection: React.FC = () => {
           {s.titleLead} <span className="text-rose-600 dark:text-rose-400">
             {s.titleAccent.replace(/\?$/, '')}
             {/* The italic display font draws '?' with a swash that reads as backwards. */}
-            {s.titleAccent.endsWith('?') && <span className="font-sans not-italic font-black">?</span>}
+            {s.titleAccent.endsWith('?') && <span className="font-sans not-italic font-black ml-[0.12em]">?</span>}
           </span>
         </h1>
         <p className="text-slate-400 font-bold max-w-lg uppercase text-[11px] tracking-widest">

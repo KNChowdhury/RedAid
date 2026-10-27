@@ -834,9 +834,24 @@ export async function fetchSharedData(
     signal ? query.abortSignal(signal) : query;
 
   const donorColumns = 'id,name,avatar,role,blood_group,birth_year,district,area,last_donation_date,next_eligible_date,is_regular,is_verified,available_now,impact_score,lives_saved';
-  const donorsQuery = withTimeout(supabase
-    .from('v_public_donors')
-    .select(`${donorColumns},screening_completion_public`));
+  // PostgREST returns at most 1000 rows per request (db max_rows), and the
+  // directory passed that on 2026-10-27 (1,520 donors): the newest imports
+  // silently disappeared. Page through with a stable order until a short page.
+  const fetchAllPublicDonors = async (columns: string): Promise<{ data: any[] | null; error: any }> => {
+    const PAGE = 1000;
+    const rows: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await withTimeout(supabase!
+        .from('v_public_donors')
+        .select(columns)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1));
+      if (error) return { data: null, error };
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE) return { data: rows, error: null };
+    }
+  };
+  const donorsQuery = fetchAllPublicDonors(`${donorColumns},screening_completion_public`);
 
   const requestsView = isLoggedIn ? 'v_authenticated_requests' : 'v_public_requests';
   const requestsColumns = isLoggedIn
@@ -870,9 +885,7 @@ export async function fetchSharedData(
         console.error('Public screening-completion badge is unavailable until patch_28 is applied:', donorsRes.error);
         screeningProjectionWarningLogged = true;
       }
-      const fallbackDonors = await withTimeout(supabase
-        .from('v_public_donors')
-        .select(donorColumns));
+      const fallbackDonors = await fetchAllPublicDonors(donorColumns);
       if (fallbackDonors.error) {
         console.error('Supabase donors fetch error:', fallbackDonors.error);
         throw new Error(`Shared donor data fetch failed: ${fallbackDonors.error.message}`);

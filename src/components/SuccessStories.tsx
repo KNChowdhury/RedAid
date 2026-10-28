@@ -2,6 +2,7 @@ import { CalendarCheck, Heart, MapPin, ShieldCheck } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { defineStrings, formatNumber, useStrings } from '../i18n';
 import { CompletedDonation, fetchCompletedDonations } from '../services/lifelineService';
+import { NoMoneyNotice } from './NoMoneyNotice';
 
 const S = defineStrings(
   {
@@ -15,7 +16,9 @@ const S = defineStrings(
     // Bangla needs a different word order, so the whole sentence is one string.
     story: '{donor} donated {units} of {group} for {patient} at {hospital}.',
     bagOne: '{count} bag',
-    bagMany: '{count} bags'
+    bagMany: '{count} bags',
+    statDonations: 'Donations',
+    statBags: 'Bags given'
   },
   {
     titleLine1: 'যে জীবন',
@@ -26,7 +29,9 @@ const S = defineStrings(
     emptyBody: 'রক্তদান নিশ্চিত হলেই এখানে দেখা যাবে।',
     story: '{donor} {hospital}-এ {patient}-এর জন্য {units} {group} রক্ত দিয়েছেন।',
     bagOne: '{count} ব্যাগ',
-    bagMany: '{count} ব্যাগ'
+    bagMany: '{count} ব্যাগ',
+    statDonations: 'রক্তদান',
+    statBags: 'ব্যাগ রক্ত'
   }
 );
 
@@ -39,7 +44,11 @@ function storyParts(template: string, pieces: Record<string, React.ReactNode>): 
   });
 }
 
-export const SuccessStories: React.FC = () => {
+interface SuccessStoriesProps {
+  onOpenPolicy?: () => void;
+}
+
+export const SuccessStories: React.FC<SuccessStoriesProps> = ({ onOpenPolicy }) => {
   const [donations, setDonations] = useState<CompletedDonation[]>([]);
   const [loading, setLoading] = useState(true);
   const { s, f, lang } = useStrings(S);
@@ -56,19 +65,35 @@ export const SuccessStories: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  const num = (value: number) => (lang === 'bn' ? formatNumber(value, lang) : String(value));
+  const totalBags = donations.reduce((sum, d) => sum + (d.units || 0), 0);
+
   return (
-    <section className="p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
-      <header className="mb-8">
-        <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-none mb-3">
-          {s.titleLine1}<br />
+    <section className="p-4 sm:p-6 lg:p-10 lg:overflow-hidden flex flex-col lg:h-full bg-white dark:bg-slate-900 min-w-0">
+      <header className="mb-5 sm:mb-8">
+        <h1 className="editorial-title text-3xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-none mb-2 sm:mb-3">
+          {s.titleLine1}{' '}
           <span className="text-rose-600 dark:text-rose-400">{s.titleLine2}</span>
         </h1>
-        <p className="text-slate-400 font-bold max-w-lg uppercase text-[11px] tracking-widest">
+        <p className="text-slate-500 text-sm max-w-lg">
           {s.subtitle}
         </p>
       </header>
 
-      <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scroll pb-12">
+      <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-3 sm:space-y-4 custom-scroll pb-12">
+        {!loading && donations.length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 p-4">
+              <p className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">{num(donations.length)}</p>
+              <p className="text-xs font-bold text-emerald-800/70 dark:text-emerald-300/70">{s.statDonations}</p>
+            </div>
+            <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 p-4">
+              <p className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400">{num(totalBags)}</p>
+              <p className="text-xs font-bold text-rose-800/70 dark:text-rose-300/70">{s.statBags}</p>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-16 text-slate-400 text-sm font-bold uppercase tracking-widest">{s.loading}</div>
         ) : donations.length === 0 ? (
@@ -81,9 +106,9 @@ export const SuccessStories: React.FC = () => {
           donations.map(d => (
             <div
               key={d.donationId}
-              className="bg-white dark:bg-slate-800/60 p-5 sm:p-6 rounded-[1.8rem] border border-slate-100 dark:border-slate-800 shadow-xs flex items-start gap-4"
+              className="bg-white dark:bg-slate-800/60 p-4 sm:p-6 rounded-2xl sm:rounded-[1.8rem] border border-slate-100 dark:border-slate-800 shadow-xs flex items-start gap-3 sm:gap-4"
             >
-              <div className="shrink-0 w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center">
+              <div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
 
@@ -102,7 +127,7 @@ export const SuccessStories: React.FC = () => {
                     hospital: d.hospitalName
                   })}
                 </p>
-                <p className="text-slate-400 text-xs uppercase font-bold tracking-wider flex items-center flex-wrap gap-x-2 gap-y-1 mt-2">
+                <p className="text-slate-400 text-xs font-semibold flex items-center flex-wrap gap-x-2 gap-y-1 mt-2">
                   {(d.area || d.district) && (
                     <span className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
@@ -120,6 +145,8 @@ export const SuccessStories: React.FC = () => {
             </div>
           ))
         )}
+
+        <NoMoneyNotice onOpenPolicy={onOpenPolicy} className="mt-6" />
       </div>
     </section>
   );

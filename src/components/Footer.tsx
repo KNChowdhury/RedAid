@@ -1,5 +1,6 @@
 import { Mail, Phone } from 'lucide-react';
 import React from 'react';
+import { CONTACT_EMAIL } from '../contact';
 import { defineStrings, useStrings } from '../i18n';
 
 // Names (founder, foundation) stay as written in both languages.
@@ -10,6 +11,7 @@ const S = defineStrings(
     about: 'Connecting blood donors with the people who need them, across Bangladesh.',
     help: 'Help',
     faqLink: 'How it works (FAQ)',
+    policyLink: 'Policy & privacy',
     contact: 'Contact',
     founderRole: 'Founder, Shahnaz and Manik Foundation',
     emergency: 'Emergency',
@@ -22,6 +24,7 @@ const S = defineStrings(
     about: 'সারা বাংলাদেশে রক্তদাতাদের সাথে রক্তের প্রয়োজনে থাকা মানুষদের যুক্ত করছি।',
     help: 'সাহায্য',
     faqLink: 'যেভাবে কাজ করে (প্রশ্নোত্তর)',
+    policyLink: 'নীতিমালা ও গোপনীয়তা',
     contact: 'যোগাযোগ',
     founderRole: 'প্রতিষ্ঠাতা, Shahnaz and Manik Foundation',
     emergency: 'জরুরি',
@@ -37,9 +40,10 @@ const S = defineStrings(
  */
 interface FooterProps {
   onOpenFaq: () => void;
+  onOpenPolicy: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenFaq }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenFaq, onOpenPolicy }) => {
   const year = new Date().getFullYear();
   const { s, f } = useStrings(S);
 
@@ -70,6 +74,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenFaq }) => {
             >
               {s.faqLink}
             </button>
+            <button
+              onClick={onOpenPolicy}
+              className="mt-2 block text-sm text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors text-left"
+            >
+              {s.policyLink}
+            </button>
           </div>
 
           <div>
@@ -79,11 +89,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenFaq }) => {
               {s.founderRole}
             </p>
             <a
-              href="mailto:kawsarnewazchowdhury@gmail.com"
+              href={`mailto:${CONTACT_EMAIL}`}
               className="mt-2.5 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors break-all"
             >
               <Mail className="w-4 h-4 shrink-0" />
-              kawsarnewazchowdhury@gmail.com
+              {CONTACT_EMAIL}
             </a>
           </div>
 

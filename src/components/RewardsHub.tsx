@@ -1,11 +1,13 @@
 import confetti from 'canvas-confetti';
-import { Award, CalendarCheck, Crown, Download, Heart, ShieldCheck, Trophy, Zap } from 'lucide-react';
+import { Award, CalendarCheck, Crown, Download, Gift, Headphones, Heart, ShieldCheck, Trophy, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { defineStrings, formatNumber, useStrings } from '../i18n';
+import { backdropClose, useDismissable } from '../hooks/useDismissable';
 import { hasFullyNegativeScreening } from '../services/lifelineService';
 import { DonorProfile, RewardBadge } from '../types';
 import { Avatar } from './Avatar';
+import { NoMoneyNotice } from './NoMoneyNotice';
 
 const S = defineStrings(
   {
@@ -15,9 +17,19 @@ const S = defineStrings(
     nationalStanding: 'Your National Standing',
     points: 'Points',
     rank: '🎖️ Rank #{rank} on this leaderboard',
-    certBannerTag: 'Government Verified Honour',
-    certBannerTitle: 'Official Life Saver Certificate',
-    certBannerBody: 'You have completed verified hospital blood donations. Download your official recognition certificate signed by RedAid & DGHS Medical Board.',
+    certBannerTag: 'Verified donor',
+    certBannerTitle: 'Life Saver Certificate',
+    certBannerBody: 'You have a confirmed blood donation on RedAid. Download your certificate of appreciation.',
+    prizesTag: 'Gifts for donors',
+    prizesTitle: 'Save lives, earn a thank-you gift',
+    prizeEarbudsName: 'Wireless earbuds',
+    prizeSurpriseName: 'Surprise gift',
+    prizePoints: '{points} points',
+    prizeToGo: '{points} points to go',
+    prizeUnlocked: 'Unlocked! Email us to claim it.',
+    prizeSignIn: 'Sign in and donate to start earning points.',
+    prizeHowTo: 'Each confirmed donation = 150 points.',
+    prizeFinePrint: 'Gifts are a thank-you, not a price for blood. Points have no cash value and come only from confirmed donations. Every donation is checked before a gift is given.',
     generateCertificate: 'Generate Certificate',
     achievementsTag: 'Achievements Showcase',
     achievementsTitle: 'Unlock Badges By Saving Lives',
@@ -40,17 +52,17 @@ const S = defineStrings(
     locked: '🔒 Locked',
     hallOfFame: 'Hall of Fame',
     topContributors: 'Top RedAid Contributors',
-    updatedHourly: '🔥 Updated Hourly',
+    updatedHourly: 'Live',
     you: 'You',
     livesSaved: '{count} Lives Saved',
     leaderboardPoints: 'RedAid Pts',
-    certHeader: "People's Republic of Bangladesh • RedAid Network",
+    certHeader: 'RedAid Blood Donor Network',
     certTitle: 'Certificate of Appreciation',
-    certAwardedTo: 'This official honour is proudly awarded to',
+    certAwardedTo: 'This certificate is proudly presented to',
     certCitation: 'For voluntary, verified blood donation ({bloodGroup}) and demonstrating supreme humanitarian spirit in saving {count} lives.',
-    certSigner1Title: 'Chief Medical Advisor',
-    certSigner2Name: 'RedAid Registrar',
-    certSigner2Title: 'National Blood Bank',
+    certSigner1Title: 'Founder, RedAid',
+    certSigner2Name: 'RedAid Team',
+    certSigner2Title: 'Volunteer network',
     printCertificate: 'Print / Save as PDF'
   },
   {
@@ -60,9 +72,19 @@ const S = defineStrings(
     nationalStanding: 'জাতীয় পর্যায়ে আপনার অবস্থান',
     points: 'পয়েন্ট',
     rank: '🎖️ এই লিডারবোর্ডে আপনি #{rank} স্থানে',
-    certBannerTag: 'সরকারি ভেরিফায়েড সম্মাননা',
-    certBannerTitle: 'অফিসিয়াল জীবনরক্ষক সনদ',
-    certBannerBody: 'আপনি হাসপাতালে ভেরিফায়েড রক্তদান সম্পন্ন করেছেন। RedAid ও DGHS মেডিকেল বোর্ড স্বাক্ষরিত আপনার অফিসিয়াল স্বীকৃতি সনদ ডাউনলোড করুন।',
+    certBannerTag: 'যাচাইকৃত দাতা',
+    certBannerTitle: 'জীবনরক্ষক সনদ',
+    certBannerBody: 'RedAid-এ আপনার নিশ্চিত রক্তদান আছে। আপনার প্রশংসাপত্র ডাউনলোড করুন।',
+    prizesTag: 'দাতাদের জন্য উপহার',
+    prizesTitle: 'জীবন বাঁচান, ধন্যবাদ-উপহার নিন',
+    prizeEarbudsName: 'ওয়্যারলেস এয়ারবাড',
+    prizeSurpriseName: 'সারপ্রাইজ গিফট',
+    prizePoints: '{points} পয়েন্ট',
+    prizeToGo: 'আর {points} পয়েন্ট বাকি',
+    prizeUnlocked: 'আনলক হয়েছে! নিতে আমাদের ইমেইল করুন।',
+    prizeSignIn: 'পয়েন্ট পেতে সাইন ইন করে রক্ত দিন।',
+    prizeHowTo: 'প্রতিটি নিশ্চিত রক্তদান = ১৫০ পয়েন্ট।',
+    prizeFinePrint: 'উপহার হলো ধন্যবাদ, রক্তের দাম নয়। পয়েন্টের কোনো নগদ মূল্য নেই, শুধু নিশ্চিত রক্তদান থেকেই আসে। উপহার দেওয়ার আগে প্রতিটি রক্তদান যাচাই করা হয়।',
     generateCertificate: 'সনদ তৈরি করুন',
     achievementsTag: 'অর্জনসমূহ',
     achievementsTitle: 'জীবন বাঁচিয়ে ব্যাজ অর্জন করুন',
@@ -84,20 +106,26 @@ const S = defineStrings(
     locked: '🔒 লক করা',
     hallOfFame: 'সম্মাননা তালিকা',
     topContributors: 'RedAid-এর শীর্ষ অবদানকারী',
-    updatedHourly: '🔥 প্রতি ঘণ্টায় আপডেট',
+    updatedHourly: 'লাইভ',
     you: 'আপনি',
     livesSaved: '{count}টি জীবন বাঁচিয়েছেন',
     leaderboardPoints: 'পয়েন্ট',
-    certHeader: 'গণপ্রজাতন্ত্রী বাংলাদেশ • RedAid নেটওয়ার্ক',
+    certHeader: 'RedAid রক্তদাতা নেটওয়ার্ক',
     certTitle: 'প্রশংসাপত্র',
-    certAwardedTo: 'এই অফিসিয়াল সম্মাননা সগৌরবে প্রদান করা হলো',
+    certAwardedTo: 'এই প্রশংসাপত্র সগৌরবে প্রদান করা হলো',
     certCitation: 'স্বেচ্ছায় ভেরিফায়েড রক্তদান ({bloodGroup}) এবং {count}টি জীবন বাঁচাতে মহান মানবিক চেতনার দৃষ্টান্ত স্থাপনের স্বীকৃতিস্বরূপ।',
-    certSigner1Title: 'প্রধান চিকিৎসা উপদেষ্টা',
-    certSigner2Name: 'RedAid রেজিস্ট্রার',
-    certSigner2Title: 'জাতীয় ব্লাড ব্যাংক',
+    certSigner1Title: 'প্রতিষ্ঠাতা, RedAid',
+    certSigner2Name: 'RedAid টিম',
+    certSigner2Title: 'স্বেচ্ছাসেবী নেটওয়ার্ক',
     printCertificate: 'প্রিন্ট / PDF সংরক্ষণ'
   }
 );
+
+// Thank-you gifts by points. Keep in step with the Policy page ("Points and gifts").
+const PRIZES = [
+  { key: 'earbuds', points: 1000 },
+  { key: 'surprise', points: 1500 }
+] as const;
 
 const FEATURED_BADGE_NAMES = new Set(['first drop', 'gold hero', 'fully screened']);
 
@@ -105,14 +133,18 @@ interface RewardsHubProps {
   currentUser: DonorProfile | null;
   badges: RewardBadge[];
   leaderboard: DonorProfile[];
+  onOpenPolicy?: () => void;
 }
 
 export const RewardsHub: React.FC<RewardsHubProps> = ({
   currentUser,
   badges,
-  leaderboard
+  leaderboard,
+  onOpenPolicy
 }) => {
   const [showCertificateModal, setShowCertificateModal] = useState(false);
+  // Back button / Escape close the certificate, like every other overlay.
+  useDismissable(showCertificateModal && !!currentUser, () => setShowCertificateModal(false));
   const { s, f, lang } = useStrings(S);
 
   // English keeps exactly the digits it showed before (no added grouping);
@@ -194,22 +226,22 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
   };
 
   return (
-    <section className="p-6 lg:p-10 overflow-y-auto custom-scroll h-full bg-white dark:bg-slate-900 space-y-10 pb-20">
+    <section className="p-4 sm:p-6 lg:p-10 overflow-y-auto custom-scroll h-full bg-white dark:bg-slate-900 space-y-6 sm:space-y-10 pb-20">
       {/* Title Header */}
-      <header className="border-b border-slate-100 dark:border-slate-800 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <header className="border-b border-slate-100 dark:border-slate-800 pb-5 sm:pb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-2.5 py-1 rounded-md border border-rose-200 dark:border-rose-900/50">
             {s.hubTag}
           </span>
-          <h1 className="editorial-title text-4xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-tight mt-3">
-            {s.titleLine1}<br />
+          <h1 className="editorial-title text-3xl sm:text-6xl text-slate-900 dark:text-slate-100 leading-tight mt-3">
+            {s.titleLine1}{' '}
             <span className="text-rose-600 dark:text-rose-400">{s.titleLine2}</span>
           </h1>
         </div>
 
         {/* User Hero Rank Summary */}
         {currentUser && (
-          <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 p-5 rounded-3xl border border-slate-800 dark:border-slate-300 flex items-center gap-5 shadow-xl">
+          <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-800 dark:border-slate-300 flex items-center gap-5 shadow-xl">
             <div className="w-14 h-14 blood-gradient rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/30">
               <Trophy className="w-7 h-7 text-white" />
             </div>
@@ -226,11 +258,11 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
 
       {/* Official Certificate Banner CTA */}
       {currentUser && currentUser.donationsHistory.length > 0 && (
-        <div className="blood-gradient p-8 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-rose-500/20 relative overflow-hidden group">
+        <div className="blood-gradient p-5 sm:p-8 rounded-3xl sm:rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-rose-500/20 relative overflow-hidden group">
           <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
           
           <div className="flex items-center gap-5 z-10">
-            <div className="w-16 h-16 bg-white text-rose-600 rounded-3xl flex items-center justify-center shrink-0 shadow-2xl">
+            <div className="hidden sm:flex w-16 h-16 bg-white text-rose-600 rounded-3xl items-center justify-center shrink-0 shadow-2xl">
               <Award className="w-8 h-8" />
             </div>
             <div>
@@ -254,6 +286,55 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
         </div>
       )}
 
+      {/* Thank-you gift poster */}
+      <section className="rounded-3xl sm:rounded-[2.5rem] border-2 border-dashed border-amber-300 dark:border-amber-700/60 bg-gradient-to-br from-amber-50 via-white to-rose-50 dark:from-amber-950/20 dark:via-slate-900 dark:to-rose-950/20 p-5 sm:p-8">
+        <span className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">{s.prizesTag}</span>
+        <h2 className="editorial-title text-2xl sm:text-4xl text-slate-900 dark:text-slate-100 mt-1">{s.prizesTitle}</h2>
+        <p className="text-sm text-slate-500 mt-1">{currentUser ? s.prizeHowTo : s.prizeSignIn}</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+          {PRIZES.map(prize => {
+            const myPoints = currentUser?.impactScore ?? 0;
+            const unlocked = !!currentUser && myPoints >= prize.points;
+            const percent = Math.min(100, Math.round((myPoints / prize.points) * 100));
+            const isEarbuds = prize.key === 'earbuds';
+            return (
+              <div
+                key={prize.key}
+                className={`rounded-2xl p-5 border bg-white/80 dark:bg-slate-800/60 ${
+                  unlocked ? 'border-emerald-300 dark:border-emerald-800' : 'border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isEarbuds ? 'bg-slate-900 dark:bg-slate-100' : 'blood-gradient'}`}>
+                    {isEarbuds
+                      ? <Headphones className="w-7 h-7 text-white dark:text-slate-900" />
+                      : <Gift className="w-7 h-7 text-white" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{isEarbuds ? s.prizeEarbudsName : s.prizeSurpriseName}</p>
+                    <p className="text-sm font-mono font-black text-rose-600 dark:text-rose-400">{f(s.prizePoints, { points: groupedNum(prize.points) })}</p>
+                  </div>
+                </div>
+                {currentUser && (
+                  <>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-4">
+                      <div className={`h-full rounded-full ${unlocked ? 'bg-emerald-500' : 'blood-gradient'}`} style={{ width: `${percent}%` }} />
+                    </div>
+                    <p className={`text-xs font-bold mt-2 ${unlocked ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                      {unlocked ? s.prizeUnlocked : f(s.prizeToGo, { points: groupedNum(prize.points - myPoints) })}
+                    </p>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-[11px] text-slate-500 leading-relaxed mt-4">{s.prizeFinePrint}</p>
+        <NoMoneyNotice onOpenPolicy={onOpenPolicy} className="mt-4" />
+      </section>
+
       {/* Achievements Grid */}
       <section>
         <div className="flex items-center justify-between mb-6">
@@ -266,7 +347,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {visibleBadges.map((badge, idx) => {
             const progress = badgeProgress(badge);
             const presentation = badgePresentation(badge);
@@ -278,7 +359,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: idx * 0.08, ease: "easeOut" }}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className={`p-6 rounded-3xl border transition-all flex flex-col justify-between relative overflow-hidden ${
+              className={`p-4 sm:p-6 rounded-3xl border transition-all flex flex-col justify-between relative overflow-hidden ${
                 progress.achieved
                   ? 'bg-white dark:bg-slate-800/60 border-rose-200/80 dark:border-rose-900/50 shadow-md shadow-rose-500/5'
                   : 'bg-slate-50/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700 opacity-65 grayscale-[0.6]'
@@ -333,13 +414,13 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
       </section>
 
       {/* National Leaderboard */}
-      <section className="bg-slate-50 dark:bg-slate-800/60 rounded-[2.5rem] p-6 lg:p-8 border border-slate-200/80 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+      <section className="bg-slate-50 dark:bg-slate-800/60 rounded-3xl sm:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 border border-slate-200/80 dark:border-slate-700">
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="min-w-0">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.hallOfFame}</span>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{s.topContributors}</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{s.topContributors}</h2>
           </div>
-          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider bg-rose-100 dark:bg-rose-950/30 px-3 py-1 rounded-full">
+          <span className="shrink-0 text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider bg-rose-100 dark:bg-rose-950/30 px-3 py-1 rounded-full">
             {s.updatedHourly}
           </span>
         </div>
@@ -350,7 +431,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
             return (
               <div
                 key={user.id}
-                className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition-all ${
                   user.id === currentUser?.id
                     ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 shadow-md'
                     : 'bg-white dark:bg-slate-800 border-slate-200/80 dark:border-slate-700 hover:shadow-sm'
@@ -390,8 +471,11 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
 
       {/* Official Certificate Dialog Modal */}
       {showCertificateModal && currentUser && (
-        <div className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 lg:p-12 max-w-3xl w-full border-8 border-double border-rose-600 shadow-2xl text-center relative overflow-hidden">
+        <div
+          onClick={backdropClose(() => setShowCertificateModal(false))}
+          className="fixed inset-0 z-50 glass-dark flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-3xl sm:rounded-[3rem] p-5 sm:p-8 lg:p-12 max-w-3xl w-full max-h-[92vh] overflow-y-auto border-4 sm:border-8 border-double border-rose-600 shadow-2xl text-center relative overflow-hidden">
             <button
               onClick={() => setShowCertificateModal(false)}
               className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold"
@@ -418,7 +502,7 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
 
             <div className="grid grid-cols-2 gap-8 mt-10 pt-8 border-t border-slate-200 dark:border-slate-700 max-w-md mx-auto text-center">
               <div>
-                <p className="font-serif italic font-bold text-slate-800 dark:text-slate-200">Dr. Kawsar Chowdhury</p>
+                <p className="font-serif italic font-bold text-slate-800 dark:text-slate-200">Kawsar Newaz Chowdhury</p>
                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{s.certSigner1Title}</p>
               </div>
               <div>

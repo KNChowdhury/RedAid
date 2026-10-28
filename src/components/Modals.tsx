@@ -1,10 +1,11 @@
-import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Award, Bell, Calendar, Eye, EyeOff, Flag, MapPin, Phone, ShieldCheck, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useDistricts } from '../hooks/useDistricts';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
 import { defineStrings, fmt, formatNumber, useStrings, type Lang } from '../i18n';
-import { calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isDonorAvailableNow, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
+import { DonorContact, calculateAge, completeDonorProfile, getCurrentDonorFromSession, getDonorContact, getWhatsAppUrl, isDonorAvailableNow, isValidDonorName, sendMagicLink, sendPasswordResetEmail, signInDonor, signInWithGoogle, signOutDonor, signUpDonor, updatePassword, uploadAvatar, updateDonorProfile } from '../services/lifelineService';
 import { BloodGroup, DonorProfile, EmergencyRequest, NotificationItem } from '../types';
+import { profileReportMailto } from '../contact';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
 import { CompactSelect } from './CompactSelect';
@@ -136,6 +137,7 @@ const S = defineStrings(
     errSessionExpired: 'Your session has expired. Please refresh the page and sign in again.',
     errNetwork: 'Connection problem. Please check your internet and try again.',
     errEmailInvalidServer: 'This email doesn\'t look right. Please check it.',
+    errEmailSendFailed: 'We could not send the email right now. Please try again in a few minutes.',
     errMagicLinkNeedsEmail: 'Enter your email above to get a sign-in link.',
     errFixFieldsOne: 'One field needs fixing. Tap here to see it.',
     errFixFieldsMany: '{count} fields need fixing. Tap here to see them.',
@@ -161,6 +163,7 @@ const S = defineStrings(
 
     // 3. Profile modal
     closeProfileDialog: 'Close profile dialog',
+    reportProfile: 'Report this profile',
     bloodGroupValue: 'Blood Group: {group}',
     ageSuffix: ' · {age}y',
     errSessionRefresh: 'Your session needs a refresh. Please reload the page and try again.',
@@ -169,6 +172,8 @@ const S = defineStrings(
     whatsappCaps: 'WHATSAPP',
     notProvided: 'Not provided',
     notAvailableRightNow: 'Not available right now',
+    gateRequestRequired: 'Post a blood request to see more donor numbers',
+    gateClosePrevious: 'Close your previous request first ("Got blood")',
     hiddenUntilRevealed: 'Hidden until revealed',
     contactChecked: 'Contact checked',
     checkingAvailability: 'Checking availability...',
@@ -319,6 +324,7 @@ const S = defineStrings(
     errSessionExpired: 'সেশন শেষ হয়ে গেছে। পেজ রিফ্রেশ করে আবার সাইন ইন করুন।',
     errNetwork: 'ইন্টারনেট সংযোগে সমস্যা। একটু পরে আবার চেষ্টা করুন।',
     errEmailInvalidServer: 'ইমেইলটা ঠিক নেই। আবার দেখে দিন।',
+    errEmailSendFailed: 'এই মুহূর্তে ইমেইল পাঠানো যাচ্ছে না। কয়েক মিনিট পরে আবার চেষ্টা করুন।',
     errMagicLinkNeedsEmail: 'লিংক পেতে আগে উপরে আপনার ইমেইল লিখুন।',
     errFixFieldsOne: 'একটা ঘরে ভুল আছে। দেখতে এখানে চাপুন।',
     errFixFieldsMany: '{count}টা ঘরে ভুল আছে। দেখতে এখানে চাপুন।',
@@ -344,6 +350,7 @@ const S = defineStrings(
 
     // 3. Profile modal
     closeProfileDialog: 'প্রোফাইল বন্ধ করুন',
+    reportProfile: 'এই প্রোফাইল রিপোর্ট করুন',
     bloodGroupValue: 'ব্লাড গ্রুপ: {group}',
     ageSuffix: ' · {age} বছর',
     errSessionRefresh: 'আপনার সেশন রিফ্রেশ করা দরকার। পেজটি রিলোড করে আবার চেষ্টা করুন।',
@@ -352,6 +359,8 @@ const S = defineStrings(
     whatsappCaps: 'WhatsApp',
     notProvided: 'দেওয়া হয়নি',
     notAvailableRightNow: 'এখন দিতে পারবেন না',
+    gateRequestRequired: 'আরো রক্তদাতার নম্বর দেখতে আগে রক্তের অনুরোধ দিন',
+    gateClosePrevious: 'আগে আগের অনুরোধটি বন্ধ করুন ("রক্ত পেয়েছি")',
     hiddenUntilRevealed: 'লুকানো আছে',
     contactChecked: 'যোগাযোগ দেখা হয়েছে',
     checkingAvailability: 'যাচাই করা হচ্ছে...',
@@ -704,6 +713,9 @@ function describeAuthError(message: string, s: AuthStrings): { field: AuthField 
   if (m.includes('email not confirmed')) return { field: null, text: s.errEmailNotConfirmed };
   if (m.includes('confirmation link') || m.includes('registration received')) return { field: null, text: s.msgConfirmEmail };
   if (m.includes('rate limit') || m.includes('too many')) return { field: null, text: s.errRateLimit };
+  // SMTP/delivery failure (see friendlyAuthEmailError). Must run before the
+  // generic 'email' check below, which would blame the user's address.
+  if (m.includes('could not send') || m.includes('error sending')) return { field: null, text: s.errEmailSendFailed };
   if (m.includes('should be different') || m.includes('same password')) return { field: 'password', text: s.errSamePassword };
   // Only claim "too short" when the server actually says so: Supabase also
   // rejects passwords for strength rules ("should contain at least one
@@ -1257,7 +1269,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
   const [syphilisStatus, setSyphilisStatus] = useState('Not Tested');
   const [malariaStatus, setMalariaStatus] = useState('Not Tested');
   const [shareScreeningCompletion, setShareScreeningCompletion] = useState(false);
-  const [revealedContact, setRevealedContact] = useState<{ phone: string | null; whatsapp: string | null } | null>(null);
+  const [revealedContact, setRevealedContact] = useState<DonorContact | null>(null);
+  const gateText = revealedContact?.gate === 'close_previous_request' ? s.gateClosePrevious : revealedContact?.gate ? s.gateRequestRequired : null;
   const [revealingContact, setRevealingContact] = useState(false);
   const isMountedRef = React.useRef(true);
   // Bumped whenever the donor being viewed changes, so a reveal request for
@@ -1442,22 +1455,32 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             <div className="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold">
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <span className="text-[10px] text-slate-400 block">{s.phoneCaps}</span>
-                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.phone || s.notProvided) : revealedContact?.phone || (revealedContact ? s.notAvailableRightNow : s.hiddenUntilRevealed)}</span>
+                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.phone || s.notProvided) : revealedContact?.phone || gateText || (revealedContact ? s.notAvailableRightNow : s.hiddenUntilRevealed)}</span>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <span className="text-[10px] text-slate-400 block">{s.whatsappCaps}</span>
-                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.whatsapp || donor.phone || s.notProvided) : revealedContact?.whatsapp || (revealedContact ? s.notAvailableRightNow : s.hiddenUntilRevealed)}</span>
+                <span className="text-slate-900 dark:text-slate-100">{isOwnProfile ? (donor.whatsapp || donor.phone || s.notProvided) : revealedContact?.whatsapp || gateText || (revealedContact ? s.notAvailableRightNow : s.hiddenUntilRevealed)}</span>
               </div>
             </div>
 
             {!isOwnProfile && (
               <button
                 onClick={handleRevealContact}
-                disabled={!isDonorAvailableNow(donor) || revealingContact || !!revealedContact}
+                disabled={!isDonorAvailableNow(donor) || revealingContact || (!!revealedContact && !revealedContact.gate)}
                 className="w-full mb-4 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500"
               >
-                {!isDonorAvailableNow(donor) ? s.notAvailableRightNow : revealedContact ? s.contactChecked : revealingContact ? s.checkingAvailability : s.showNumber}
+                {!isDonorAvailableNow(donor) ? s.notAvailableRightNow : revealedContact && !revealedContact.gate ? s.contactChecked : revealingContact ? s.checkingAvailability : s.showNumber}
               </button>
+            )}
+
+            {!isOwnProfile && (
+              <a
+                href={profileReportMailto(donor.id)}
+                className="mb-4 inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-rose-600 underline underline-offset-2"
+              >
+                <Flag className="w-3.5 h-3.5" aria-hidden="true" />
+                {s.reportProfile}
+              </a>
             )}
 
             {isOwnProfile ? <div className="my-6 space-y-4">

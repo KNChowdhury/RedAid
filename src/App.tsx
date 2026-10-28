@@ -7,6 +7,7 @@ import { DonorsNetwork } from './components/DonorsNetwork';
 import { EmergencyFeed } from './components/EmergencyFeed';
 import { SuccessStories } from './components/SuccessStories';
 import { FaqSection } from './components/FaqSection';
+import { PolicyPage } from './components/PolicyPage';
 import { AuthModal, CompleteProfileModal, NotificationsModal, ProfileModal, RequestBloodModal } from './components/Modals';
 import { Navbar } from './components/Navbar';
 import { RewardsHub } from './components/RewardsHub';
@@ -21,6 +22,7 @@ const S = defineStrings(
   {
     offerFailed: 'Could not send your offer.',
     availabilityFailed: 'Availability could not be saved. Please try again.',
+    openRequestExists: 'You already have an open request. Close it with "Got blood" before posting a new one.',
     postedTitle: 'Emergency request posted: {group}',
     postedMessage: '{patient} at {hospital}, {area}.',
     justNow: 'Just now',
@@ -39,6 +41,7 @@ const S = defineStrings(
   {
     offerFailed: 'আপনার প্রস্তাব পাঠানো যায়নি।',
     availabilityFailed: 'আপনার অবস্থা সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
+    openRequestExists: 'আপনার একটি অনুরোধ এখনো খোলা আছে। নতুন অনুরোধ দেওয়ার আগে "রক্ত পেয়েছি" দিয়ে আগেরটি বন্ধ করুন।',
     postedTitle: 'জরুরি অনুরোধ পোস্ট হয়েছে: {group}',
     postedMessage: '{patient}, {hospital}, {area}।',
     justNow: 'এইমাত্র',
@@ -70,7 +73,7 @@ export function App() {
   // there, unrelated to tab routing.
   const readTabFromPath = () => {
     const t = window.location.pathname.replace(/^\/+|\/+$/g, '');
-    const valid = ['requests', 'success', 'rewards', 'admin', 'faq'];
+    const valid = ['requests', 'success', 'rewards', 'admin', 'faq', 'policy'];
     return valid.includes(t) ? t : 'network';
   };
 
@@ -487,8 +490,9 @@ export function App() {
       return true;
     }
 
-    const savedReq = await createRequestInDb({ ...reqData, requesterId: state.currentUser.id });
+    const { request: savedReq, openRequestExists } = await createRequestInDb({ ...reqData, requesterId: state.currentUser.id });
     if (!savedReq) {
+      if (openRequestExists) toast(i18nRef.current.s.openRequestExists, 'error');
       return false;
     }
 
@@ -716,12 +720,15 @@ export function App() {
             </>
           )}
 
-          {activeTab === 'success' && <SuccessStories />}
+          {activeTab === 'success' && <SuccessStories onOpenPolicy={() => setActiveTab('policy')} />}
 
           {activeTab === 'faq' && <FaqSection />}
 
+          {activeTab === 'policy' && <PolicyPage />}
+
           {activeTab === 'rewards' && (
             <RewardsHub
+              onOpenPolicy={() => setActiveTab('policy')}
               currentUser={state.currentUser}
               badges={state.badges}
               leaderboard={[...state.donors].sort((a, b) => (b.impactScore || 0) - (a.impactScore || 0)).slice(0, 8)}
@@ -739,7 +746,7 @@ export function App() {
         </div>
       </main>
 
-      <Footer onOpenFaq={() => setActiveTab('faq')} />
+      <Footer onOpenFaq={() => setActiveTab('faq')} onOpenPolicy={() => setActiveTab('policy')} />
 
       <InstallAppBanner />
 

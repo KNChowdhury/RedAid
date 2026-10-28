@@ -599,6 +599,8 @@ export async function updateDonorAvailability(donorId: string, availableNow: boo
 export interface DonorContact {
   phone: string | null;
   whatsapp: string | null;
+  /** Set when the number is held back until the user posts or closes a request. */
+  gate?: 'request_required' | 'close_previous_request';
 }
 
 export async function getDonorContact(donorId: string): Promise<DonorContact | null> {
@@ -612,6 +614,10 @@ export async function getDonorContact(donorId: string): Promise<DonorContact | n
     return null;
   }
   if (!data || typeof data !== 'object') return null;
+
+  if (data.error === 'request_required' || data.error === 'close_previous_request') {
+    return { phone: null, whatsapp: null, gate: data.error };
+  }
 
   return {
     phone: typeof data.phone === 'string' ? data.phone : null,
@@ -717,6 +723,7 @@ function mapDbRequestToRequest(row: any): EmergencyRequest {
     contactWhatsapp: row.contact_whatsapp || '',
     reason: row.reason || '',
     status: row.status,
+    closedReason: row.closed_reason || undefined,
     createdAt: row.created_at,
     requesterId: row.requester_id || '',
     matchedDonorsCount: row.matched_donors_count
@@ -956,6 +963,42 @@ export async function recordDonation(
 
   if (error) {
     console.error('record_donation error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, error: null };
+}
+
+// Closes the requester's own request (patch_33). With a donor (picked or typed
+// phone) it also records the donation, so the donor gets points once they
+// confirm. Without one it is closed as "managed" elsewhere.
+export async function closeRequestWithDonor(
+  requestId: string,
+  donor: { donorId?: string; phone?: string },
+  units = 1
+): Promise<{ ok: boolean; error: string | null }> {
+  if (!supabase) return { ok: false, error: 'Not connected.' };
+
+  const { error } = await supabase.rpc('close_request_with_donor', {
+    p_request_id: requestId,
+    p_donor_id: donor.donorId ?? null,
+    p_donor_phone: donor.phone ?? null,
+    p_units: units
+  });
+
+  if (error) {
+    console.error('close_request_with_donor error:', error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, error: null };
+}
+
+export async function closeRequestManaged(requestId: string): Promise<{ ok: boolean; error: string | null }> {
+  if (!supabase) return { ok: false, error: 'Not connected.' };
+
+  const { error } = await supabase.rpc('close_request_managed', { p_request_id: requestId });
+
+  if (error) {
+    console.error('close_request_managed error:', error.message);
     return { ok: false, error: error.message };
   }
   return { ok: true, error: null };
@@ -1751,9 +1794,11 @@ export async function uploadAvatar(file: File, userId: string): Promise<string |
 }
 
 // ============ SUPABASE: Create a new emergency request ============
-export async function createRequestInDb(reqData: Partial<EmergencyRequest>): Promise<EmergencyRequest | null> {
+export async function createRequestInDb(
+  reqData: Partial<EmergencyRequest>
+): Promise<{ request: EmergencyRequest | null; openRequestExists: boolean }> {
   if (!supabase) {
-    return null;
+    return { request: null, openRequestExists: false };
   }
 
   const { data, error } = await supabase
@@ -1780,7 +1825,7 @@ export async function createRequestInDb(reqData: Partial<EmergencyRequest>): Pro
 
   if (error) {
     console.error('Supabase create request error:', error);
-    return null;
+    return { request: null, openRequestExists: error.message?.includes('OPEN_REQUEST_EXISTS') ?? false };
   }
-  return mapDbRequestToRequest(data);
+  return { request: mapDbRequestToRequest(data), openRequestExists: false };
 }

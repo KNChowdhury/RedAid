@@ -1,7 +1,7 @@
 import { Calendar, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
-import { calculateAge, getDonorContact, getWhatsAppUrl, isDonorAvailableNow } from '../services/lifelineService';
+import { DonorContact, calculateAge, getDonorContact, getWhatsAppUrl, isDonorAvailableNow } from '../services/lifelineService';
 import { DonorProfile } from '../types';
 import { defineStrings, formatDate, useStrings } from '../i18n';
 
@@ -29,6 +29,8 @@ const S = defineStrings(
     whatsappMessage: 'Hello, I found your number on RedAid. Can you help?',
     whatsappLabel: 'Message {name} on WhatsApp',
     notAvailableNow: 'Not available right now',
+    gateRequestRequired: 'Post a blood request to see more donor numbers',
+    gateClosePrevious: 'Close your previous request first ("Got blood")',
     checking: 'Checking...',
     showNumber: 'Show number',
     profile: 'Profile'
@@ -56,6 +58,8 @@ const S = defineStrings(
     whatsappMessage: 'হ্যালো, RedAid-এ আপনার নম্বর পেয়েছি। আপনি কি সাহায্য করতে পারবেন?',
     whatsappLabel: '{name}-কে WhatsApp-এ মেসেজ দিন',
     notAvailableNow: 'এখন দিতে পারবেন না',
+    gateRequestRequired: 'আরো রক্তদাতার নম্বর দেখতে আগে রক্তের অনুরোধ দিন',
+    gateClosePrevious: 'আগে আগের অনুরোধটি বন্ধ করুন ("রক্ত পেয়েছি")',
     checking: 'দেখা হচ্ছে...',
     showNumber: 'নম্বর দেখুন',
     profile: 'প্রোফাইল'
@@ -90,7 +94,7 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const donorSetKey = donors.map(d => d.id).join(',');
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [donorSetKey]);
-  const [revealedContacts, setRevealedContacts] = useState<Record<string, { phone: string | null; whatsapp: string | null }>>({});
+  const [revealedContacts, setRevealedContacts] = useState<Record<string, DonorContact>>({});
   const [revealingDonorId, setRevealingDonorId] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   const revealRequestVersionRef = useRef(0);
@@ -275,6 +279,10 @@ export const DonorsNetwork: React.FC<DonorsNetworkProps> = ({
                           </a>
                         )}
                       </div>
+                    ) : revealedContacts[donor.id]?.gate ? (
+                      <button onClick={() => revealContact(donor.id)} disabled={revealingDonorId !== null} className="flex-1 py-2.5 px-2 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-bold text-center leading-snug disabled:opacity-60">
+                        {revealedContacts[donor.id].gate === 'close_previous_request' ? s.gateClosePrevious : s.gateRequestRequired}
+                      </button>
                     ) : revealedContacts[donor.id] ? (
                       <span className="flex-1 py-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-xl text-sm font-semibold text-center">{s.notAvailableNow}</span>
                     ) : (

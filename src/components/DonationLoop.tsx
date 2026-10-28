@@ -4,8 +4,10 @@ import {
   buildRequestShareText,
   buildWhatsAppShareUrl,
   confirmMyDonation,
+  closeRequestManaged,
+  closeRequestWithDonor,
   fetchRequestResponders,
-  recordDonation,
+  getCompatibleDonorGroups,
   PendingConfirmation
 } from '../services/lifelineService';
 import { DonorProfile, EmergencyRequest } from '../types';
@@ -31,6 +33,16 @@ const S = defineStrings(
     bagsDonated: 'Bags donated',
     recording: 'Recording…',
     recordDonation: 'Record donation',
+    orTypePhone: "Or type the donor's phone number",
+    phonePlaceholder: '01XXXXXXXXX',
+    managedElsewhere: 'Got blood from somewhere else',
+    managedExplainer: 'Closes the request as "Managed". A request cannot be deleted.',
+    closing: 'Closing…',
+    errDonorNotFound: 'No RedAid donor has this phone number. Check it, or choose "Got blood from somewhere else".',
+    errPhoneAmbiguous: 'More than one donor has this number. Please pick the donor from the list.',
+    errInvalidPhone: 'Enter a valid 11-digit phone number.',
+    errAlreadyClosed: 'This request is already closed.',
+    errBloodMismatch: "This donor's blood group can't be given to this patient. Please check you picked the right person.",
     // ConfirmDonationBanner
     couldNotConfirm: 'Could not confirm right now.',
     didYouDonate: 'Did you donate for {patient}?',
@@ -66,6 +78,16 @@ const S = defineStrings(
     bagsDonated: 'কত ব্যাগ দিয়েছেন',
     recording: 'রেকর্ড হচ্ছে…',
     recordDonation: 'রক্তদান রেকর্ড করুন',
+    orTypePhone: 'অথবা রক্তদাতার ফোন নম্বর লিখুন',
+    phonePlaceholder: '01XXXXXXXXX',
+    managedElsewhere: 'অন্য জায়গা থেকে রক্ত পেয়েছি',
+    managedExplainer: 'অনুরোধটি "Managed" হিসেবে বন্ধ হবে। অনুরোধ মুছে ফেলা যায় না।',
+    closing: 'বন্ধ হচ্ছে…',
+    errDonorNotFound: 'এই নম্বরে কোনো RedAid রক্তদাতা নেই। নম্বরটি দেখুন, অথবা "অন্য জায়গা থেকে রক্ত পেয়েছি" বেছে নিন।',
+    errPhoneAmbiguous: 'এই নম্বরে একাধিক রক্তদাতা আছেন। তালিকা থেকে রক্তদাতাকে বেছে নিন।',
+    errInvalidPhone: 'সঠিক ১১ সংখ্যার ফোন নম্বর লিখুন।',
+    errAlreadyClosed: 'এই অনুরোধটি আগেই বন্ধ হয়ে গেছে।',
+    errBloodMismatch: 'এই দাতার রক্তের গ্রুপ এই রোগীকে দেওয়া যায় না। সঠিক মানুষকে বেছেছেন কিনা দেখুন।',
     couldNotConfirm: 'এখন নিশ্চিত করা যায়নি।',
     didYouDonate: 'আপনি কি {patient}-এর জন্য রক্ত দিয়েছেন?',
     bagOne: '{count} ব্যাগ',
@@ -113,6 +135,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [phone, setPhone] = useState('');
   const { s, f } = useStrings(S);
 
   useDismissable(isOpen && !!request, onClose);
@@ -123,6 +146,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
     setError('');
     setSelectedId('');
     setSearch('');
+    setPhone('');
     setUnits(String(request.requiredBags || 1));
     setLoading(true);
 
@@ -140,9 +164,13 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
 
   // Most real donations happen after a phone call, so the requester also needs
   // to be able to pick any donor, not just the ones who tapped the app button.
+  // Only donors whose group can be given to this patient (patch_34 enforces
+  // the same rule server-side; this just keeps wrong picks out of the list).
+  const compatible = new Set<string>(getCompatibleDonorGroups(request.bloodGroup));
+  const compatibleResponders = responders.filter(r => compatible.has(r.bloodGroup));
   const offeredIds = new Set(responders.map(r => r.donorId));
   const others = allDonors
-    .filter(d => !offeredIds.has(d.id) && d.id !== request.requesterId)
+    .filter(d => !offeredIds.has(d.id) && d.id !== request.requesterId && compatible.has(d.bloodGroup))
     .filter(d =>
       !search ||
       d.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -150,18 +178,47 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
     )
     .slice(0, 8);
 
+  const closeErrorText = (err: string | null) => {
+    if (!err) return s.couldNotRecord;
+    if (err.includes('DONOR_NOT_FOUND')) return s.errDonorNotFound;
+    if (err.includes('DONOR_PHONE_AMBIGUOUS')) return s.errPhoneAmbiguous;
+    if (err.includes('INVALID_PHONE')) return s.errInvalidPhone;
+    if (err.includes('REQUEST_ALREADY_CLOSED')) return s.errAlreadyClosed;
+    if (err.includes('BLOOD_GROUP_MISMATCH')) return s.errBloodMismatch;
+    return err;
+  };
+
   const handleSave = async () => {
-    if (!selectedId) {
+    const typedPhone = phone.trim();
+    if (!selectedId && !typedPhone) {
       setError(s.chooseDonor);
       return;
     }
     setSaving(true);
     setError('');
-    const { ok, error: err } = await recordDonation(request.id, selectedId, parseInt(units, 10) || 1);
+    const { ok, error: err } = await closeRequestWithDonor(
+      request.id,
+      typedPhone ? { phone: typedPhone } : { donorId: selectedId },
+      parseInt(units, 10) || 1
+    );
     setSaving(false);
 
     if (!ok) {
-      setError(err || s.couldNotRecord);
+      setError(closeErrorText(err));
+      return;
+    }
+    onRecorded();
+    onClose();
+  };
+
+  const handleManaged = async () => {
+    setSaving(true);
+    setError('');
+    const { ok, error: err } = await closeRequestManaged(request.id);
+    setSaving(false);
+
+    if (!ok) {
+      setError(closeErrorText(err));
       return;
     }
     onRecorded();
@@ -179,7 +236,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
         type="radio"
         name="donor"
         checked={selectedId === id}
-        onChange={() => setSelectedId(id)}
+        onChange={() => { setSelectedId(id); setPhone(''); }}
         className="accent-rose-600"
       />
       <span className="text-sm font-bold text-slate-800 dark:text-slate-200 flex-1">{name}</span>
@@ -215,13 +272,13 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
           </p>
         ) : (
           <div className="space-y-4">
-            {responders.length > 0 && (
+            {compatibleResponders.length > 0 && (
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
                   {s.offeredToHelp}
                 </p>
                 <div className="space-y-2">
-                  {responders.map(r => (
+                  {compatibleResponders.map(r => (
                     <DonorRow key={r.donorId} id={r.donorId} name={r.donorName} group={r.bloodGroup} />
                   ))}
                 </div>
@@ -230,7 +287,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
 
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                {responders.length ? s.orSearchAny : s.searchForDonor}
+                {compatibleResponders.length ? s.orSearchAny : s.searchForDonor}
               </p>
               <input
                 id="donation-search"
@@ -248,6 +305,20 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
                   <p className="text-xs text-slate-400 py-2">{s.noDonorMatched}</p>
                 )}
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="donation-phone" className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{s.orTypePhone}</label>
+              <input
+                id="donation-phone"
+                name="donorPhone"
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={e => { setPhone(e.target.value); if (e.target.value) setSelectedId(''); }}
+                placeholder={s.phonePlaceholder}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold"
+              />
             </div>
 
             <div>
@@ -280,6 +351,15 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
           {saving ? s.recording : s.recordDonation}
         </button>
+
+        <button
+          onClick={handleManaged}
+          disabled={saving || loading}
+          className="mt-3 w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-60 text-slate-700 dark:text-slate-200 rounded-xl font-black uppercase text-xs tracking-widest transition-colors"
+        >
+          {saving ? s.closing : s.managedElsewhere}
+        </button>
+        <p className="mt-2 text-[11px] text-slate-400 text-center">{s.managedExplainer}</p>
       </div>
     </div>
   );
@@ -311,7 +391,7 @@ export const ConfirmDonationBanner: React.FC<ConfirmDonationBannerProps> = ({
     setBusyId(null);
 
     if (!ok) {
-      setError(err || s.couldNotConfirm);
+      setError(err?.includes('BLOOD_GROUP_MISMATCH') ? s.errBloodMismatch : (err || s.couldNotConfirm));
       return;
     }
     onConfirmed();

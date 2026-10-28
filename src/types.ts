@@ -80,6 +80,8 @@ export interface EmergencyRequest {
   contactWhatsapp: string;
   reason: string;
   status: 'Pending' | 'Fulfilled' | 'In Progress';
+  /** Set when the requester closes the request: who gave the blood, or "managed" elsewhere. */
+  closedReason?: 'donor' | 'managed';
   createdAt: string;
   requesterId: string;
   matchedDonorsCount: number;

@@ -14,7 +14,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 // shown as stored, in both languages.
 
 export type Lang = 'en' | 'bn';
-const STORAGE_KEY = 'lang';
+// Only an explicit toggle is saved. The old 'lang' key was written on every
+// first visit, so it holds the auto-picked default ('en' for most browsers),
+// not a real choice -- it is ignored so everyone starts in Bangla.
+const STORAGE_KEY = 'lang-choice';
 
 type Table<T extends Record<string, string>> = { en: T; bn: { [K in keyof T]: string } };
 
@@ -63,9 +66,9 @@ function initialLang(): Lang {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'en' || saved === 'bn') return saved;
   } catch {
-    // storage blocked: fall through to the browser language
+    // storage blocked: fall through to the default
   }
-  return typeof navigator !== 'undefined' && /^bn\b/i.test(navigator.language) ? 'bn' : 'en';
+  return 'bn';
 }
 
 interface LangValue {
@@ -80,14 +83,19 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     document.documentElement.lang = lang;
-    try {
-      localStorage.setItem(STORAGE_KEY, lang);
-    } catch {
-      // storage blocked: the choice lasts for this visit only
-    }
   }, [lang]);
 
-  const toggleLang = useCallback(() => setLang(prev => (prev === 'en' ? 'bn' : 'en')), []);
+  const toggleLang = useCallback(() => {
+    setLang(prev => {
+      const next: Lang = prev === 'en' ? 'bn' : 'en';
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        // storage blocked: the choice lasts for this visit only
+      }
+      return next;
+    });
+  }, []);
   const value = useMemo(() => ({ lang, toggleLang }), [lang, toggleLang]);
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 };

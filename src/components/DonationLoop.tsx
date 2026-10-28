@@ -13,6 +13,9 @@ import {
 import { DonorProfile, EmergencyRequest } from '../types';
 import { backdropClose, useDismissable } from '../hooks/useDismissable';
 import { defineStrings, useStrings } from '../i18n';
+import { nameMatches } from '../nameMatch';
+
+const toAsciiDigits = (value: string) => value.replace(/[০-৯]/g, ch => String(ch.charCodeAt(0) - 0x09e6));
 
 const S = defineStrings(
   {
@@ -30,6 +33,8 @@ const S = defineStrings(
     searchForDonor: 'Search for the donor',
     searchPlaceholder: 'Name or phone number',
     noDonorMatched: 'No donor matched that search.',
+    phoneSearchHint: 'Phone numbers are private, so they are not shown in the list. Press "Record donation" and we will find the donor by this number.',
+    incompatibleMatched: '{count} donor(s) matched, but their blood group cannot be given to a {group} patient.',
     bagsDonated: 'Bags donated',
     recording: 'Recording…',
     recordDonation: 'Record donation',
@@ -75,6 +80,8 @@ const S = defineStrings(
     searchForDonor: 'রক্তদাতাকে খুঁজুন',
     searchPlaceholder: 'নাম বা ফোন নম্বর',
     noDonorMatched: 'কোনো রক্তদাতা পাওয়া যায়নি।',
+    phoneSearchHint: 'নম্বর গোপন রাখা হয়, তাই লিস্টে দেখায় না। "রক্তদান রেকর্ড করুন" চাপুন, এই নম্বর দিয়ে রক্তদাতাকে খুঁজে নেওয়া হবে।',
+    incompatibleMatched: '{count} জন মিলেছে, কিন্তু তাঁদের রক্তের গ্রুপ {group} রোগীকে দেওয়া যায় না।',
     bagsDonated: 'কত ব্যাগ দিয়েছেন',
     recording: 'রেকর্ড হচ্ছে…',
     recordDonation: 'রক্তদান রেকর্ড করুন',
@@ -169,14 +176,22 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
   const compatible = new Set<string>(getCompatibleDonorGroups(request.bloodGroup));
   const compatibleResponders = responders.filter(r => compatible.has(r.bloodGroup));
   const offeredIds = new Set(responders.map(r => r.donorId));
-  const others = allDonors
-    .filter(d => !offeredIds.has(d.id) && d.id !== request.requesterId && compatible.has(d.bloodGroup))
-    .filter(d =>
-      !search ||
-      d.name.toLowerCase().includes(search.toLowerCase()) ||
-      (d.phone || '').includes(search)
-    )
-    .slice(0, 8);
+  // The public donor list has no phone numbers (privacy), so a number typed
+  // here can't match in the list -- it is sent to the server lookup instead,
+  // same as the phone box below. Bangla digits are converted first.
+  const searchText = toAsciiDigits(search).trim().replace(/\s+/g, ' ').toLowerCase();
+  const searchIsPhone = /^[+\d][\d\s-]{5,}$/.test(searchText);
+  const nameTokens = searchIsPhone ? [] : searchText.split(' ').filter(Boolean);
+  const nameMatches = nameTokens.length
+    ? allDonors.filter(d => {
+        return d.id !== request.requesterId && nameMatches(d.name || '', searchText);
+      })
+    : [];
+  const others = (nameTokens.length ? nameMatches : allDonors.filter(d => d.id !== request.requesterId))
+    .filter(d => !offeredIds.has(d.id) && compatible.has(d.bloodGroup))
+    .slice(0, 20);
+  // Matches hidden only because the blood group can't be given to this patient.
+  const incompatibleMatches = nameMatches.filter(d => !compatible.has(d.bloodGroup)).length;
 
   const closeErrorText = (err: string | null) => {
     if (!err) return s.couldNotRecord;
@@ -189,7 +204,7 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
   };
 
   const handleSave = async () => {
-    const typedPhone = phone.trim();
+    const typedPhone = toAsciiDigits(phone).trim() || (!selectedId && searchIsPhone ? searchText : '');
     if (!selectedId && !typedPhone) {
       setError(s.chooseDonor);
       return;
@@ -301,8 +316,13 @@ export const MarkDonatedModal: React.FC<MarkDonatedModalProps> = ({
                 {others.map(d => (
                   <DonorRow key={d.id} id={d.id} name={d.name} group={d.bloodGroup} />
                 ))}
-                {others.length === 0 && search && (
-                  <p className="text-xs text-slate-400 py-2">{s.noDonorMatched}</p>
+                {searchIsPhone && (
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 py-2">{s.phoneSearchHint}</p>
+                )}
+                {!searchIsPhone && others.length === 0 && search && (
+                  <p className="text-xs text-slate-400 py-2">
+                    {incompatibleMatches ? f(s.incompatibleMatched, { count: incompatibleMatches, group: request.bloodGroup ?? '' }) : s.noDonorMatched}
+                  </p>
                 )}
               </div>
             </div>

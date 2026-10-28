@@ -5,6 +5,7 @@ import { useDistricts } from '../hooks/useDistricts';
 import { DonorProfile, SearchFilters } from '../types';
 import { defineStrings, formatDate, formatNumber, useStrings } from '../i18n';
 import { CompactSelect } from './CompactSelect';
+import { districtLabel, useDistrictOptions } from '../districtNames';
 
 const S = defineStrings(
   {
@@ -21,6 +22,9 @@ const S = defineStrings(
     any: 'Any',
     district: 'District',
     allDistricts: 'All districts',
+    searchDistrict: 'Search district (Dhaka / ঢাকা)',
+    searchArea: 'Search area',
+    noMatch: 'No match',
     area: 'Area',
     allAreas: 'All areas',
     fewer: '− Fewer options',
@@ -48,6 +52,9 @@ const S = defineStrings(
     any: 'সব',
     district: 'জেলা',
     allDistricts: 'সব জেলা',
+    searchDistrict: 'জেলা খুঁজুন (ঢাকা / Dhaka)',
+    searchArea: 'এলাকা খুঁজুন',
+    noMatch: 'কিছু পাওয়া যায়নি',
     area: 'এলাকা',
     allAreas: 'সব এলাকা',
     fewer: '− কম অপশন',
@@ -84,6 +91,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
 }) => {
   const { s, f, lang } = useStrings(S);
   const districts = useDistricts();
+  const districtOptions = useDistrictOptions(districts);
   const selectedDistrictObj = districts.find(d => d.name === filters.district);
   const areasList = selectedDistrictObj ? selectedDistrictObj.areas : [];
 
@@ -186,7 +194,7 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
             <span className="flex items-center gap-2 min-w-0">
               <MapPin className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
               <span className="truncate">
-                {filters.district === 'ALL' ? s.locationFilter : `${filters.district}${filters.area !== 'ALL' ? `, ${filters.area}` : ''}`}
+                {filters.district === 'ALL' ? s.locationFilter : `${districtLabel(filters.district, lang)}${filters.area !== 'ALL' ? `, ${filters.area}` : ''}`}
               </span>
             </span>
             <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${locationOpen ? 'rotate-180' : ''}`} />
@@ -199,7 +207,9 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
               id="filter-district"
               value={filters.district}
               onChange={district => setFilters(prev => ({ ...prev, district, area: 'ALL' }))}
-              options={[{ value: 'ALL', label: s.allDistricts }, ...districts.map(dist => ({ value: dist.name, label: dist.name }))]}
+              options={[{ value: 'ALL', label: s.allDistricts, keywords: 'all সব' }, ...districtOptions]}
+              searchPlaceholder={s.searchDistrict}
+              noMatchText={s.noMatch}
             />
           </div>
 
@@ -211,6 +221,8 @@ export const SidebarStats: React.FC<SidebarStatsProps> = ({
                 value={filters.area}
                 onChange={area => setFilters(prev => ({ ...prev, area }))}
                 options={[{ value: 'ALL', label: s.allAreas }, ...areasList.map(area => ({ value: area, label: area }))]}
+                searchPlaceholder={areasList.length > 8 ? s.searchArea : undefined}
+                noMatchText={s.noMatch}
               />
             </div>
           )}

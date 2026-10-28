@@ -1,5 +1,5 @@
 import confetti from 'canvas-confetti';
-import { Award, CalendarCheck, Crown, Download, Gift, Headphones, Heart, ShieldCheck, Trophy, Zap } from 'lucide-react';
+import { Award, Brain, CalendarCheck, Crown, Download, Gift, Heart, Sparkles, ShieldCheck, Trophy, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { defineStrings, formatNumber, useStrings } from '../i18n';
@@ -22,7 +22,9 @@ const S = defineStrings(
     certBannerBody: 'You have a confirmed blood donation on RedAid. Download your certificate of appreciation.',
     prizesTag: 'Gifts for donors',
     prizesTitle: 'Save lives, earn a thank-you gift',
-    prizeEarbudsName: 'Wireless earbuds',
+    tierBoss: 'Boss',
+    tierMastermind: 'Mastermind',
+    tierAuraLegend: 'Aura Legend',
     prizeSurpriseName: 'Surprise gift',
     prizePoints: '{points} points',
     prizeToGo: '{points} points to go',
@@ -77,7 +79,9 @@ const S = defineStrings(
     certBannerBody: 'RedAid-এ আপনার নিশ্চিত রক্তদান আছে। আপনার প্রশংসাপত্র ডাউনলোড করুন।',
     prizesTag: 'দাতাদের জন্য উপহার',
     prizesTitle: 'জীবন বাঁচান, ধন্যবাদ-উপহার নিন',
-    prizeEarbudsName: 'ওয়্যারলেস এয়ারবাড',
+    tierBoss: 'বস',
+    tierMastermind: 'মাস্টারমাইন্ড',
+    tierAuraLegend: 'অরা লিজেন্ড',
     prizeSurpriseName: 'সারপ্রাইজ গিফট',
     prizePoints: '{points} পয়েন্ট',
     prizeToGo: 'আর {points} পয়েন্ট বাকি',
@@ -122,9 +126,12 @@ const S = defineStrings(
 );
 
 // Thank-you gifts by points. Keep in step with the Policy page ("Points and gifts").
+// Three tiers only. Every tier is a surprise gift; what's inside is decided
+// at fulfilment time and never shown here.
 const PRIZES = [
-  { key: 'earbuds', points: 1000 },
-  { key: 'surprise', points: 1500 }
+  { key: 'tierBoss', points: 1000, Icon: Crown },
+  { key: 'tierMastermind', points: 1500, Icon: Brain },
+  { key: 'tierAuraLegend', points: 2000, Icon: Sparkles }
 ] as const;
 
 const FEATURED_BADGE_NAMES = new Set(['first drop', 'gold hero', 'fully screened']);
@@ -292,12 +299,11 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
         <h2 className="editorial-title text-2xl sm:text-4xl text-slate-900 dark:text-slate-100 mt-1">{s.prizesTitle}</h2>
         <p className="text-sm text-slate-500 mt-1">{currentUser ? s.prizeHowTo : s.prizeSignIn}</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
           {PRIZES.map(prize => {
             const myPoints = currentUser?.impactScore ?? 0;
             const unlocked = !!currentUser && myPoints >= prize.points;
             const percent = Math.min(100, Math.round((myPoints / prize.points) * 100));
-            const isEarbuds = prize.key === 'earbuds';
             return (
               <div
                 key={prize.key}
@@ -306,13 +312,12 @@ export const RewardsHub: React.FC<RewardsHubProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isEarbuds ? 'bg-slate-900 dark:bg-slate-100' : 'blood-gradient'}`}>
-                    {isEarbuds
-                      ? <Headphones className="w-7 h-7 text-white dark:text-slate-900" />
-                      : <Gift className="w-7 h-7 text-white" />}
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 blood-gradient">
+                    <prize.Icon className="w-7 h-7 text-white" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{isEarbuds ? s.prizeEarbudsName : s.prizeSurpriseName}</p>
+                    <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{s[prize.key]}</p>
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1"><Gift className="w-3.5 h-3.5" aria-hidden="true" />{s.prizeSurpriseName}</p>
                     <p className="text-sm font-mono font-black text-rose-600 dark:text-rose-400">{f(s.prizePoints, { points: groupedNum(prize.points) })}</p>
                   </div>
                 </div>

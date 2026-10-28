@@ -9,6 +9,7 @@ import { profileReportMailto } from '../contact';
 import { Avatar } from './Avatar';
 import { AreaField } from './AreaField';
 import { CompactSelect } from './CompactSelect';
+import { useDistrictOptions } from '../districtNames';
 
 /* ---------- Bangladeshi phone number helpers ----------
  * People type their number the way they say it: 01712345678.
@@ -463,7 +464,8 @@ function toDateTimeLocal(value: string): string {
 
 export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, editingRequest = null }) => {
   const districts = useDistricts();
-  const { s } = useStrings(S);
+  const districtOptions = useDistrictOptions(districts);
+  const { s, lang } = useStrings(S);
   const [patientName, setPatientName] = useState('');
   const [age, setAge] = useState('35');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('O-');
@@ -607,7 +609,8 @@ export const RequestBloodModal: React.FC<RequestModalProps> = ({ isOpen, onClose
                 <CompactSelect
                   value={district}
                   onChange={value => { setDistrict(value); setArea(districts.find(d => d.name === value)?.areas[0] || ''); }}
-                  options={districts.map(d => ({ value: d.name, label: d.name }))}
+                  options={districtOptions}
+                  searchPlaceholder={lang === 'bn' ? 'জেলা খুঁজুন (ঢাকা / Dhaka)' : 'Search district (Dhaka / ঢাকা)'} noMatchText={lang === 'bn' ? 'কিছু পাওয়া যায়নি' : 'No match'}
                   id="request-district"
                   className="text-sm"
                 />
@@ -796,6 +799,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess, passwordRecovery = false, onPasswordRecoveryComplete }) => {
   const districts = useDistricts();
+  const districtOptions = useDistrictOptions(districts);
   const { s, lang } = useStrings(S);
   const [view, setView] = useState<'login' | 'register' | 'reset' | 'new-password'>(passwordRecovery ? 'new-password' : 'login');
   const [name, setName] = useState('');
@@ -1140,9 +1144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-                  <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold">
-                    {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-                  </select>
+                  <CompactSelect value={district} onChange={value => { setDistrict(value); setArea(districts.find(d => d.name === value)?.areas[0] || ''); }} options={districtOptions} searchPlaceholder={lang === 'bn' ? 'জেলা খুঁজুন (ঢাকা / Dhaka)' : 'Search district (Dhaka / ঢাকা)'} noMatchText={lang === 'bn' ? 'কিছু পাওয়া যায়নি' : 'No match'} />
                 </div>
               </div>
 
@@ -1251,6 +1253,7 @@ interface ProfileModalProps {
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile, currentUserId, screeningBadgeFeatureAvailable, onClose, onToggleAvailability, onProfileUpdated, onRequireAuth }) => {
   const districts = useDistricts();
+  const districtOptions = useDistrictOptions(districts);
   const { s, f, lang } = useStrings(S);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1595,9 +1598,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ donor, isOwnProfile,
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-                <select value={district} onChange={e => { setDistrict(e.target.value); setArea(''); }} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold">
-                  {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-                </select>
+                <CompactSelect value={district} onChange={value => { setDistrict(value); setArea(''); }} options={districtOptions} searchPlaceholder={lang === 'bn' ? 'জেলা খুঁজুন (ঢাকা / Dhaka)' : 'Search district (Dhaka / ঢাকা)'} noMatchText={lang === 'bn' ? 'কিছু পাওয়া যায়নি' : 'No match'} />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.area} <span className="text-rose-600 dark:text-rose-400">*</span></label>
@@ -1828,6 +1829,7 @@ interface CompleteProfileModalProps {
 
 export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ donor, onCompleted }) => {
   const districts = useDistricts();
+  const districtOptions = useDistrictOptions(districts);
   const { s, lang } = useStrings(S);
   const [name, setName] = useState(donor.name || '');
   const [phone, setPhone] = useState('');
@@ -1918,9 +1920,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ dono
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">{s.district} <span className="text-rose-600 dark:text-rose-400">*</span></label>
-              <select value={district} onChange={e => { setDistrict(e.target.value); setArea(districts.find(d => d.name === e.target.value)?.areas[0] || ''); }} className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold">
-                {districts.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-              </select>
+              <CompactSelect value={district} onChange={value => { setDistrict(value); setArea(districts.find(d => d.name === value)?.areas[0] || ''); }} options={districtOptions} searchPlaceholder={lang === 'bn' ? 'জেলা খুঁজুন (ঢাকা / Dhaka)' : 'Search district (Dhaka / ঢাকা)'} noMatchText={lang === 'bn' ? 'কিছু পাওয়া যায়নি' : 'No match'} />
             </div>
           </div>
 

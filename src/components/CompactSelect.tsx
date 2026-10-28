@@ -3,20 +3,29 @@ import { ChevronDown } from 'lucide-react';
 
 interface CompactSelectProps {
   value: string;
-  options: Array<{ value: string; label: string }>;
+  /** keywords: extra text the search box matches (e.g. the other language's name). */
+  options: Array<{ value: string; label: string; keywords?: string }>;
   onChange: (value: string) => void;
   className?: string;
   id?: string;
+  /** When set, the list gets a search box with this placeholder. */
+  searchPlaceholder?: string;
+  noMatchText?: string;
 }
 
-export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, onChange, className = '', id }) => {
+export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, onChange, className = '', id, searchPlaceholder, noMatchText = '—' }) => {
   const [open, setOpen] = useState(false);
   // Where the list fits: below by default, above when the visible space
   // below (window or the nearest scrolling ancestor, e.g. the sidebar) is short.
   const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number }>({ up: false, maxHeight: 288 });
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState('');
   const selected = options.find(option => option.value === value);
+  const needle = query.trim().toLowerCase();
+  const visible = needle
+    ? options.filter(option => `${option.label} ${option.value} ${option.keywords || ''}`.toLowerCase().includes(needle))
+    : options;
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -43,6 +52,7 @@ export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, on
       const up = below < 200 && above > below;
       setPlacement({ up, maxHeight: Math.max(144, Math.min(288, up ? above : below)) });
     }
+    setQuery('');
     setOpen(current => !current);
   };
 
@@ -74,7 +84,26 @@ export const CompactSelect: React.FC<CompactSelectProps> = ({ value, options, on
           className={`absolute left-0 right-0 z-30 overflow-y-auto overscroll-contain custom-scroll ${placement.up ? 'bottom-full mb-1' : 'top-full mt-1'} rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-xl`}
           role="listbox"
         >
-          {options.map(option => (
+          {searchPlaceholder && (
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && visible.length > 0) {
+                  e.preventDefault();
+                  onChange(visible[0].value);
+                  setOpen(false);
+                }
+              }}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              autoFocus
+              className="sticky top-0 z-10 mb-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 outline-hidden focus:border-rose-500"
+            />
+          )}
+          {visible.length === 0 && <p className="px-3 py-2 text-sm text-slate-500">{noMatchText}</p>}
+          {visible.map(option => (
             <button
               key={option.value}
               type="button"
